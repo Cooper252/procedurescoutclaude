@@ -1,7 +1,8 @@
 """Assign county FIPS and coordinates to facilities.
 
 Order of preference, recorded in geocode_precision / geocode_source:
-1. 'address': a Census Geocoder match whose state and county agree with the
+1. 'address': a Census Geocoder match (batch endpoint, or the one-address
+   endpoint when the batch endpoint fails) whose state and county agree with the
    facility's published state and county. Ties are never used.
 2. 'zcta_centroid': the Census internal point of the facility's ZIP (ZCTA).
 3. Nothing: geom stays NULL, so search must say the location is unknown.
@@ -90,6 +91,7 @@ def geocode_facilities(
     stats.rows_in = len(pending)
 
     results: dict[str, GeocodeResult] = {}
+    geocoder_down = False
     addressable = [
         AddressRow(str(r[0]), r[2], r[3] or "", state_code, r[4] or "") for r in pending if r[2]
     ]
@@ -99,6 +101,7 @@ def geocode_facilities(
             results = geocoder(addressable)
         except (SourceError, httpx.HTTPError) as exc:
             # The geocoder being down must not block ZIP-level locations.
+            geocoder_down = True
             stats.reject(
                 "geocoder", "geocoder_unavailable", f"{exc}; using ZIP centroids", Severity.WARNING
             )
@@ -137,7 +140,7 @@ def geocode_facilities(
                     {
                         "lon": res.lon,
                         "lat": res.lat,
-                        "src": f"{source}:{'exact' if res.exact else 'non_exact'}",
+                        "src": f"{source}:{res.method}:{'exact' if res.exact else 'non_exact'}",
                         "c": got_county,
                         "f": fid,
                     },
@@ -149,7 +152,7 @@ def geocode_facilities(
             stats.reject(
                 ref, f"geocode_{res.status}", f"Census geocoder: {res.status}", Severity.INFO
             )
-        elif address and geocoder is not None:
+        elif address and geocoder is not None and not geocoder_down:
             stats.reject(
                 ref, "geocode_missing_result", "no row returned for this address", Severity.WARNING
             )
@@ -159,7 +162,11 @@ def geocode_facilities(
                 """
                 UPDATE ref.facility f SET
                     geom = z.geom, geocode_source = :src || ':' || z.gazetteer_year,
-                    geocode_precision = 'zcta_centroid', geocoded_at = now()
+                    geocode_precision = 'zcta_centroid', geocoded_at = now(),
+                    -- A ZCTA lying wholly in one county gives that county; one that
+                    -- crosses county lines gives none.
+                    county_fips = COALESCE(
+                        f.county_fips, CASE WHEN NOT z.crosses_counties THEN z.county_fips END)
                 FROM ref.zcta z
                 WHERE f.id = :f AND z.zcta5 = f.zip5
                 """

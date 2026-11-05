@@ -2,6 +2,32 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-05 — Phase 1, fourth real Nevada run (GitHub Actions, run #4) — first green run
+
+Workflow finished with a green check. Artifact `reference-nv (3).zip` (read 2026-11-05). All eight steps succeeded:
+
+| Step | In | Loaded | Rejected | Notes |
+|---|---|---|---|---|
+| hospitals (PDC `xubh-q36u`, modified 2026-07-22) | 46 | 46 | 0 | 25 acute care, 13 critical access, 8 psychiatric; 25 carry a star rating |
+| ASCs (PDC `4jcv-atw7`, modified 2025-12-16) | 69 | 68 | 1 | duplicate 29C0001057; 3 shared-NPI warnings |
+| census lookups | 180 | 180 | 0 | 17 counties, 180 ZCTAs |
+| NPPES addresses | 65 | 63 | 0 | 2 ZIP mismatches |
+| geocode | 114 | 114 | 0 | **all 114 at ZCTA centroid**: the Census batch geocoder returned HTTP 502 on all 4 attempts (also in run #3), so no address-level coordinates. County FIPS for the 46 hospitals (from CMS county names); none for the 68 ASCs |
+| relationships | 0 | 0 | 0 | review file empty, as intended |
+| HCPCS Level II, October 2026 file | 8,770 | 8,770 | 0 | 1,322 with a termination date; 579 modifier records skipped; 0 numeric (CPT-like) codes found. Confirms the trimmed-line fix. Descriptor text not spot-checked (not in the artifact) |
+| MS-DRG v44, FY2027 Table 5 correction notice | 768 | 768 | 0 | identical to the final-rule sheet |
+
+AHRQ health systems were not loaded (no file URL given; Q7).
+
+Fixes in this change:
+- Geocoder: if the batch endpoint fails, the one-address endpoint (`/geocoder/geographies/address`, JSON, numbers read as Decimal) is used per facility; five failures in a row = unavailable → ZIP centroids. The source records `batch` or `single`. Tests: `test_single_response_parsing_uses_decimals`, `test_batch_failure_falls_back_to_single`, `test_single_endpoint_down_raises`.
+- ZCTA fallback now sets county FIPS when the facility has none and the ZCTA lies wholly in one county; ZCTAs crossing county lines give no county. Test: `test_zcta_fallback_county_only_when_zcta_in_one_county`.
+- An outage no longer adds one "missing result" warning per facility. Test: `test_outage_does_not_add_per_row_noise`.
+
+`make lint typecheck test`: ruff clean, `Success: no issues found in 23 source files`, `191 passed, 1 warning`. Python 3.12.3: `191 passed, 1 warning`.
+
+Next: run #5 to see whether the one-address geocoder works from GitHub Actions.
+
 ## 2026-11-05 — Phase 1, third real Nevada run (GitHub Actions, run #3)
 
 Artifact `reference-nv (2).zip` (read 2026-11-05).

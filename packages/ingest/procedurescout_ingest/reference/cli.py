@@ -194,7 +194,7 @@ def cmd_nppes(args: argparse.Namespace, engine: Engine) -> None:
 
 def cmd_geocode(args: argparse.Namespace, engine: Engine) -> None:
     with new_client() as client:
-        coder = None if args.no_census else (lambda rows: census.census_batch_geocode(client, rows))
+        coder = None if args.no_census else (lambda rows: census.census_geocode(client, rows))
         _run(
             engine,
             "census_geocoder",

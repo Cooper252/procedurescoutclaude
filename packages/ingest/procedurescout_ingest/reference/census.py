@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import csv
 import io
+import json
 import re
 import time
 from collections.abc import Iterable
@@ -35,6 +36,7 @@ GEOCODER_BATCH_URL = "https://geocoding.geo.census.gov/geocoder/geographies/addr
 GEOCODER_BENCHMARK = "Public_AR_Current"
 GEOCODER_VINTAGE = "Current_Current"
 GEOCODER_MAX_BATCH = 10_000
+GEOCODER_SINGLE_URL = "https://geocoding.geo.census.gov/geocoder/geographies/address"
 
 REL_COLUMNS = (
     "geoid_zcta5_20",
@@ -210,6 +212,7 @@ class GeocodeResult:
     lat: Decimal | None = None
     state_fips: str | None = None
     county_fips3: str | None = None
+    method: str = "batch"  # "batch" or "single" (one-address endpoint)
 
 
 def build_batch_csv(rows: Iterable[AddressRow]) -> bytes:
@@ -274,6 +277,77 @@ def _post_with_retry(client: httpx.Client, chunk: list[AddressRow]) -> str:
         if wait is not None:
             time.sleep(wait)
     raise SourceError(f"Census geocoder failed: {last}")
+
+
+def parse_single_response(body: str) -> GeocodeResult:
+    """One-address JSON response: result.addressMatches[] with coordinates
+    {x: lon, y: lat}, matchedAddress, geographies.Counties[].STATE/COUNTY.
+    Numbers are read as Decimal, never float. Several matches = a tie."""
+    data = json.loads(body, parse_float=Decimal)
+    matches = data.get("result", {}).get("addressMatches") or []
+    if not matches:
+        return GeocodeResult(status="no_match", method="single")
+    if len(matches) > 1:
+        return GeocodeResult(status="tie", method="single")
+    m = matches[0]
+    coords = m.get("coordinates") or {}
+    counties = (m.get("geographies") or {}).get("Counties") or []
+    county = counties[0] if len(counties) == 1 else {}
+    return GeocodeResult(
+        status="match",
+        exact=False,  # the one-address endpoint does not report Exact/Non_Exact
+        matched_address=m.get("matchedAddress"),
+        lon=_coord(str(coords.get("x", "")), -180, 180),
+        lat=_coord(str(coords.get("y", "")), -90, 90),
+        state_fips=county.get("STATE"),
+        county_fips3=county.get("COUNTY"),
+        method="single",
+    )
+
+
+MAX_CONSECUTIVE_SINGLE_FAILURES = 5
+
+
+def census_single_geocode(client: httpx.Client, rows: list[AddressRow]) -> dict[str, GeocodeResult]:
+    """Geocode one address per request. Used when the batch endpoint fails.
+    A failed request leaves that address without a result; several failures in
+    a row mean the service is down and raise SourceError."""
+    results: dict[str, GeocodeResult] = {}
+    consecutive = 0
+    last = ""
+    for r in rows:
+        try:
+            resp = client.get(
+                GEOCODER_SINGLE_URL,
+                params={
+                    "street": r.street,
+                    "city": r.city,
+                    "state": r.state,
+                    "zip": r.zip5,
+                    "benchmark": GEOCODER_BENCHMARK,
+                    "vintage": GEOCODER_VINTAGE,
+                    "format": "json",
+                },
+                timeout=httpx.Timeout(60),
+            )
+            if resp.status_code != 200:
+                raise SourceError(f"HTTP {resp.status_code}")
+            results[r.id] = parse_single_response(resp.text)
+            consecutive = 0
+        except (SourceError, httpx.TransportError, ValueError) as exc:
+            consecutive += 1
+            last = f"{type(exc).__name__}: {exc}"
+            if consecutive >= MAX_CONSECUTIVE_SINGLE_FAILURES:
+                raise SourceError(f"Census one-address geocoder failed: {last}") from exc
+    return results
+
+
+def census_geocode(client: httpx.Client, rows: list[AddressRow]) -> dict[str, GeocodeResult]:
+    """Batch endpoint first; if it keeps failing, one address at a time."""
+    try:
+        return census_batch_geocode(client, rows)
+    except SourceError:
+        return census_single_geocode(client, rows)
 
 
 def census_batch_geocode(client: httpx.Client, rows: list[AddressRow]) -> dict[str, GeocodeResult]:
