@@ -1,0 +1,5 @@
+location-name: Battle Mountain General Hospital
+source-page-url: https://bmgh.org/resources/public-pricing.php
+mrf-url: https://bmgh.org/resources/public-pricing/880186024_BattleMountainGeneralHospital_standardcharges-2026.csv
+contact-name: Holly Heese
+contact-email: hheese@bmgh.org

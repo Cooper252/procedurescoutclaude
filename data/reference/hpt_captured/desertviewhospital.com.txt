@@ -1,0 +1,5 @@
+location-name: Desert View Hospital
+source-page-url: https://desertviewhospital.com/patients-and-visitors/for-patients/pricing-guide/
+mrf-url: https://uhsfilecdn.eskycity.net/ac/812660258_desert-view-hospital_standardcharges.csv
+contact-name: UHS Corp Price Transparency Team
+contact-email: UHSCORPPriceTransparencyTeam@uhsinc.com

@@ -23,17 +23,24 @@ from __future__ import annotations
 
 import hashlib
 import re
+import time
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from datetime import date
+from pathlib import Path
 
 import httpx
 from sqlalchemy import Connection, text
 
 from procedurescout_core.enums import Severity
-from procedurescout_core.facility_repo import FacilityMatchStatus, resolve_facility_by_name
+from procedurescout_core.facility_repo import (
+    FacilityMatchStatus,
+    resolve_facility_by_ccn,
+    resolve_facility_by_name,
+)
 
-from .reference.common import LoadStats, decode_text
+from .reference.common import LoadStats, decode_text, read_delimited, require_columns
 
 HPT_FIELDS = ("location-name", "source-page-url", "mrf-url", "contact-name", "contact-email")
 MAX_HPT_BYTES = 1024 * 1024
@@ -106,34 +113,104 @@ class HptFetch:
     final_url: str | None = None
     data: bytes | None = None
     error: str | None = None
+    content_source: str = "live"  # or "captured": an approved copy saved from a browser
+    captured_at: date | None = None
+    captured_from: str | None = None
+    copy_reviewed_by: str | None = None
 
 
 Fetcher = Callable[[str], HptFetch]
+CAPTURED_COLUMNS = (
+    "site",
+    "file",
+    "captured_from",
+    "captured_at",
+    "captured_by",
+    "reviewed_by",
+    "reviewed_at",
+)
 
 
-def http_fetcher(client: httpx.Client) -> Fetcher:
-    def fetch(site: str) -> HptFetch:
-        url = f"{site}/cms-hpt.txt"
+def load_captured_copies(
+    base_dir: Path, manifest_text: str, stats: LoadStats
+) -> dict[str, HptFetch]:
+    """Approved browser-captured cms-hpt.txt copies, keyed by site. Used only
+    when the live fetch of that site fails."""
+    rows = read_delimited(manifest_text, ",")
+    out: dict[str, HptFetch] = {}
+    if not rows:
+        return out
+    require_columns(rows, CAPTURED_COLUMNS, "captured cms-hpt.txt manifest")
+    for row in rows:
+        site = row["site"].rstrip("/").lower()
+        if not row["reviewed_by"] or not row["reviewed_at"]:
+            stats.count("captured_copies_unreviewed")
+            continue
+        path = base_dir / row["file"]
+        if path.parent != base_dir or not path.is_file():
+            stats.reject(site, "captured_copy_missing", f"{row['file']} not found")
+            continue
+        out[site] = HptFetch(
+            site=site,
+            url=f"{site}/cms-hpt.txt",
+            http_status=None,
+            final_url=row["captured_from"],
+            data=path.read_bytes(),
+            content_source="captured",
+            captured_at=date.fromisoformat(row["captured_at"]),
+            captured_from=row["captured_from"],
+            copy_reviewed_by=row["reviewed_by"],
+        )
+    return out
+
+
+RATE_LIMIT_WAITS = (15, 45)  # seconds; used only when a site answers HTTP 429
+
+
+def _retry_after(value: str | None, default: int) -> int:
+    if value and value.strip().isdigit():
+        return min(int(value.strip()), 120)
+    return default
+
+
+def http_fetcher(client: httpx.Client, sleep: Callable[[int], None] = time.sleep) -> Fetcher:
+    """Plain GET of /cms-hpt.txt with an honest User-Agent. A "too many
+    requests" answer (429) is retried after the site's Retry-After (or a short
+    wait); other refusals (403 etc.) are recorded as they are, never worked
+    around."""
+
+    def fetch_once(site: str, url: str) -> tuple[HptFetch, str | None]:
         try:
             buf = bytearray()
             with client.stream("GET", url) as resp:
                 final = str(resp.url)
                 if resp.status_code != 200:
-                    return HptFetch(site, url, resp.status_code, final, error="HTTP error")
+                    retry = resp.headers.get("retry-after")
+                    return HptFetch(site, url, resp.status_code, final, error="HTTP error"), retry
                 for chunk in resp.iter_bytes():
                     buf.extend(chunk)
                     if len(buf) > MAX_HPT_BYTES:
-                        return HptFetch(site, url, 200, final, error="larger than 1 MB")
+                        return HptFetch(site, url, 200, final, error="larger than 1 MB"), None
                 ctype = resp.headers.get("content-type", "")
         except httpx.HTTPError as exc:
-            return HptFetch(site, url, error=f"{type(exc).__name__}: {exc}")
+            return HptFetch(site, url, error=f"{type(exc).__name__}: {exc}"), None
         data = bytes(buf)
         head = data[:200].lstrip().lower()
         if "html" in ctype.lower() or head.startswith((b"<!doctype", b"<html")):
             return HptFetch(
                 site, url, 200, final, data, error="returned a web page, not a text file"
-            )
-        return HptFetch(site, url, 200, final, data)
+            ), None
+        return HptFetch(site, url, 200, final, data), None
+
+    def fetch(site: str) -> HptFetch:
+        url = f"{site}/cms-hpt.txt"
+        result, retry_after = fetch_once(site, url)
+        for wait in RATE_LIMIT_WAITS:
+            if result.http_status != 429:
+                break
+            sleep(_retry_after(retry_after, wait))
+            result, retry_after = fetch_once(site, url)
+        return result
 
     return fetch
 
@@ -143,8 +220,10 @@ def _insert_fetch(conn: Connection, f: HptFetch, entries: int | None) -> uuid.UU
         text(
             """
             INSERT INTO src.hpt_txt_fetch
-                (site, url, http_status, final_url, sha256, bytes, error, entries)
-            VALUES (:site, :url, :st, :final, :sha, :b, :err, :n)
+                (site, url, http_status, final_url, sha256, bytes, error, entries,
+                 content_source, captured_at, captured_from, copy_reviewed_by)
+            VALUES (:site, :url, :st, :final, :sha, :b, :err, :n,
+                    :cs, :cat, :cfrom, :crb)
             RETURNING id
             """
         ),
@@ -157,12 +236,21 @@ def _insert_fetch(conn: Connection, f: HptFetch, entries: int | None) -> uuid.UU
             "b": len(f.data) if f.data is not None else None,
             "err": f.error,
             "n": entries,
+            "cs": f.content_source,
+            "cat": f.captured_at,
+            "cfrom": f.captured_from,
+            "crb": f.copy_reviewed_by,
         },
     ).scalar_one()
     return uuid.UUID(str(value))
 
 
-def discover(conn: Connection, state_code: str, fetcher: Fetcher) -> LoadStats:
+def discover(
+    conn: Connection,
+    state_code: str,
+    fetcher: Fetcher,
+    captured: dict[str, HptFetch] | None = None,
+) -> LoadStats:
     stats = LoadStats()
     facilities = conn.execute(
         text(
@@ -183,16 +271,28 @@ def discover(conn: Connection, state_code: str, fetcher: Fetcher) -> LoadStats:
         fetched = fetcher(site)
         if fetched.error is not None or fetched.data is None:
             _insert_fetch(conn, fetched, None)
-            stats.count("sites_failed")
             ccns = ", ".join(c for _, c in members)
+            copy = (captured or {}).get(site)
+            if copy is None:
+                stats.count("sites_failed")
+                stats.reject(
+                    site,
+                    "hpt_fetch_failed",
+                    f"{fetched.url}: {fetched.error} (status {fetched.http_status}); "
+                    f"facilities {ccns}",
+                    Severity.WARNING,
+                )
+                continue
+            stats.count("sites_from_captured_copy")
             stats.reject(
                 site,
-                "hpt_fetch_failed",
-                f"{fetched.url}: {fetched.error} (status {fetched.http_status}); facilities {ccns}",
-                Severity.WARNING,
+                "hpt_used_captured_copy",
+                f"live fetch failed ({fetched.error}, status {fetched.http_status}); used copy "
+                f"captured {copy.captured_at} from {copy.captured_from}",
+                Severity.INFO,
             )
-            continue
-        entries = parse_hpt_txt(decode_text(fetched.data))
+            fetched = copy
+        entries = parse_hpt_txt(decode_text(fetched.data or b""))
         fetch_id = _insert_fetch(conn, fetched, len(entries))
         stats.count("sites_ok")
         if not entries:
@@ -278,4 +378,57 @@ def discover(conn: Connection, state_code: str, fetcher: Fetcher) -> LoadStats:
                     Severity.WARNING,
                 )
     stats.summary["facilities_named"] = len(named)
+    return stats
+
+
+MANUAL_COLUMNS = (
+    "ccn",
+    "mrf_url",
+    "source_page_url",
+    "note",
+    "evidence",
+    "reviewed_by",
+    "reviewed_at",
+)
+
+
+def load_manual_sources(conn: Connection, csv_text: str) -> LoadStats:
+    """Price-file links a person checked by hand, for hospitals whose cms-hpt.txt
+    does not list them. Each must name one facility, a URL, evidence and a reviewer."""
+    stats = LoadStats()
+    rows = read_delimited(csv_text, ",")
+    if not rows:
+        return stats
+    require_columns(rows, MANUAL_COLUMNS, "manual price-file sources CSV")
+    for i, row in enumerate(rows, start=2):
+        stats.rows_in += 1
+        ref = f"line:{i} ccn:{row['ccn']}"
+        if not row["reviewed_by"] or not row["reviewed_at"]:
+            stats.count("unreviewed")
+            continue
+        if not _URL.match(row["mrf_url"]) or not row["evidence"]:
+            stats.reject(ref, "incomplete", "a URL and evidence are required")
+            continue
+        fid = resolve_facility_by_ccn(conn, row["ccn"])
+        if fid is None:
+            stats.reject(ref, "facility_not_found", f"CCN {row['ccn']!r} is not loaded")
+            continue
+        note = (
+            f"{row['note']} | evidence: {row['evidence']} | reviewed by {row['reviewed_by']} "
+            f"on {row['reviewed_at']}"
+        )
+        conn.execute(
+            text(
+                """
+                INSERT INTO src.transparency_source (facility_id, url, discovery_method,
+                                                     last_checked_at, review_note)
+                VALUES (:f, :u, 'manual', now(), :n)
+                ON CONFLICT (url) DO UPDATE SET review_note = EXCLUDED.review_note,
+                    facility_id = COALESCE(src.transparency_source.facility_id,
+                                           EXCLUDED.facility_id)
+                """
+            ),
+            {"f": fid, "u": row["mrf_url"], "n": note},
+        )
+        stats.rows_loaded += 1
     return stats

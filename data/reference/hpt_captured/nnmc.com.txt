@@ -1,0 +1,17 @@
+location-name: Northern Nevada Medical Center
+source-page-url: https://www.nnmc.com/patients-visitors/pricing-guide
+mrf-url: https://uhsfilecdn.eskycity.net/ac/880159958_northern-nevada-medical-center_standardcharges.csv
+contact-name: UHS Corp Price Transparency Team
+contact-email: UHSCORPPriceTransparencyTeam@uhsinc.com
+
+location-name: ER at McCarran NW, an Extension of Northern Nevada Medical Center
+source-page-url: https://www.nnmc.com/patients-visitors/pricing-guide
+mrf-url: https://uhsfilecdn.eskycity.net/ac/880159958_northern-nevada-medical-center_standardcharges.csv
+contact-name: UHS Corp Price Transparency Team
+contact-email: UHSCORPPriceTransparencyTeam@uhsinc.com
+
+location-name: ER at Spanish Springs, an Extension of Northern Nevada Medical Center
+source-page-url: https://www.nnmc.com/patients-visitors/pricing-guide
+mrf-url: https://uhsfilecdn.eskycity.net/ac/880159958_northern-nevada-medical-center_standardcharges.csv
+contact-name: UHS Corp Price Transparency Team
+contact-email: UHSCORPPriceTransparencyTeam@uhsinc.com

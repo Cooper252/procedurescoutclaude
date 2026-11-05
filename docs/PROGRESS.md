@@ -2,6 +2,49 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-05 — Browser-check proposals approved
+
+Cooper replied "approve all" (2026-11-05): 22 website rows, 10 aliases, 19 captured cms-hpt.txt copies and 1 manual price-file link now carry `reviewed_by = Cooper`, `reviewed_at = 2026-11-05`. Offline check in a throwaway database (live fetches disabled, captured copies only): 41 approved websites, 19 sites read from captured copies, 20 hospitals matched, 12 price files assigned to a single hospital, 1 manual source loaded. The other sites need the live run. One more name needs confirmation: "Desert Parkway Behavioral Healthcare Hospital" vs CMS "DESERT PARKWAY BEHAVIORAL HEALTHCARE HOSPITAL, LLC" (not added).
+
+`make lint typecheck test`: `206 passed, 1 warning`.
+
+## 2026-11-05 — Browser check of the remaining hospitals (proposals awaiting approval)
+
+With Cooper's permission ("Allow"), Claude used the browser built into the Claude app on Cooper's computer to read public cms-hpt.txt files that refused automated requests from GitHub's servers, and to find the remaining websites. A search engine's "are you human" challenge appeared after the first browser search; it was not answered and searching switched back to the web-search tool. No price files were downloaded.
+
+Found:
+- 19 cms-hpt.txt copies saved exactly in `data/reference/hpt_captured/` with `manifest.csv` (source URL, date, who captured; reviewer empty until approved). Byte lengths match the browser's for every copy checked (e.g. Seven Hills 360, NNMC 1,044, Desert Parkway 342).
+- Website corrections: Southern Hills → sunrisehealthinfo.com (its old domain redirects there), Henderson → hendersonhospital.com, West Henderson → westhendersonhospital.com, Spring Mountain Treatment Center and Spring Mountain Sahara → springvalleyhospital.com (listed there as extensions of Spring Valley Hospital), the four St. Rose campuses → commonspirit.org, Seven Hills → sevenhillsbi.com.
+- New websites for 12 previously not-found hospitals (nnmc.com, mgghnv.org, wbrhely.org, bmgh.org, pershinghospital.org, carsonvalleyhealth.org, hghospital.org, desertviewhospital.com, gcdmc.org, slmcnv.org, desertparkway.com, renobehavioral.com).
+- 10 name aliases to confirm (e.g. "Mt. Grant General Hospital", "Lincoln County Hospital District" for Grover C. Dils, "Rose de Lima/San Martin/Siena Hospital").
+- 1 hand-entered price-file link (William Bee Ririe: homepage link to an .xlsx; no cms-hpt.txt).
+- Still not found: Harmon Hospital (290042), Thrive Behavioral (294016). Problems to note: no price file listed for the St. Rose North Las Vegas campus; Reno Behavioral's cms-hpt.txt lists only out-of-state sister hospitals and its pricing page returned "Access denied" in a normal browser; South Lyon's file is dated 2023; the state psychiatric hospitals publish a PDF only.
+
+Code (tested, synthetic): migration `0004_captured_hpt.py` (fetch rows record `live` vs `captured` with capture provenance enforced; manual sources must carry a review note); `discovery.load_captured_copies` (only approved copies, used only when the live fetch fails); `discovery.load_manual_sources`; CLI `manual-sources`; `nv-all` uses both. Tests: `test_captured_copy_used_only_when_live_fetch_fails`, `test_captured_copy_requires_provenance`, `test_manual_sources`, `test_committed_captured_manifest_matches_files`. `tests/conftest.py` factory now gives its manual source a review note.
+
+`make lint typecheck test`: ruff clean, `Success: no issues found in 25 source files`, `206 passed, 1 warning`. Python 3.12.3: `206 passed, 1 warning`.
+
+## 2026-11-05 — Reviewed aliases and blocked sites
+
+- Cooper confirmed in chat (2026-11-05, "Yes to all") the three cms-hpt.txt names: "University Medical Center of Southern Nevada" → 290007, "Carson Tahoe Regional Healthcare" → 290019, "Mesa View Regional" → 291307. Recorded in `data/reference/facility_aliases_reviewed.csv`; they take effect on the next run.
+- Sites that refused automated access (HTTP 403) or had no cms-hpt.txt: web search found public pricing pages for some (Dignity Health `dignityhealth.org/price-transparency`, Tahoe Forest `tfhd.com/shoppable-services/`, Boulder City `bchcares.org/cost-of-care/`) but no direct price-file links. Southern Hills appears on the Sunrise Health system site (`sunrisehealthinfo.com`), so the approved `southernhillshospital.com` may be the wrong place to look. No price-file URLs were recorded by hand; nothing was guessed.
+
+## 2026-11-05 — Phase 2, step 1: first real discovery run (GitHub Actions, run #6)
+
+Artifact `reference-nv (5).zip` (read 2026-11-05). All steps green; Phase 1 counts unchanged (107 address-level locations, 8,770 HCPCS, 768 MS-DRG).
+
+Discovery on the 21 distinct approved sites:
+- **9 sites returned a cms-hpt.txt** (57 location blocks): MountainView, Saint Mary's, Sunrise, Banner Health, Carson Tahoe, Mesa View, Northeastern Nevada Regional, North Vista, UMC.
+- **6 hospitals matched exactly** by name: MountainView (290039), Saint Mary's (290009), Sunrise (290003), Banner Churchill (291313), Northeastern Nevada Regional (290008), North Vista (290005).
+- **4 price files assigned to a single hospital**: Saint Mary's, Banner Churchill, Northeastern Nevada Regional, North Vista. MountainView's and Sunrise's files stay unassigned because the same file is listed for unmatched locations (freestanding ERs, physician groups, "SLS -" departments of other HCA hospitals). That is the intended rule (D-018); the per-file mapping comes in step 2.
+- **3 names that need a person's confirmation** (the hospital's own file uses a different name than CMS): "University Medical Center of Southern Nevada" (umcsn.com → 290007), "Carson Tahoe Regional Healthcare" (carsontahoe.com → 290019), "Mesa View Regional" (mesaviewhospital.com → 291307).
+- **12 sites gave no file**: HTTP 403 (refused automated access from GitHub's servers) at bchcares.org, springvalleyhospital.com, centennialhillshospital.com, summerlinhospital.com, tfhd.com, valleyhealthsystemlv.com, valleyhospital.net; HTTP 404 (no file at that domain) at dpbh.nv.gov, acadiahealthcare.com, dignityhealth.org; HTTP 429 (rate limit) at renown.org; southernhillshospital.com returned a web page.
+- 33 of Banner's blocks are hospitals in other states; correctly left unmatched.
+
+Fix in this change: a 429 answer is retried after the site's Retry-After (or 15 s, then 45 s); 403 and other refusals are recorded and not retried or worked around. Tests: `test_rate_limited_site_is_retried_after_waiting`, `test_forbidden_site_is_not_retried`.
+
+`make lint typecheck test`: ruff clean, `Success: no issues found in 25 source files`, `202 passed, 1 warning`. Python 3.12.3: `202 passed, 1 warning`.
+
 ## 2026-11-05 — Phase 2, step 1: websites and cms-hpt.txt discovery
 
 Implemented and tested on synthetic fixtures; not yet run against real hospital sites.

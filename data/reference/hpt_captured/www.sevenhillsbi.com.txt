@@ -1,0 +1,5 @@
+location-name: Seven Hills Behavioral Health Hospital
+source-page-url: https://www.sevenhillsbi.com/admissions/insurance-payment/price-transparency/
+mrf-url: https://www.sevenhillsbi.com/wp-content/uploads/pricing/2026/219/51-0578850_Seven-Hills-LLC_standardcharges.csv
+contact-name: Pricing Department
+contact-email: PriceTransparency@acadiahealthcare.com

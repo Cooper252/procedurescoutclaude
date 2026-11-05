@@ -1,0 +1,5 @@
+location-name: West Henderson Hospital
+source-page-url: https://westhendersonhospital.com/pricing-guide/
+mrf-url: https://uhsfilecdn.eskycity.net/ac/931655073_west-henderson_hospital_standardcharges.csv
+contact-name: UHS Corp Price Transparency Team
+contact-email: UHSCORPPriceTransparencyTeam@uhsinc.com

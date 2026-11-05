@@ -102,8 +102,8 @@ def make_facility(conn: Connection, name: str = "Synthetic Test Hospital") -> uu
 def make_import_run(conn: Connection, facility_id: uuid.UUID) -> uuid.UUID:
     source_id = conn.execute(
         text(
-            "INSERT INTO src.transparency_source (facility_id, url, discovery_method) "
-            "VALUES (:f, :u, 'manual') RETURNING id"
+            "INSERT INTO src.transparency_source (facility_id, url, discovery_method, review_note) "
+            "VALUES (:f, :u, 'manual', 'synthetic test source') RETURNING id"
         ),
         {"f": facility_id, "u": f"https://example.test/{uuid.uuid4()}.json"},
     ).scalar_one()

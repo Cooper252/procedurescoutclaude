@@ -50,6 +50,8 @@ MSDRG_FY2027_TABLE5_URL = "https://www.cms.gov/files/zip/fy2027-ipps-fr-table-5.
 RELATIONSHIPS_CSV = "data/reference/facility_relationships_reviewed.csv"
 WEBSITES_CSV = "data/reference/facility_websites.csv"
 ALIASES_CSV = "data/reference/facility_aliases_reviewed.csv"
+CAPTURED_DIR = "data/reference/hpt_captured"
+MANUAL_SOURCES_CSV = "data/reference/price_file_sources_reviewed.csv"
 STEP_DATASETS = {
     "hospitals": "cms_hospital_general_information",
     "ascs": "cms_asc_facility",
@@ -63,6 +65,7 @@ STEP_DATASETS = {
     "websites": "facility_websites",
     "aliases": "manual_relationships",
     "discover": "cms_hpt_txt_discovery",
+    "manual_sources": "cms_hpt_txt_discovery",
 }
 
 
@@ -261,15 +264,45 @@ def cmd_aliases(args: argparse.Namespace, engine: Engine) -> None:
 
 
 def cmd_discover(args: argparse.Namespace, engine: Engine) -> None:
+    from pathlib import Path
+
+    captured_stats = LoadStats()
+    manifest = Path(CAPTURED_DIR) / "manifest.csv"
+    captured = (
+        discovery.load_captured_copies(
+            Path(CAPTURED_DIR).resolve(), manifest.read_text(), captured_stats
+        )
+        if manifest.exists()
+        else {}
+    )
+
+    def work(c: Connection) -> LoadStats:
+        stats = discovery.discover(c, args.state, fetch, captured)
+        stats.rejects.extend(captured_stats.rejects)
+        stats.summary.update({f"manifest_{k}": v for k, v in captured_stats.summary.items()})
+        stats.summary["captured_copies_available"] = len(captured)
+        return stats
+
     with new_client() as client:
         fetch = discovery.http_fetcher(client)
         _run(
             engine,
             "cms_hpt_txt_discovery",
-            lambda c: discovery.discover(c, args.state, fetch),
+            work,
             source_file="approved websites /cms-hpt.txt",
             parameters={"state": args.state},
         )
+
+
+def cmd_manual_sources(args: argparse.Namespace, engine: Engine) -> None:
+    blob = acquire(args.file)
+    _run(
+        engine,
+        "cms_hpt_txt_discovery",
+        lambda c: discovery.load_manual_sources(c, decode_text(blob.data)),
+        blob=blob,
+        parameters={"kind": "manual_sources"},
+    )
 
 
 def cmd_hcpcs(args: argparse.Namespace, engine: Engine) -> None:
@@ -428,6 +461,8 @@ def cmd_nv_all(args: argparse.Namespace, engine: Engine) -> None:
     if os.path.exists(WEBSITES_CSV):
         step("websites", lambda: cmd_websites(ns(file=WEBSITES_CSV), engine))
         step("discover", lambda: cmd_discover(ns(state=st), engine))
+    if os.path.exists(MANUAL_SOURCES_CSV):
+        step("manual_sources", lambda: cmd_manual_sources(ns(file=MANUAL_SOURCES_CSV), engine))
     cmd_report(ns(state=st), engine)
     if failures:
         sys.exit(f"{len(failures)} step(s) failed: {', '.join(failures)}")
@@ -476,6 +511,9 @@ def build_parser() -> argparse.ArgumentParser:
     sp = sub.add_parser("discover", help="read cms-hpt.txt on approved websites")
     state(sp)
 
+    sp = sub.add_parser("manual-sources", help="reviewed hand-entered price-file links")
+    sp.add_argument("--file", default=MANUAL_SOURCES_CSV)
+
     sp = sub.add_parser("hcpcs", help="HCPCS Level II codes")
     sp.add_argument("--file", default=HCPCS_OCT_2026_URL)
     sp.add_argument("--release", default="2026-10")
@@ -513,6 +551,7 @@ def main(argv: list[str] | None = None) -> None:
             "websites": lambda: cmd_websites(args, engine),
             "aliases": lambda: cmd_aliases(args, engine),
             "discover": lambda: cmd_discover(args, engine),
+            "manual-sources": lambda: cmd_manual_sources(args, engine),
             "msdrg": lambda: cmd_msdrg(args, engine),
             "report": lambda: cmd_report(args, engine),
             "nv-all": lambda: cmd_nv_all(args, engine),

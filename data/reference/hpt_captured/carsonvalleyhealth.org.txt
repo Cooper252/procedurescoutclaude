@@ -1,0 +1,5 @@
+location-name: Carson Valley Health
+source-page-url: https://carsonvalleyhealth.org/patients-and-visitors/price-transparency/
+mrf-url: https://carsonvalleyhealth.pt.panaceainc.com/MRFDownload/carsonvalleyhealth/carsonvalley
+contact-name: Nicole York
+contact-email: nyork@carsonvalleyhealth.org

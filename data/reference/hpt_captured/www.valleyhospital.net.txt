@@ -1,0 +1,23 @@
+location-name: Valley Hospital Medical Center
+source-page-url: https://www.valleyhospital.net/patients-visitors/pricing-guide
+mrf-url: https://uhsfilecdn.eskycity.net/ac/232973511_valley-hospital-medical-center_standardcharges.csv
+contact-name: UHS Corp Price Transparency Team
+contact-email: UHSCORPPriceTransparencyTeam@uhsinc.com
+
+location-name: Elite Medical Center
+source-page-url: https://www.valleyhospital.net/patients-visitors/pricing-guide
+mrf-url: https://uhsfilecdn.eskycity.net/ac/232973511_valley-hospital-medical-center_standardcharges.csv
+contact-name: UHS Corp Price Transparency Team
+contact-email: UHSCORPPriceTransparencyTeam@uhsinc.com
+
+location-name: ER at Desert Springs, an extension of Valley Hospital
+source-page-url: https://www.valleyhospital.net/patients-visitors/pricing-guide
+mrf-url: https://uhsfilecdn.eskycity.net/ac/232973511_valley-hospital-medical-center_standardcharges.csv
+contact-name: UHS Corp Price Transparency Team
+contact-email: UHSCORPPriceTransparencyTeam@uhsinc.com
+
+location-name: ER at North Las Vegas
+source-page-url: https://www.valleyhospital.net/patients-visitors/pricing-guide
+mrf-url: https://uhsfilecdn.eskycity.net/ac/232973511_valley-hospital-medical-center_standardcharges.csv
+contact-name: UHS Corp Price Transparency Team
+contact-email: UHSCORPPriceTransparencyTeam@uhsinc.com

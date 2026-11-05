@@ -1,0 +1,11 @@
+location-name: Summerlin Hospital Medical Center
+source-page-url: https://www.summerlinhospital.com/patients-visitors/pricing-guide
+mrf-url: https://uhsfilecdn.eskycity.net/ac/232939047_summerlin-hospital-medical-center_standardcharges.csv
+contact-name: UHS Corp Price Transparency Team
+contact-email: UHSCORPPriceTransparencyTeam@uhsinc.com
+
+location-name: ER at South Summerlin, an extension of Summerlin Hospital
+source-page-url: https://www.summerlinhospital.com/patients-visitors/pricing-guide
+mrf-url: https://uhsfilecdn.eskycity.net/ac/232939047_summerlin-hospital-medical-center_standardcharges.csv
+contact-name: UHS Corp Price Transparency Team
+contact-email: UHSCORPPriceTransparencyTeam@uhsinc.com

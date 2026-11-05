@@ -1,0 +1,5 @@
+location-name: South Lyon Medical Center
+source-page-url: https://slmcnv.org/pricing-transparency-report/
+mrf-url: https://slmcnv.org/wp-content/uploads/2023/11/880256932_south-lyon-medical-center_standardcharges.csv
+contact-name: Becky Inserra
+contact-email: rebecca.inserra@slmcnv.org

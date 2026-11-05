@@ -222,3 +222,111 @@ def test_committed_websites_file_is_well_formed() -> None:
             assert r["website"] == "", r
         if r["reviewed_by"]:
             assert re.fullmatch(r"\d{4}-\d{2}-\d{2}", r["reviewed_at"]), r
+
+
+def test_rate_limited_site_is_retried_after_waiting() -> None:
+    answers = [
+        httpx.Response(429, headers={"retry-after": "7"}),
+        httpx.Response(200, text=HPT, headers={"content-type": "text/plain"}),
+    ]
+    waits: list[int] = []
+    with httpx.Client(transport=httpx.MockTransport(lambda r: answers.pop(0))) as client:
+        result = http_fetcher(client, sleep=waits.append)("https://slow.example")
+    assert result.error is None and waits == [7]
+
+
+def test_forbidden_site_is_not_retried() -> None:
+    calls: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(str(request.url))
+        return httpx.Response(403)
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        result = http_fetcher(client, sleep=lambda _s: None)("https://blocked.example")
+    assert (result.http_status, len(calls)) == (403, 1)
+
+
+def test_captured_copy_used_only_when_live_fetch_fails(conn: Connection, tmp_path: Path) -> None:
+    from procedurescout_ingest.discovery import load_captured_copies
+    from procedurescout_ingest.reference.common import LoadStats
+
+    setup_hospitals(conn)
+    load_websites(conn, websites_csv())
+    (tmp_path / "synthetic_down.txt").write_text(
+        "location-name: SYNTHETIC OTHER SITE HOSPITAL\n"
+        "source-page-url: https://down.example/pricing\n"
+        "mrf-url: https://down.example/mrf/other.csv\n"
+        "contact-name: Synthetic\ncontact-email: x@down.example\n"
+    )
+    manifest = (
+        "site,file,captured_from,captured_at,captured_by,reviewed_by,reviewed_at\n"
+        "https://down.example,synthetic_down.txt,https://down.example/cms-hpt.txt,2026-11-05,"
+        "test,tester,2026-11-05\n"
+        f"{SITE},synthetic_down.txt,{SITE}/cms-hpt.txt,2026-11-05,test,,\n"
+    )
+    mstats = LoadStats()
+    copies = load_captured_copies(tmp_path, manifest, mstats)
+    assert set(copies) == {"https://down.example"}  # the unreviewed row is ignored
+    assert mstats.summary == {"captured_copies_unreviewed": 1}
+    stats = discover(conn, "NV", fake_fetcher, copies)
+    assert stats.summary["sites_from_captured_copy"] == 1
+    assert "sites_failed" not in stats.summary
+    rows = conn.execute(
+        text(
+            "SELECT content_source, http_status, copy_reviewed_by FROM src.hpt_txt_fetch "
+            "WHERE site = 'https://down.example' ORDER BY content_source DESC"
+        )
+    ).all()
+    assert [tuple(r) for r in rows] == [("live", 503, None), ("captured", None, "tester")]
+    owner = conn.execute(
+        text(
+            "SELECT f.ccn FROM src.transparency_source s JOIN ref.facility f "
+            "ON f.id = s.facility_id WHERE s.url = 'https://down.example/mrf/other.csv'"
+        )
+    ).scalar()
+    assert owner == "SYN504"
+
+
+def test_captured_copy_requires_provenance(conn: Connection) -> None:
+    with pytest.raises(IntegrityError):
+        conn.execute(
+            text(
+                "INSERT INTO src.hpt_txt_fetch (site, url, content_source) "
+                "VALUES ('https://x.example', 'https://x.example/cms-hpt.txt', 'captured')"
+            )
+        )
+
+
+def test_manual_sources(conn: Connection) -> None:
+    from procedurescout_ingest.discovery import load_manual_sources
+
+    setup_hospitals(conn)
+    csv_text = (
+        "ccn,mrf_url,source_page_url,note,evidence,reviewed_by,reviewed_at\n"
+        "SYN501,https://synthetic.example/a.xlsx,https://synthetic.example/,xlsx not CMS format,"
+        "homepage link,tester,2026-11-05\n"
+        "SYN502,https://synthetic.example/b.csv,,,,,\n"
+        "SYN503,not-a-url,,,evidence,tester,2026-11-05\n"
+    )
+    stats = load_manual_sources(conn, csv_text)
+    assert stats.rows_loaded == 1
+    assert stats.summary == {"unreviewed": 1}
+    assert [r.rule for r in stats.rejects] == ["incomplete"]
+    row = conn.execute(
+        text(
+            "SELECT discovery_method::text, review_note FROM src.transparency_source "
+            "WHERE url = 'https://synthetic.example/a.xlsx'"
+        )
+    ).one()
+    assert row[0] == "manual" and "reviewed by tester" in row[1]
+
+
+def test_committed_captured_manifest_matches_files() -> None:
+    base = ROOT / "data" / "reference" / "hpt_captured"
+    rows = list(csv.DictReader((base / "manifest.csv").open()))
+    assert rows
+    for r in rows:
+        assert (base / r["file"]).is_file(), r
+        assert r["site"].startswith("https://"), r
+        assert parse_hpt_txt((base / r["file"]).read_text())[0].get("mrf-url"), r

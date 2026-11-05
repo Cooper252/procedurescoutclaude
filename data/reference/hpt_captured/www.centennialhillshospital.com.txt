@@ -1,0 +1,17 @@
+location-name: Centennial Hills Hospital Medical Center
+source-page-url: https://www.centennialhillshospital.com/patients-visitors/pricing-guide
+mrf-url: https://uhsfilecdn.eskycity.net/ac/204993360_centennial-hills-hospital-medical-center_standardcharges.csv
+contact-name: UHS Corp Price Transparency Team
+contact-email: UHSCORPPriceTransparencyTeam@uhsinc.com
+
+location-name: ER at Valley Vista, an Extension of Centennial Hills Hospital
+source-page-url: https://www.centennialhillshospital.com/patients-visitors/pricing-guide
+mrf-url: https://uhsfilecdn.eskycity.net/ac/204993360_centennial-hills-hospital-medical-center_standardcharges.csv
+contact-name: UHS Corp Price Transparency Team
+contact-email: UHSCORPPriceTransparencyTeam@uhsinc.com
+
+location-name: ER at West Craig
+source-page-url: https://www.centennialhillshospital.com/patients-visitors/pricing-guide
+mrf-url: https://uhsfilecdn.eskycity.net/ac/204993360_centennial-hills-hospital-medical-center_standardcharges.csv
+contact-name: UHS Corp Price Transparency Team
+contact-email: UHSCORPPriceTransparencyTeam@uhsinc.com

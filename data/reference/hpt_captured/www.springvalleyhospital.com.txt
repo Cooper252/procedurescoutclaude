@@ -1,0 +1,23 @@
+location-name: Spring Valley Hospital Medical Center
+source-page-url: https://www.springvalleyhospital.com/patients-visitors/pricing-guide
+mrf-url: https://uhsfilecdn.eskycity.net/ac/721549752_spring-valley-hospital-medical-center_standardcharges.csv
+contact-name: UHS Corp Price Transparency Team
+contact-email: UHSCORPPriceTransparencyTeam@uhsinc.com
+
+location-name: ER at Blue Diamond, an Extension of Spring Valley Hospital
+source-page-url: https://www.springvalleyhospital.com/patients-visitors/pricing-guide
+mrf-url: https://uhsfilecdn.eskycity.net/ac/721549752_spring-valley-hospital-medical-center_standardcharges.csv
+contact-name: UHS Corp Price Transparency Team
+contact-email: UHSCORPPriceTransparencyTeam@uhsinc.com
+
+location-name: Spring Mountain Treatment Center, an Extension of Spring Valley Hospital
+source-page-url: https://www.springvalleyhospital.com/patients-visitors/pricing-guide
+mrf-url: https://uhsfilecdn.eskycity.net/ac/721549752_spring-valley-hospital-medical-center_standardcharges.csv
+contact-name: UHS Corp Price Transparency Team
+contact-email: UHSCORPPriceTransparencyTeam@uhsinc.com
+
+location-name: Spring Mountain Sahara, an Extension of Spring Valley Hospital
+source-page-url: https://www.springvalleyhospital.com/patients-visitors/pricing-guide
+mrf-url: https://uhsfilecdn.eskycity.net/ac/721549752_spring-valley-hospital-medical-center_standardcharges.csv
+contact-name: UHS Corp Price Transparency Team
+contact-email: UHSCORPPriceTransparencyTeam@uhsinc.com

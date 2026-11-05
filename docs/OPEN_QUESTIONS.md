@@ -10,7 +10,7 @@
 | Q7 | Where should the AHRQ Compendium hospital linkage CSV come from (exact URL), and is the 2023 file the newest? | Cooper / Engineering | Before the first AHRQ load |
 | Q8 | Who reviews facility campus relationships and fills `data/reference/facility_relationships_reviewed.csv`? | Cooper | Before Phase 2 file→facility mapping |
 | Q9 | ASCs outside the ASC Quality Reporting file: add a second source (CMS Provider of Services file or Nevada DPBH licensing list)? | Cooper | Phase 3 |
-| Q11 | Websites for the 15 hospitals not found by search (see `data/reference/facility_websites.csv`, status `not_found`)? | Cooper | Phase 2 |
+| Q11 | Websites for Harmon Hospital (290042) and Thrive Behavioral Hospital (294016); where the St. Rose North Las Vegas campus publishes prices; Reno Behavioral's price file (its page refuses access). | Cooper | Phase 2 |
 | Q10 | NUBC revenue code descriptions: licence or code-only display? | Cooper (counsel) | Phase 3 |
 
 ## Resolved

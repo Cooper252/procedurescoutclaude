@@ -2,6 +2,9 @@
 
 Newest first. Each entry: decision, reason, consequences.
 
+## 2026-11-05 — D-019: Browser-captured cms-hpt.txt copies as a labeled fallback
+Some hospital sites refuse automated requests from cloud servers but serve the same public file to a person's browser. A copy captured in a browser is stored verbatim with its source URL and date, used only after a person approves it, used only when that site's live fetch fails, and every fetch row records whether its content was `live` or `captured`. Challenges meant to stop automation (CAPTCHAs) are never answered on anyone's behalf, and access refused to a browser is reported, not worked around. Hand-entered price-file links are allowed only with evidence and a reviewer, and carry a note explaining why they exist.
+
 ## 2026-11-05 — D-018: Discovery starts from approved websites only
 Hospital websites are proposed (with evidence) and used only after a named person approves them; the database refuses a website without reviewer and date. Price files are found through `/cms-hpt.txt` on those sites. A cms-hpt.txt location is tied to a facility only by an exact name match through usable aliases; other names are stored and reported for review. A price file listed for several locations, or for any unmatched location, is not assigned to a single facility; the facility mapping happens per file when it is downloaded and read (Phase 2 step 2). Federally owned hospitals are marked exempt rather than searched.
 

@@ -60,6 +60,11 @@ Partitioning: LIST (`state_code`) with `price_nv` and a DEFAULT partition. Index
 - `src.hpt_txt_fetch`: every attempt to read a site's cms-hpt.txt (status, final URL after redirects, SHA-256, size, error, entry count).
 - `src.hpt_txt_entry`: each block as published, with `match_status` (matched / unmatched / ambiguous / invalid), `problems`, and `facility_id` exactly when matched. Not readable by the API role.
 
+## Migration 0004
+
+- `src.hpt_txt_fetch.content_source` (`live` | `captured`); captured rows require `captured_at`, `captured_from`, `copy_reviewed_by`.
+- `src.transparency_source.review_note`; required when `discovery_method = 'manual'`.
+
 ## Deletion behaviour
 
 Lineage references use `ON DELETE RESTRICT` (files, runs, dataset versions, facilities cannot be deleted while prices point at them). Child detail rows (aliases, events, validation results) cascade with their parent.

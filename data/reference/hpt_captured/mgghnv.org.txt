@@ -1,0 +1,5 @@
+location-name: Mt. Grant General Hospital
+source-page-url: https://mgghnv.org/information-center/price-transparency/
+mrf-url: https://mgghnv.org/820299396_MtGrantGeneralHospital_standardcharges.json
+contact-name: Jonathan Hunter
+contact-email: mgghit@mgghnv.org

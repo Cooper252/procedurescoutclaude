@@ -1,0 +1,5 @@
+location-name: Humboldt General Hospital
+source-page-url: https://www.hghospital.org/patients-visitors/billing-information/
+mrf-url: https://apim.services.craneware.com/api-pricing-transparency/api/public/4ce22c85b6fd4fde58a7147d3a129940/charges/mrf  
+contact-name: Jackie Wilson
+contact-email: wilsonj@hghospital.org

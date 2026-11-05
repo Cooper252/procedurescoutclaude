@@ -1,0 +1,2 @@
+ccn,mrf_url,source_page_url,note,evidence,reviewed_by,reviewed_at
+291302,https://cdn.prod.website-files.com/5fab990abefbf956e610de45/64c93862b7319b095a5c65ee_880115812_WilliamBeeRirieHospital_standardcharges%20(11).xlsx,https://www.wbrhely.org/,No cms-hpt.txt on wbrhely.org (404); homepage link labeled '880115812 William Bee Ririe Hospital Standard Charges.CSV' points to this .xlsx (not a CMS CSV/JSON format; file name suggests 2023),link on https://www.wbrhely.org/ seen 2026-11-05 in browser,Cooper,2026-11-05

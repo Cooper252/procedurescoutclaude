@@ -1,0 +1,5 @@
+location-name: Boulder City Hospital
+source-page-url: https://bchcares.org/price-transparency/
+mrf-url: https://bchcares.org/880065829_boulder-city-hospital_standard-charges.csv
+contact-name: Tanya Ehlers and/or Rae Cummings
+contact-email: pricetransparency@bchnv.org

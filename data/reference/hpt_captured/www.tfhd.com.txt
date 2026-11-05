@@ -1,0 +1,11 @@
+location-name: Tahoe Forest Health System
+source-page-url: https://www.tfhd.com/shoppable-services/
+mrf-url: https://apps.para-hcfs.com/PTT/FinalLinks/Reports.aspx?dbName=dbTFHDTruckeeCA&type=CDMWithoutLabel&fileType=CSV
+contact-name: Max Hambrick
+contact-email: mhambrick@TFHD.COM
+ 
+location-name: Incline Village Community Hospital
+source-page-url: https://www.tfhd.com/shoppable-services/
+mrf-url: https://apps.para-hcfs.com/PTT/FinalLinks/Reports.aspx?dbName=dbIVHINCLNEVILLAGENV&type=CDMWithoutLabel&fileType=CSV
+contact-name: Max Hambrick
+contact-email: mhambrick@TFHD.COM

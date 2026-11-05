@@ -1,0 +1,5 @@
+location-name: Lincoln County Hospital District
+source-page-url: https://services.gcdmc.org/pt-machinereadable.html
+mrf-url: https://assets.changehealthcare.com/Shop/PROD/static/LincolnCountyHospital/ein_LincolnCountyHospital_standardcharges.csv.zip
+contact-name: April Nelson
+contact-email: anelson@gcdmc.org
