@@ -40,6 +40,12 @@ def test_gazetteer_parses_exact_decimals() -> None:
     assert gaz["89990"].lon == Decimal("-115.100000")
 
 
+@pytest.mark.parametrize("delimiter", ["|", ","])
+def test_gazetteer_other_delimiters(delimiter: str) -> None:
+    gaz = parse_gazetteer(GAZ.replace("\t", delimiter))
+    assert gaz["89991"].lon == Decimal("-119.800000")
+
+
 def test_gazetteer_layout_change_fails_loudly() -> None:
     with pytest.raises(SourceError):
         parse_gazetteer("GEOID\tLAT\tLON\n89990\t1\t2\n")

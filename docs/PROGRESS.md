@@ -2,6 +2,26 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-05 — Phase 1, first real Nevada run (GitHub Actions, run #1)
+
+Cooper ran the manual workflow `Reference data — Nevada (manual)` on commit `5d2f075`. Result: **failed after 36 s**. Artifact `reference-nv.zip` contents (read 2026-11-05):
+
+| Step | Status | Rows in | Loaded | Rejected | Notes |
+|---|---|---|---|---|---|
+| cms_hospital_general_information (modified 2026-07-22) | succeeded | 46 | 46 | 0 | 25 acute care (incl. 2 VA, 1 DoD), 13 critical access, 8 psychiatric; 33 of 46 rated |
+| cms_asc_facility (modified 2025-12-16) | succeeded | 69 | 68 | 1 | 29C0001057 listed twice (first kept). 3 NPI warnings: 29C0001079, 29C0001077, 29C0001084 share an NPI with 29C0001056, 29C0001057, 29C0001006 respectively — left unmerged, need human review |
+| census_zcta_county_relationship | **failed** | — | — | — | `ZCTA Gazetteer file lacks columns ('geoid', 'aland', 'intptlat', 'intptlong')` — the 2026 Gazetteer file is not tab-delimited as the loader assumed |
+
+Steps after the failure (NPPES, geocode, HCPCS, MS-DRG) did not run.
+
+Fixes in this change:
+- `census.parse_gazetteer` now detects the delimiter from the header (tab, pipe or comma) and error messages list the columns actually found. Tests: `test_gazetteer_other_delimiters`.
+- `nv-all` keeps going after a failed step and exits non-zero at the end, so one run shows every problem. Test: `test_nv_all_continues_after_a_failed_step`.
+
+`make lint typecheck test` after the fix: ruff clean, `Success: no issues found in 23 source files`, `175 passed, 1 warning`. Python 3.12.3: `175 passed, 1 warning`.
+
+Next: re-run the workflow.
+
 ## 2026-11-04 — Phase 1 (facility and reference data), first pass
 
 Built by Claude (Cowork) in a cloud workspace. **Not yet pushed; CI has not run on this change; no real data has been loaded.** The build workspace's network blocks data.cms.gov, census.gov, cms.gov, ahrq.gov and npiregistry.cms.hhs.gov (proxy policy 403), so every loader was tested only on synthetic fixtures (`tests/fixtures/reference/synthetic_*`). File layouts were checked against the official documentation and live API schema responses (see `DATA_SOURCES.md`), not against downloaded files.

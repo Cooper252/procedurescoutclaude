@@ -300,32 +300,57 @@ def cmd_report(args: argparse.Namespace, engine: Engine) -> None:
 
 
 def cmd_nv_all(args: argparse.Namespace, engine: Engine) -> None:
+    """Run every step even if one fails, so one run shows every problem;
+    exit non-zero at the end if any step failed."""
     ns = argparse.Namespace
     st = args.state
-    cmd_pdc(ns(state=st, csv=None, as_of=None), engine, "hospitals")
-    cmd_pdc(ns(state=st, csv=None, as_of=None), engine, "ascs")
-    cmd_census(
-        ns(
-            state=st,
-            relationship=ZCTA_COUNTY_REL_URL,
-            gazetteer=GAZETTEER_2026_URL,
-            gazetteer_year=2026,
+    failures: list[str] = []
+
+    def step(name: str, fn: Callable[[], None]) -> None:
+        try:
+            fn()
+        except Exception as exc:
+            failures.append(name)
+            print(f"STEP FAILED: {name}: {type(exc).__name__}: {exc}", file=sys.stderr)
+
+    step("hospitals", lambda: cmd_pdc(ns(state=st, csv=None, as_of=None), engine, "hospitals"))
+    step("ascs", lambda: cmd_pdc(ns(state=st, csv=None, as_of=None), engine, "ascs"))
+    step(
+        "census",
+        lambda: cmd_census(
+            ns(
+                state=st,
+                relationship=ZCTA_COUNTY_REL_URL,
+                gazetteer=GAZETTEER_2026_URL,
+                gazetteer_year=2026,
+            ),
+            engine,
         ),
-        engine,
     )
-    cmd_nppes(ns(state=st), engine)
-    cmd_geocode(ns(state=st, no_census=False), engine)
+    step("nppes", lambda: cmd_nppes(ns(state=st), engine))
+    step("geocode", lambda: cmd_geocode(ns(state=st, no_census=False), engine))
     if args.ahrq_file:
-        cmd_ahrq(ns(state=st, file=args.ahrq_file, year=args.ahrq_year), engine)
+        step(
+            "ahrq", lambda: cmd_ahrq(ns(state=st, file=args.ahrq_file, year=args.ahrq_year), engine)
+        )
     else:
         print("AHRQ step skipped: pass --ahrq-file (hospital linkage CSV)", file=sys.stderr)
     if os.path.exists(RELATIONSHIPS_CSV):
-        cmd_relationships(ns(file=RELATIONSHIPS_CSV), engine)
-    cmd_hcpcs(ns(file=HCPCS_OCT_2026_URL, release="2026-10", year=2026), engine)
-    cmd_msdrg(
-        ns(file=MSDRG_FY2027_TABLE5_URL, fiscal_year=2027, grouper_version=44, min_rows=700), engine
+        step("relationships", lambda: cmd_relationships(ns(file=RELATIONSHIPS_CSV), engine))
+    step(
+        "hcpcs",
+        lambda: cmd_hcpcs(ns(file=HCPCS_OCT_2026_URL, release="2026-10", year=2026), engine),
+    )
+    step(
+        "msdrg",
+        lambda: cmd_msdrg(
+            ns(file=MSDRG_FY2027_TABLE5_URL, fiscal_year=2027, grouper_version=44, min_rows=700),
+            engine,
+        ),
     )
     cmd_report(ns(state=st), engine)
+    if failures:
+        sys.exit(f"{len(failures)} step(s) failed: {', '.join(failures)}")
 
 
 def build_parser() -> argparse.ArgumentParser:

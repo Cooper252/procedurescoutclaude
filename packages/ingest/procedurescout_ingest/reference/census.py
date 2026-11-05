@@ -62,7 +62,10 @@ class ZctaPrimary:
 def parse_relationship(text_: str) -> tuple[dict[str, County], dict[str, ZctaPrimary]]:
     rows = read_delimited(text_)
     if not rows or any(c not in rows[0] for c in REL_COLUMNS):
-        raise SourceError(f"ZCTA-county relationship file lacks columns {REL_COLUMNS}")
+        found = sorted(rows[0]) if rows else []
+        raise SourceError(
+            f"ZCTA-county relationship file lacks columns {REL_COLUMNS}; found {found[:20]}"
+        )
     counties: dict[str, County] = {}
     parts: dict[str, list[tuple[int, str]]] = {}
     for r in rows:
@@ -100,9 +103,12 @@ class GazetteerRow:
 
 
 def parse_gazetteer(text_: str) -> dict[str, GazetteerRow]:
-    rows = read_delimited(text_, "\t")
+    # Delimiter is detected from the header (tab in older Gazetteer years; the
+    # 2026 file was not tab-delimited when first loaded on 2026-11-05).
+    rows = read_delimited(text_)
     if not rows or any(c not in rows[0] for c in GAZ_COLUMNS):
-        raise SourceError(f"ZCTA Gazetteer file lacks columns {GAZ_COLUMNS}")
+        found = sorted(rows[0]) if rows else []
+        raise SourceError(f"ZCTA Gazetteer file lacks columns {GAZ_COLUMNS}; found {found[:20]}")
     out: dict[str, GazetteerRow] = {}
     for r in rows:
         if not _FIVE_DIGITS.match(r["geoid"]):

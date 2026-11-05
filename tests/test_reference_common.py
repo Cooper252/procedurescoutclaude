@@ -160,3 +160,34 @@ def test_cli_parser_defaults() -> None:
     args = cli.build_parser().parse_args(["msdrg"])
     assert (args.fiscal_year, args.grouper_version, args.min_rows) == (2027, 44, 700)
     assert json.dumps(vars(cli.build_parser().parse_args(["hospitals", "--state", "nv"])))
+
+
+def test_nv_all_continues_after_a_failed_step(monkeypatch: pytest.MonkeyPatch) -> None:
+    ran: list[str] = []
+
+    def fake(name: str, fail: bool = False) -> object:
+        def _f(*_a: object, **_k: object) -> None:
+            ran.append(name)
+            if fail:
+                raise SourceError(f"synthetic {name} failure")
+
+        return _f
+
+    monkeypatch.setattr(cli, "cmd_pdc", lambda a, e, kind: fake(kind)())
+    monkeypatch.setattr(cli, "cmd_census", fake("census", fail=True))
+    for name in ("nppes", "geocode", "relationships", "hcpcs", "msdrg", "report"):
+        monkeypatch.setattr(cli, f"cmd_{name}", fake(name))
+    args = cli.build_parser().parse_args(["nv-all"])
+    with pytest.raises(SystemExit, match="1 step\\(s\\) failed: census"):
+        cli.cmd_nv_all(args, None)  # type: ignore[arg-type]
+    assert ran == [
+        "hospitals",
+        "ascs",
+        "census",
+        "nppes",
+        "geocode",
+        "relationships",
+        "hcpcs",
+        "msdrg",
+        "report",
+    ]
