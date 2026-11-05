@@ -129,6 +129,49 @@ def test_table5_xlsx_load(conn: Connection) -> None:
     assert tuple(row) == ("SYNTHETIC SEPSIS", "v44", date(2026, 10, 1), date(2027, 9, 30))
 
 
+def two_sheet_table5(mark_correction: bool) -> bytes:
+    wb = Workbook()
+    final = wb.active
+    assert final is not None
+    final.title = "FY 2027 Final Rule"
+    final.append(["TABLE 5 (synthetic) -- Final Rule"])
+    final.append(["MS-DRG", "MS-DRG Title"])
+    final.append([1, "SYNTHETIC OLD TITLE"])
+    final.append([2, "SYNTHETIC TWO"])
+    cn = wb.create_sheet("FY 2027 CN" if mark_correction else "Sheet2")
+    cn.append([f"TABLE 5 (synthetic){' -- Correction Notice' if mark_correction else ''}"])
+    cn.append(["MS-DRG", "MS-DRG Title"])
+    cn.append([1, "SYNTHETIC CORRECTED TITLE"])
+    cn.append([2, "SYNTHETIC TWO"])
+    cn.append([3, "SYNTHETIC THREE"])
+    buf = io.BytesIO()
+    wb.save(buf)
+    return buf.getvalue()
+
+
+def test_table5_correction_notice_supersedes_final_rule() -> None:
+    stats = LoadStats()
+    rows = {r.code: r.long for r in parse_table5("t5.xlsx", two_sheet_table5(True), stats)}
+    assert rows == {
+        "001": "SYNTHETIC CORRECTED TITLE",
+        "002": "SYNTHETIC TWO",
+        "003": "SYNTHETIC THREE",
+    }
+    assert stats.rejects == []
+    assert stats.summary == {
+        "table": "FY 2027 CN",
+        "superseded_table": "FY 2027 Final Rule",
+        "titles_changed_vs_superseded": 1,
+        "codes_added_vs_superseded": 1,
+        "codes_removed_vs_superseded": 0,
+    }
+
+
+def test_table5_two_unmarked_tables_refused() -> None:
+    with pytest.raises(SourceError, match="cannot tell which is current"):
+        parse_table5("t5.xlsx", two_sheet_table5(False), LoadStats())
+
+
 def test_table5_too_few_rows_refused(conn: Connection) -> None:
     with pytest.raises(SourceError, match="at least 700"):
         load_msdrg(conn, "synthetic.xlsx", synthetic_table5_xlsx(), 44, 2027, "s", min_rows=700)

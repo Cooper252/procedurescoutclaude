@@ -209,32 +209,43 @@ def load_hcpcs(conn: Connection, text_: str, year: int, descriptor_source: str) 
 
 
 # ------------------------------------------------------------------ MS-DRG
-def _table_rows(name: str, data: bytes) -> list[list[str]]:
+def _tables(name: str, data: bytes) -> list[tuple[str, list[list[str]]]]:
+    """(label, rows) per worksheet of an .xlsx, or one table for a text file."""
     if name.lower().endswith(".xlsx"):
         from openpyxl import load_workbook
 
         wb = load_workbook(io.BytesIO(data), read_only=True, data_only=True)
-        out: list[list[str]] = []
+        out: list[tuple[str, list[list[str]]]] = []
         for ws in wb.worksheets:
-            for values in ws.iter_rows(values_only=True):
-                out.append(["" if v is None else str(v).strip() for v in values])
+            rows = [
+                ["" if v is None else str(v).strip() for v in values]
+                for values in ws.iter_rows(values_only=True)
+            ]
+            out.append((ws.title, rows))
         return out
     lines = decode_text(data).splitlines()
     delim = "\t" if sum(ln.count("\t") for ln in lines[:50]) else ","
-    return [[c.strip() for c in r] for r in csv.reader(lines, delimiter=delim)]
+    return [(name, [[c.strip() for c in r] for r in csv.reader(lines, delimiter=delim)])]
 
 
-def parse_table5(name: str, data: bytes, stats: LoadStats) -> list[CodeRow]:
-    table = _table_rows(name, data)
-    header_idx = code_col = title_col = -1
+def _find_header(table: list[list[str]]) -> tuple[int, int, int] | None:
     for i, row in enumerate(table[:100]):
         upper = [c.upper().replace("\n", " ") for c in row]
         if "MS-DRG" in upper and any("TITLE" in c for c in upper):
-            header_idx, code_col = i, upper.index("MS-DRG")
             title_col = next(j for j, c in enumerate(upper) if "TITLE" in c)
-            break
-    if header_idx < 0:
-        raise SourceError(f"{name}: no header row with 'MS-DRG' and a title column")
+            return i, upper.index("MS-DRG"), title_col
+    return None
+
+
+def _is_correction(label: str, table: list[list[str]], header_idx: int) -> bool:
+    text = " ".join([label, *(" ".join(r) for r in table[:header_idx])]).upper()
+    return "CORRECTION" in text
+
+
+def _read_table(
+    table: list[list[str]], header: tuple[int, int, int], stats: LoadStats
+) -> dict[str, CodeRow]:
+    header_idx, code_col, title_col = header
     rows: dict[str, CodeRow] = {}
     for i, row in enumerate(table[header_idx + 1 :], start=header_idx + 2):
         if len(row) <= max(code_col, title_col):
@@ -251,6 +262,42 @@ def parse_table5(name: str, data: bytes, stats: LoadStats) -> list[CodeRow]:
             stats.reject(f"row:{i}", "duplicate_code", f"MS-DRG {code} appears twice")
             continue
         rows[code] = CodeRow(code, title, None, None, None)
+    return rows
+
+
+def parse_table5(name: str, data: bytes, stats: LoadStats) -> list[CodeRow]:
+    """Read Table 5. When the workbook holds both the final-rule table and a
+    correction-notice table, the correction notice is used (it supersedes the
+    final rule) and the number of titles it changed is recorded. Several
+    tables with no way to tell which is current is an error, not a guess."""
+    found = []
+    for label, table in _tables(name, data):
+        header = _find_header(table)
+        if header is not None:
+            found.append((label, table, header))
+    if not found:
+        raise SourceError(f"{name}: no header row with 'MS-DRG' and a title column")
+    if len(found) == 1:
+        chosen = found[0]
+    else:
+        corrections = [f for f in found if _is_correction(f[0], f[1], f[2][0])]
+        if len(corrections) != 1:
+            raise SourceError(
+                f"{name}: {len(found)} MS-DRG tables {[f[0] for f in found]} and "
+                f"{len(corrections)} marked as a correction notice; cannot tell which is current"
+            )
+        chosen = corrections[0]
+    rows = _read_table(chosen[1], chosen[2], stats)
+    stats.summary["table"] = chosen[0]
+    others = [f for f in found if f is not chosen]
+    if others:
+        other_rows = _read_table(others[0][1], others[0][2], LoadStats())
+        stats.summary["superseded_table"] = others[0][0]
+        stats.summary["titles_changed_vs_superseded"] = sum(
+            1 for c, r in rows.items() if c in other_rows and other_rows[c].long != r.long
+        )
+        stats.summary["codes_added_vs_superseded"] = len(set(rows) - set(other_rows))
+        stats.summary["codes_removed_vs_superseded"] = len(set(other_rows) - set(rows))
     stats.rows_in = len(rows) + len(stats.rejects)
     return list(rows.values())
 

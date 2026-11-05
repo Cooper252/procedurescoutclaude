@@ -98,10 +98,14 @@ def maybe_unzip(blob: SourceBlob, pick: Callable[[str, bytes], bool]) -> tuple[s
     blob itself when it is not a zip."""
     if not blob.data.startswith(b"PK\x03\x04"):
         return (blob.path or blob.url or "input", blob.data)
-    chosen = [(n, d) for n, d in zip_members(blob.data).items() if pick(n, d)]
+    members = zip_members(blob.data)
+    chosen = [(n, d) for n, d in members.items() if pick(n, d)]
     if len(chosen) != 1:
-        names = [n for n, _ in chosen]
-        raise SourceError(f"expected exactly one matching zip member, found {names}")
+        listing = {n: len(d) for n, d in members.items()}
+        raise SourceError(
+            f"expected exactly one matching zip member, found {[n for n, _ in chosen]}; "
+            f"archive holds {listing}"
+        )
     return chosen[0]
 
 

@@ -162,7 +162,9 @@ def test_cli_parser_defaults() -> None:
     assert json.dumps(vars(cli.build_parser().parse_args(["hospitals", "--state", "nv"])))
 
 
-def test_nv_all_continues_after_a_failed_step(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_nv_all_continues_after_a_failed_step(
+    engine: Engine, monkeypatch: pytest.MonkeyPatch
+) -> None:
     ran: list[str] = []
 
     def fake(name: str, fail: bool = False) -> object:
@@ -178,8 +180,12 @@ def test_nv_all_continues_after_a_failed_step(monkeypatch: pytest.MonkeyPatch) -
     for name in ("nppes", "geocode", "relationships", "hcpcs", "msdrg", "report"):
         monkeypatch.setattr(cli, f"cmd_{name}", fake(name))
     args = cli.build_parser().parse_args(["nv-all"])
-    with pytest.raises(SystemExit, match="1 step\\(s\\) failed: census"):
-        cli.cmd_nv_all(args, None)  # type: ignore[arg-type]
+    try:
+        with pytest.raises(SystemExit, match="1 step\\(s\\) failed: census"):
+            cli.cmd_nv_all(args, engine)
+    finally:
+        with engine.begin() as c:
+            c.execute(text("DELETE FROM src.reference_load WHERE source_file = 'nv-all:census'"))
     assert ran == [
         "hospitals",
         "ascs",
@@ -191,3 +197,45 @@ def test_nv_all_continues_after_a_failed_step(monkeypatch: pytest.MonkeyPatch) -
         "msdrg",
         "report",
     ]
+
+
+def test_nv_all_records_failures_that_happen_before_loading(
+    engine: Engine, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def ok(*_a: object, **_k: object) -> None:
+        return None
+
+    def download_fails(*_a: object, **_k: object) -> None:
+        raise SourceError("synthetic download failure")
+
+    for name in ("pdc", "census", "nppes", "geocode", "relationships", "msdrg", "report"):
+        monkeypatch.setattr(cli, f"cmd_{name}", ok)
+    monkeypatch.setattr(cli, "cmd_hcpcs", download_fails)
+    args = cli.build_parser().parse_args(["nv-all"])
+    try:
+        with pytest.raises(SystemExit, match="hcpcs"):
+            cli.cmd_nv_all(args, engine)
+        with engine.connect() as c:
+            row = c.execute(
+                text(
+                    "SELECT dataset, status, error FROM src.reference_load "
+                    "WHERE source_file = 'nv-all:hcpcs'"
+                )
+            ).one()
+        assert tuple(row) == (
+            "cms_hcpcs_level2",
+            "failed",
+            "SourceError: synthetic download failure",
+        )
+    finally:
+        with engine.begin() as c:
+            c.execute(text("DELETE FROM src.reference_load WHERE source_file = 'nv-all:hcpcs'"))
+
+
+def test_unzip_error_lists_archive_contents() -> None:
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        zf.writestr("a.txt", b"x")
+        zf.writestr("b.txt", b"yy")
+    with pytest.raises(SourceError, match=r"archive holds \{'a.txt': 1, 'b.txt': 2\}"):
+        maybe_unzip(SourceBlob(buf.getvalue(), "0" * 64), lambda n, _d: True)

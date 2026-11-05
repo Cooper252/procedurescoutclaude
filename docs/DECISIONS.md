@@ -2,6 +2,9 @@
 
 Newest first. Each entry: decision, reason, consequences.
 
+## 2026-11-05 — D-017: Table 5 correction notice supersedes the final rule
+When the IPPS Table 5 workbook contains both the final-rule table and a correction-notice table, the correction notice is loaded and the differences are counted in the load summary. If several tables exist and exactly one is not marked as a correction, the load is refused rather than guessing.
+
 ## 2026-11-04 — D-016: Reference loads are idempotent upserts with lineage
 Every reference load writes a `src.reference_load` row (source URL or file, SHA-256, size, source modified date, counts) and its rejects to `src.reference_reject`. Data changes run in one transaction; a failed load leaves only its `failed` lineage row. Facilities absent from a newer CMS file are not deleted or marked closed automatically (`source_last_seen_at` records when they were last seen); closing a facility needs evidence.
 

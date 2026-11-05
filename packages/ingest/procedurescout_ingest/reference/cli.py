@@ -46,6 +46,17 @@ ZCTA_COUNTY_REL_URL = (
 HCPCS_OCT_2026_URL = "https://www.cms.gov/files/zip/october-2026-alpha-numeric-hcpcs-file.zip"
 MSDRG_FY2027_TABLE5_URL = "https://www.cms.gov/files/zip/fy2027-ipps-fr-table-5.zip"
 RELATIONSHIPS_CSV = "data/reference/facility_relationships_reviewed.csv"
+STEP_DATASETS = {
+    "hospitals": "cms_hospital_general_information",
+    "ascs": "cms_asc_facility",
+    "census": "census_zcta_county_relationship",
+    "nppes": "nppes_npi_registry",
+    "geocode": "census_geocoder",
+    "ahrq": "ahrq_compendium_hospital_linkage",
+    "relationships": "manual_relationships",
+    "hcpcs": "cms_hcpcs_level2",
+    "msdrg": "cms_ms_drg_table5",
+}
 
 
 def _engine() -> Engine:
@@ -306,12 +317,24 @@ def cmd_nv_all(args: argparse.Namespace, engine: Engine) -> None:
     st = args.state
     failures: list[str] = []
 
+    def load_count() -> int:
+        with engine.connect() as conn:
+            return int(conn.execute(text("SELECT count(*) FROM src.reference_load")).scalar_one())
+
     def step(name: str, fn: Callable[[], None]) -> None:
+        before = load_count()
         try:
             fn()
         except Exception as exc:
             failures.append(name)
-            print(f"STEP FAILED: {name}: {type(exc).__name__}: {exc}", file=sys.stderr)
+            message = f"{type(exc).__name__}: {exc}"
+            print(f"STEP FAILED: {name}: {message}", file=sys.stderr)
+            if load_count() == before:
+                # Failed before its lineage row existed (e.g. while downloading or
+                # unzipping): record it so the failure shows up in the load report.
+                with engine.begin() as conn:
+                    load_id = begin_load(conn, STEP_DATASETS[name], source_file=f"nv-all:{name}")
+                    fail_load(conn, load_id, message)
 
     step("hospitals", lambda: cmd_pdc(ns(state=st, csv=None, as_of=None), engine, "hospitals"))
     step("ascs", lambda: cmd_pdc(ns(state=st, csv=None, as_of=None), engine, "ascs"))

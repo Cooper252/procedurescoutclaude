@@ -43,7 +43,8 @@ REL_COLUMNS = (
 )
 GAZ_COLUMNS = ("geoid", "aland", "intptlat", "intptlong")
 _FIVE_DIGITS = re.compile(r"^[0-9]{5}$")
-_COORD = re.compile(r"^-?[0-9]{1,3}\.[0-9]+$")
+# The 2026 Gazetteer writes signed coordinates ("+144.751149", "-115.1").
+_COORD = re.compile(r"^[+-]?[0-9]{1,3}\.[0-9]+$")
 
 
 @dataclass(frozen=True, slots=True)

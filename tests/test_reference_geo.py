@@ -46,6 +46,11 @@ def test_gazetteer_other_delimiters(delimiter: str) -> None:
     assert gaz["89991"].lon == Decimal("-119.800000")
 
 
+def test_gazetteer_signed_coordinates() -> None:
+    signed = GAZ.replace("\t36.100000\t", "\t+36.100000\t")
+    assert parse_gazetteer(signed)["89990"].lat == Decimal("36.100000")
+
+
 def test_gazetteer_layout_change_fails_loudly() -> None:
     with pytest.raises(SourceError):
         parse_gazetteer("GEOID\tLAT\tLON\n89990\t1\t2\n")

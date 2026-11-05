@@ -2,6 +2,30 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-05 — Phase 1, second real Nevada run (GitHub Actions, run #2)
+
+Artifact `reference-nv (1).zip` (read 2026-11-05). Every step now ran thanks to the continue-on-failure change.
+
+| Step | Status | In | Loaded | Rejected | Notes |
+|---|---|---|---|---|---|
+| hospitals | succeeded | 46 | 46 | 0 | same as run #1 |
+| ASCs | succeeded | 69 | 68 | 1 | same as run #1 |
+| census lookups | **failed** | — | — | — | `bad coordinate '+144.751149'`: the 2026 Gazetteer writes signed coordinates |
+| NPPES addresses | succeeded | 65 | 63 | 0 | 2 address mismatches (e.g. 29C0001059: NPPES ZIP 89113 vs CMS 89147) left at ZIP level |
+| geocode | succeeded (did nothing) | 0 | 0 | 1 | `no_counties` because census lookups failed |
+| HCPCS | **failed, unrecorded** | — | — | — | failed before its lineage row was written, so the reason is not in the artifact |
+| MS-DRG (FY2027 Table 5) | succeeded | 1538 | 768 | 770 | the workbook holds two tables (final rule + correction notice); the loader read both as one and rejected the second as duplicates, so the 768 codes came from the **final-rule** table, not the correction notice |
+| report | — | — | — | — | 5 names shared by more than one facility (ambiguous by design, e.g. two "DIGESTIVE DISEASE CENTER GREEN VALLEY" CCNs) |
+
+Fixes in this change:
+- Gazetteer coordinates may carry a `+` sign. Test: `test_gazetteer_signed_coordinates`.
+- Table 5: each worksheet is read separately; if there are several, the one marked "Correction" is used and the titles/codes it changed are counted; several unmarked tables are refused. Tests: `test_table5_correction_notice_supersedes_final_rule`, `test_table5_two_unmarked_tables_refused`.
+- `nv-all` records a `failed` lineage row (with the error) for a step that fails before loading starts, e.g. during download or unzip. Zip errors list the archive's contents. Tests: `test_nv_all_records_failures_that_happen_before_loading`, `test_unzip_error_lists_archive_contents`.
+
+`make lint typecheck test`: ruff clean, `Success: no issues found in 23 source files`, `180 passed, 1 warning`. Python 3.12.3: `180 passed, 1 warning`.
+
+Next: run #3.
+
 ## 2026-11-05 — Phase 1, first real Nevada run (GitHub Actions, run #1)
 
 Cooper ran the manual workflow `Reference data — Nevada (manual)` on commit `5d2f075`. Result: **failed after 36 s**. Artifact `reference-nv.zip` contents (read 2026-11-05):
