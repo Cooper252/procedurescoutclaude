@@ -21,6 +21,7 @@ from __future__ import annotations
 import csv
 import io
 import re
+import time
 from collections.abc import Iterable
 from dataclasses import dataclass
 from decimal import Decimal
@@ -247,18 +248,38 @@ def parse_batch_response(text_: str) -> dict[str, GeocodeResult]:
     return out
 
 
+RETRY_WAIT_SECONDS = (10, 30, 60)
+
+
+def _post_with_retry(client: httpx.Client, chunk: list[AddressRow]) -> str:
+    """POST one batch; retry server errors (5xx) and network errors a few times,
+    since the Census geocoder is occasionally unavailable (HTTP 502 seen 2026-11-05)."""
+    last = "no attempt"
+    for wait in (*RETRY_WAIT_SECONDS, None):
+        try:
+            resp = client.post(
+                GEOCODER_BATCH_URL,
+                data={"benchmark": GEOCODER_BENCHMARK, "vintage": GEOCODER_VINTAGE},
+                files={"addressFile": ("addresses.csv", build_batch_csv(chunk), "text/csv")},
+                timeout=httpx.Timeout(600),
+            )
+        except httpx.TransportError as exc:
+            last = f"{type(exc).__name__}: {exc}"
+        else:
+            if resp.status_code == 200:
+                return resp.text
+            last = f"HTTP {resp.status_code}"
+            if resp.status_code < 500:
+                break
+        if wait is not None:
+            time.sleep(wait)
+    raise SourceError(f"Census geocoder failed: {last}")
+
+
 def census_batch_geocode(client: httpx.Client, rows: list[AddressRow]) -> dict[str, GeocodeResult]:
     """Geocode addresses with the Census batch geographies endpoint."""
     results: dict[str, GeocodeResult] = {}
     for start in range(0, len(rows), GEOCODER_MAX_BATCH):
         chunk = rows[start : start + GEOCODER_MAX_BATCH]
-        resp = client.post(
-            GEOCODER_BATCH_URL,
-            data={"benchmark": GEOCODER_BENCHMARK, "vintage": GEOCODER_VINTAGE},
-            files={"addressFile": ("addresses.csv", build_batch_csv(chunk), "text/csv")},
-            timeout=httpx.Timeout(600),
-        )
-        if resp.status_code != 200:
-            raise SourceError(f"Census geocoder returned HTTP {resp.status_code}")
-        results.update(parse_batch_response(resp.text))
+        results.update(parse_batch_response(_post_with_retry(client, chunk)))
     return results

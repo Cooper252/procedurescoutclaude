@@ -78,9 +78,36 @@ def join_segments(segments: list[str]) -> str:
 def looks_like_hcpcs_text(name: str, data: bytes) -> bool:
     if not name.lower().endswith(".txt"):
         return False
-    lines = decode_text(data).splitlines()[:200]
-    good = sum(1 for ln in lines if len(ln) >= 293 and ln[10:11] in {"3", "4", "7", "8"})
+    """Fixed-width HCPCS records: a code (or blank-padded modifier) in columns
+    1-5 and a record id in column 11. Trailing blanks may be trimmed (the
+    October 2026 file is), so line length is not required; parse_hcpcs pads."""
+    lines = [ln for ln in decode_text(data).splitlines()[:300] if ln.strip()]
+    good = sum(
+        1
+        for ln in lines
+        if ln[10:11] in {"3", "4", "7", "8"}
+        and (LEVEL2_CODE.match(ln[0:5]) or CPT_LIKE.match(ln[0:5]) or ln[0:3] == "   ")
+    )
     return len(lines) > 0 and good * 10 >= len(lines) * 9
+
+
+def describe_text_members(data: bytes) -> dict[str, object]:
+    """Line count, length range and the first two lines of each .txt member,
+    for error messages when no member looks like the HCPCS records file."""
+    out: dict[str, object] = {}
+    if not data.startswith(b"PK\x03\x04"):
+        return out
+    for name, member in zip_members(data).items():
+        if not name.lower().endswith(".txt"):
+            continue
+        lines = decode_text(member).splitlines()
+        lengths = [len(ln) for ln in lines[:300]]
+        out[name] = {
+            "lines": len(lines),
+            "length_range_first_300": [min(lengths, default=0), max(lengths, default=0)],
+            "first_lines": [ln[:120] for ln in lines[:2]],
+        }
+    return out
 
 
 def parse_hcpcs(text_: str, stats: LoadStats) -> list[CodeRow]:
@@ -141,6 +168,12 @@ def parse_hcpcs(text_: str, stats: LoadStats) -> list[CodeRow]:
         current = code
     if procedure_records == 0:
         raise SourceError("no HCPCS procedure records found; the record layout may have changed")
+    undated = sum(1 for r in rows.values() if r.added is None)
+    if undated * 2 > len(rows):
+        raise SourceError(
+            f"{undated} of {len(rows)} codes have no added date in columns 269-276; "
+            "the HCPCS record layout may have changed"
+        )
     if layout_failures * 1000 > procedure_records * MAX_LAYOUT_FAILURE_PERMILLE:
         raise SourceError(
             f"{layout_failures} layout failures in {procedure_records} records; "

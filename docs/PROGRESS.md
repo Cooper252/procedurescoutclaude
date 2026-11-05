@@ -2,6 +2,28 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-05 — Phase 1, third real Nevada run (GitHub Actions, run #3)
+
+Artifact `reference-nv (2).zip` (read 2026-11-05).
+
+| Step | Status | In | Loaded | Rejected | Notes |
+|---|---|---|---|---|---|
+| hospitals | succeeded | 46 | 46 | 0 | |
+| ASCs | succeeded | 69 | 68 | 1 | |
+| census lookups | **succeeded** | 180 | 180 | 0 | 17 Nevada counties, 180 ZCTAs |
+| NPPES addresses | succeeded | 65 | 63 | 0 | 2 ZIP mismatches (29C0001059, 29C0001125) |
+| geocode | **failed** | — | — | — | `Census geocoder returned HTTP 502` (server error at the Census Bureau); the whole step rolled back, so no facility got even a ZIP-level location or county FIPS |
+| HCPCS | **failed** | — | — | — | no zip member recognized. Archive holds `HCPC2026_OCT_ANWEB_09232026.txt` (3,208,022 bytes), `.xlsx`, transaction report, corrections, `HCPC2026_recordlayout.txt`, NOC codes, `proc_notes_OCT2026.txt`. Likely cause: the detector required lines of at least 293 characters; the 2026 file probably trims trailing blanks (not confirmed) |
+| MS-DRG | **succeeded** | 768 | 768 | 0 | correction-notice sheet "FY 2027 Table 5 CN" used; vs final rule "FY 2027 Table 5 FR": 0 titles changed, 0 codes added, 0 removed |
+
+Fixes in this change:
+- Geocoder: server and network errors are retried (waits of 10, 30, 60 s); if the geocoder is still down the step continues with ZIP centroids and records a `geocoder_unavailable` warning. Tests: `test_geocoder_retries_server_errors`, `test_geocoder_gives_up_after_retries`, `test_geocoder_outage_falls_back_to_zcta`.
+- HCPCS: the detector no longer requires full-length lines (it checks the code in columns 1–5 and the record id in column 11); a new guard refuses the load if most codes have no added date (the layout would have moved). If detection fails again the error includes line counts, length ranges and the first two lines of each text member. Tests: `test_hcpcs_trimmed_lines_detected_and_parsed`, `test_hcpcs_layout_without_dates_refused`, `test_describe_text_members`.
+
+`make lint typecheck test`: ruff clean, `Success: no issues found in 23 source files`, `186 passed, 1 warning`. Python 3.12.3: `186 passed, 1 warning`.
+
+Next: run #4.
+
 ## 2026-11-05 — Phase 1, second real Nevada run (GitHub Actions, run #2)
 
 Artifact `reference-nv (1).zip` (read 2026-11-05). Every step now ran thanks to the continue-on-failure change.

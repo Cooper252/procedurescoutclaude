@@ -12,6 +12,7 @@ from sqlalchemy.exc import IntegrityError
 from procedurescout_core.enums import CodeSystem
 from procedurescout_ingest.reference.codes import (
     CodeRow,
+    describe_text_members,
     join_segments,
     load_hcpcs,
     load_msdrg,
@@ -30,6 +31,21 @@ def test_hcpcs_text_member_detection() -> None:
     assert looks_like_hcpcs_text("HCPC2026_OCT_ANWEB.txt", HCPCS.encode())
     assert not looks_like_hcpcs_text("record_layout.txt", b"HCPCS RECORD LAYOUT\nfield 1\n")
     assert not looks_like_hcpcs_text("HCPC2026.xlsx", HCPCS.encode())
+
+
+def test_hcpcs_trimmed_lines_detected_and_parsed() -> None:
+    trimmed = "\n".join(line.rstrip() for line in HCPCS.splitlines())
+    assert looks_like_hcpcs_text("HCPC2026_OCT_ANWEB_09232026.txt", trimmed.encode())
+    stats = LoadStats()
+    rows = {r.code: r for r in parse_hcpcs(trimmed, stats)}
+    assert sorted(rows) == ["A9901", "E9902", "J9903"]
+    assert rows["E9902"].long.endswith("long description that continues on a second record")
+
+
+def test_hcpcs_layout_without_dates_refused() -> None:
+    no_dates = "\n".join(line[:200] for line in HCPCS.splitlines())
+    with pytest.raises(SourceError, match="no added date"):
+        parse_hcpcs(no_dates, LoadStats())
 
 
 def test_hcpcs_parse() -> None:
@@ -180,3 +196,20 @@ def test_table5_too_few_rows_refused(conn: Connection) -> None:
 def test_table5_without_header_refused() -> None:
     with pytest.raises(SourceError, match="header"):
         parse_table5("x.txt", b"DRG\tDescription\n001\tX\n", LoadStats())
+
+
+def test_describe_text_members() -> None:
+    import zipfile
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        zf.writestr("layout.txt", "FIELD 1\nFIELD 2\nFIELD 3\n")
+        zf.writestr("data.xlsx", b"x")
+    info = describe_text_members(buf.getvalue())
+    assert info == {
+        "layout.txt": {
+            "lines": 3,
+            "length_range_first_300": [7, 7],
+            "first_lines": ["FIELD 1", "FIELD 2"],
+        }
+    }

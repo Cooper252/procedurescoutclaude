@@ -25,6 +25,7 @@ from . import ahrq, census, cms_pdc, codes, facilities, geocode, nppes, relation
 from .common import (
     LoadStats,
     SourceBlob,
+    SourceError,
     acquire,
     begin_load,
     decode_text,
@@ -235,7 +236,10 @@ def cmd_relationships(args: argparse.Namespace, engine: Engine) -> None:
 def cmd_hcpcs(args: argparse.Namespace, engine: Engine) -> None:
     with new_client() as client:
         blob = acquire(args.file, client)
-    member, data = maybe_unzip(blob, codes.looks_like_hcpcs_text)
+    try:
+        member, data = maybe_unzip(blob, codes.looks_like_hcpcs_text)
+    except SourceError as exc:
+        raise SourceError(f"{exc}; text samples: {codes.describe_text_members(blob.data)}") from exc
     source = f"CMS HCPCS Level II alpha-numeric file, {args.release} ({member})"
     _run(
         engine,

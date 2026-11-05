@@ -15,12 +15,13 @@ from __future__ import annotations
 import re
 from collections.abc import Callable
 
+import httpx
 from sqlalchemy import Connection, text
 
 from procedurescout_core.enums import Severity
 
 from .census import GEOCODER_BENCHMARK, GEOCODER_VINTAGE, AddressRow, GeocodeResult
-from .common import USPS_TO_FIPS, LoadStats
+from .common import USPS_TO_FIPS, LoadStats, SourceError
 
 Geocoder = Callable[[list[AddressRow]], dict[str, GeocodeResult]]
 
@@ -93,8 +94,14 @@ def geocode_facilities(
         AddressRow(str(r[0]), r[2], r[3] or "", state_code, r[4] or "") for r in pending if r[2]
     ]
     if geocoder is not None and addressable:
-        results = geocoder(addressable)
         stats.summary["sent_to_geocoder"] = len(addressable)
+        try:
+            results = geocoder(addressable)
+        except (SourceError, httpx.HTTPError) as exc:
+            # The geocoder being down must not block ZIP-level locations.
+            stats.reject(
+                "geocoder", "geocoder_unavailable", f"{exc}; using ZIP centroids", Severity.WARNING
+            )
 
     source = f"census_geocoder:{GEOCODER_BENCHMARK}/{GEOCODER_VINTAGE}"
     for fid, ccn, address, _city, zip5, county_fips in pending:

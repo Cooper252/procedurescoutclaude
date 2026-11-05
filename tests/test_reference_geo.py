@@ -179,3 +179,32 @@ def test_geocode_without_census_uses_zcta(conn: Connection) -> None:
 def test_geocode_needs_county_table(conn: Connection) -> None:
     stats = geocode_facilities(conn, "NV", None)
     assert [r.rule for r in stats.rejects] == ["no_counties"]
+
+
+def test_geocoder_retries_server_errors(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("procedurescout_ingest.reference.census.time.sleep", lambda _s: None)
+    answers = [httpx.Response(502), httpx.Response(200, text='"a","x","No_Match"\n')]
+    with httpx.Client(transport=httpx.MockTransport(lambda r: answers.pop(0))) as client:
+        out = census_batch_geocode(client, [AddressRow("a", "1 Test Way", "X", "NV", "89990")])
+    assert out["a"].status == "no_match"
+
+
+def test_geocoder_gives_up_after_retries(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("procedurescout_ingest.reference.census.time.sleep", lambda _s: None)
+    with (
+        httpx.Client(transport=httpx.MockTransport(lambda r: httpx.Response(502))) as client,
+        pytest.raises(SourceError, match="HTTP 502"),
+    ):
+        census_batch_geocode(client, [AddressRow("a", "1 Test Way", "X", "NV", "89990")])
+
+
+def test_geocoder_outage_falls_back_to_zcta(conn: Connection) -> None:
+    load_lookups(conn)
+    load_hospitals(conn, [hospital("SYN306", "6 ANY", "89990")], "NV", None)
+
+    def down(rows: list[AddressRow]) -> dict[str, GeocodeResult]:
+        raise SourceError("Census geocoder failed: HTTP 502")
+
+    stats = geocode_facilities(conn, "NV", down)
+    assert stats.summary["zcta_centroid"] == 1
+    assert any(r.rule == "geocoder_unavailable" for r in stats.rejects)
