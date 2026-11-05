@@ -2,6 +2,67 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-04 — Phase 1 (facility and reference data), first pass
+
+Built by Claude (Cowork) in a cloud workspace. **Not yet pushed; CI has not run on this change; no real data has been loaded.** The build workspace's network blocks data.cms.gov, census.gov, cms.gov, ahrq.gov and npiregistry.cms.hhs.gov (proxy policy 403), so every loader was tested only on synthetic fixtures (`tests/fixtures/reference/synthetic_*`). File layouts were checked against the official documentation and live API schema responses (see `DATA_SOURCES.md`), not against downloaded files.
+
+### Implemented and tested (synthetic fixtures)
+
+- Migration `0002_facility_reference.py`: 10-character ASC CCNs; raw CMS facility type and county; geocode precision (`address` / `zcta_centroid`) tied to `geom`; sourced health-system links; health systems keyed by (source, source_system_id) with `UNIQUE(name)` dropped (D-013); facility aliases with normalized key, match basis (ccn/npi/manual) and review state; relationship review state, evidence, one approved campus parent per child, reversed pairs refused by trigger; `ref.county`, `ref.zcta`; `ref.code.descriptor_short` under the CPT licence rule; `src.reference_load` + `src.reference_reject` lineage; API grants on the two new lookup tables.
+- `procedurescout_core/facility_repo.py`: exact-only name resolution among usable aliases; shared names return *ambiguous*, never a match.
+- `procedurescout_ingest/reference/`: `cms_pdc.py` (PDC datastore API paging with count check, or CSV), `facilities.py` (hospitals + ASCs, upsert by CCN, unknown types rejected), `census.py` (relationship + Gazetteer parsing, Census batch geocoder request/response), `geocode.py` (address match validated against state and county, else ZCTA centroid, else nothing), `nppes.py` (ASC street addresses only when state + ZIP agree), `ahrq.py` (health systems by CCN and AHRQ system id; manual links never overwritten), `relationships.py` (reviewed CSV / proposals), `codes.py` (HCPCS Level II fixed-width, MS-DRG Table 5 .xlsx/.txt), `common.py` (50 MB download cap, SHA-256, header normalization, lineage rows), `cli.py` (one command per source, `nv-all`, `report`).
+- `data/reference/facility_relationships_reviewed.csv`: header only. No relationships are seeded; none could be verified from here.
+- `.github/workflows/reference-nv.yml`: manual workflow that performs the real Nevada load on a throwaway PostGIS service and uploads the report, lineage, rejects and facility list as an artifact.
+- `make reference-nv`, `make reference-report`.
+
+### Verification evidence
+
+Environment: Python 3.13.18 and 3.12.3, PostgreSQL 16 + PostGIS 3.4 (installed in the workspace; database created with `scripts/db_init.sql`).
+
+`make lint typecheck test` (Python 3.13):
+
+```
+All checks passed!
+58 files already formatted
+Success: no issues found in 23 source files
+platform linux -- Python 3.13.18, pytest-9.2.0, pluggy-1.7.0
+collected 172 items
+tests/test_access_control.py ....                                        [  2%]
+tests/test_api.py ...                                                    [  4%]
+tests/test_enums_match_db.py .                                           [  4%]
+tests/test_migration.py ..                                               [  5%]
+tests/test_money.py .........................................            [ 29%]
+tests/test_no_float_money.py .                                           [ 30%]
+tests/test_payer_matching.py ........                                    [ 34%]
+tests/test_price_constraints.py .............................            [ 51%]
+tests/test_reference_codes.py ...........                                [ 58%]
+tests/test_reference_common.py .....................                     [ 70%]
+tests/test_reference_facilities.py ................                      [ 79%]
+tests/test_reference_geo.py .........                                    [ 84%]
+tests/test_reference_identity.py ..........                              [ 90%]
+tests/test_reference_links.py .....                                      [ 93%]
+tests/test_state_machine.py ...........                                  [100%]
+======================== 172 passed, 1 warning in 2.33s ========================
+```
+
+Same suite on Python 3.12.3 (CI's version): `ruff` clean, `mypy` clean, `172 passed, 1 warning`.
+
+Other checks:
+
+- Migration round trip (base → head → base → head) passes with 0002 (`tests/test_migration.py`).
+- CLI smoke run in a throwaway database (`ps_cli_smoke_test`, dropped afterwards) with the synthetic files: hospitals 2 loaded; census 3 counties, 2 ZCTAs, 1 reject; geocode 2 ZCTA centroids; HCPCS 3 codes (1 numeric code and 2 modifier records skipped); MS-DRG 3 codes, 2 rejects; a second MS-DRG run with the default `--min-rows 700` was refused and recorded as `failed` in `src.reference_load`.
+- Mutation check 1: made `resolve_facility_by_name` ignore ambiguity → `test_shared_name_is_ambiguous_not_merged` failed. Restored.
+- Mutation check 2: removed the geocoder county check → `test_geocode_preference_order` failed. Restored.
+
+### Not done / not verified
+
+- **No real Nevada data loaded.** Run the `Reference data — Nevada (manual)` workflow (Actions tab) or `make reference-nv` on a machine with internet. Expected from the live API on 2026-11-04: 46 Nevada rows in Hospital General Information and 69 in the ASC facility file.
+- Unverified against real files: HCPCS zip member name and that the 2026 text layout still matches the CMS record layout; Table 5 zip contents and header text; Census batch output column order for matches (from documentation and memory of the format, not a live response); NPPES rate limits.
+- AHRQ: the hospital linkage file URL could not be confirmed (ahrq.gov pages render empty to the fetch tool); the loader needs `--ahrq-file`. Newest year seen: 2023.
+- Revenue codes (NUBC, licensed) and ICD were not loaded (out of scope; licensing review for RC).
+- ASCs in the CMS file are those in the ASC Quality Reporting program (2024 data year), not every licensed Nevada ASC.
+- Phase 0 CI: Cooper reports CI is green on GitHub; not observed from this workspace.
+
 ## 2026-11-04 — Phase 0 (foundation)
 
 Built by Claude (Cowork) in a cloud workspace, not yet pushed to GitHub, CI not yet run.
@@ -71,6 +132,8 @@ Additional checks run:
 - `docker compose up` not exercised (no Docker daemon here). The MinIO image tag is unverified.
 - No deployment exists.
 
-## Next: Phase 1 — facility and reference data
+## Next
 
-CMS Hospital General Information import for Nevada, geocoding with a local Census ZIP table, facility aliases/campus relationships, HCPCS/MS-DRG/revenue code references, ASC list.
+1. Run the Nevada reference workflow; paste its report here; fix whatever the real files reveal.
+2. Review the rejects (unknown hospital types, county-name mismatches, NPPES mismatches) and fill `facility_relationships_reviewed.csv` from evidence.
+3. Phase 2: discovery of `cms-hpt.txt` for the loaded facilities.

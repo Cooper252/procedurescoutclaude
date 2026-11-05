@@ -1,6 +1,6 @@
 # Database design
 
-PostgreSQL 16 + PostGIS 3.4. Defined in `db/migrations/versions/0001_initial_schema.py`.
+PostgreSQL 16 + PostGIS 3.4. Defined in `db/migrations/versions/0001_initial_schema.py` and `0002_facility_reference.py`.
 
 ## Schemas
 
@@ -43,6 +43,16 @@ Named CHECK constraints (all tested):
 Amounts: nullable, no defaults, `>= 0`. Percentages 0–1000.
 
 Partitioning: LIST (`state_code`) with `price_nv` and a DEFAULT partition. Indexes: (code_system, code, facility_id), (plan_id, code_system, code) where plan_id is set, (dataset_version_id).
+
+## Phase 1 additions (migration 0002)
+
+- `ref.facility`: CCN may be 6 characters (hospital) or `NNCNNNNNNN` (ASC); `cms_facility_type_raw`, `county_name` as published; `geocode_precision` (`address` | `zcta_centroid`), required exactly when `geom` is set; `geocoded_at`; `health_system_source`, required when `health_system_id` is set; `source_last_seen_at`.
+- `ref.health_system`: `source`, `source_system_id` (unique together), `source_year`, `hq_city`, `hq_state`. No unique name (D-013).
+- `ref.facility_alias`: `alias_normalized` (indexed, not unique), `alias_type`, `match_basis` (ccn/npi/manual), review fields. CHECK: approved requires an identifier basis or a named reviewer.
+- `ref.facility_relationship`: review fields and `evidence`; approved requires reviewer, time and evidence; partial unique index allows one approved `campus_of` parent per child; trigger refuses a reversed pair.
+- `ref.county` (FIPS, state, name) and `ref.zcta` (ZCTA, state, primary county, crosses-counties flag, land area, internal point, Gazetteer year). API role may read both.
+- `ref.code.descriptor_short`, under the same CPT licence CHECK.
+- `src.reference_load` (dataset, source, SHA-256, size, modified date, parameters, status, counts, summary, error) and `src.reference_reject`.
 
 ## Deletion behaviour
 

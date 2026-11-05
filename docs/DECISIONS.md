@@ -2,6 +2,24 @@
 
 Newest first. Each entry: decision, reason, consequences.
 
+## 2026-11-04 — D-016: Reference loads are idempotent upserts with lineage
+Every reference load writes a `src.reference_load` row (source URL or file, SHA-256, size, source modified date, counts) and its rejects to `src.reference_reject`. Data changes run in one transaction; a failed load leaves only its `failed` lineage row. Facilities absent from a newer CMS file are not deleted or marked closed automatically (`source_last_seen_at` records when they were last seen); closing a facility needs evidence.
+
+## 2026-11-04 — D-015: Codes are versioned by code-set year (HCPCS) and grouper version (MS-DRG)
+HCPCS rows use version = HCPCS year ("2026"); each quarterly file updates that year's descriptors and termination dates. MS-DRG rows use version = grouper ("v44") with effective dates from the fiscal year (FY2027 = 2026-10-01 to 2027-09-30). Only Level II HCPCS codes (letter + 4 digits) are stored; numeric five-character codes in any HCPCS file are skipped so no AMA text can enter (D-002). Modifiers are skipped for now. MS-DRG codes read from spreadsheet cells as 1–99 are restored to three digits ("001"); ZIPs and CCNs that lost leading zeros are refused instead, because those come from text files where a short value signals corruption.
+
+## 2026-11-04 — D-014: Geocoding preference and validation
+Address-level coordinates come only from the Census Geocoder (public, no key), and only when the match's state and county agree with the facility's published state and county; ties are never used. Otherwise the facility gets its ZCTA internal point, labeled `zcta_centroid`; otherwise no location. Precision is stored and the database requires it whenever `geom` is set. Search-time ZIP lookups use the local `ref.zcta` table only.
+
+## 2026-11-04 — D-013: Facility and health-system identity by identifier, never by name
+Facilities are keyed by CCN (6 characters for hospitals, 10 for ASCs, e.g. 29C0001035); NPIs link ASCs to NPPES. Names become aliases: identifier-linked aliases are usable at once, other aliases need a named reviewer. A name shared by two facilities resolves to *ambiguous*, never to one of them. Health systems are keyed by (source, source id); `UNIQUE(name)` on `ref.health_system` was dropped because a name match must not merge two systems. AHRQ links never overwrite a link entered by a person. Campus relationships are never inferred; only reviewed rows with evidence count.
+
+## 2026-11-04 — D-012: CMS Provider Data Catalog via the datastore API, filtered by state
+Hospitals (`xubh-q36u`) and ASCs (`4jcv-atw7`) are read through the PDC datastore query API for one state, paged, and refused if the received count differs from the API's count. A downloaded CSV is accepted too; its column titles normalize to the API's machine names. The dataset's `modified` date dates the star rating. Unknown CMS hospital types are rejected, not mapped to "other"; VA and DoD acute-care hospitals map to `acute_care_hospital` with the raw type kept; Rural Emergency Hospitals map to `other`.
+
+## 2026-11-04 — D-011: Real reference data verified in CI, not in the build workspace
+The cloud build workspace cannot reach government data hosts. Loaders are tested on synthetic fixtures modeled on the official layouts, and a manual GitHub Actions workflow (`reference-nv.yml`) performs the real Nevada load on a throwaway database and publishes its report. Nothing from that run is kept.
+
 ## 2026-11-04 — D-010: Price table partitioned by LIST(state_code)
 Rollout is state by state; most consumer searches are within one region; a state partition can be loaded, vacuumed, reindexed or detached independently. Facility-level replacement uses `dataset_version` pointers, not partition swaps. Consequence: PK is (state_code, id); a state partition can be sub-partitioned by hash later if one state grows too large.
 

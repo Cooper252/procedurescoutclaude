@@ -1,0 +1,4 @@
+Facility ID,Facility Name,Address,City/Town,State,ZIP Code,County/Parish,Telephone Number,Hospital Type,Hospital Ownership,Emergency Services,Meets criteria for birthing friendly designation,Hospital overall rating,Hospital overall rating footnote
+SYN001,SYNTHETIC VALLEY MEDICAL CENTER,100 TEST WAY,LAS VEGAS,NV,89990,CLARK,(000) 555-0100,Acute Care Hospitals,Proprietary,Yes,Y,3,
+SYN002,SYNTHETIC HIGH DESERT HOSPITAL,200 SAMPLE RD,TESTVILLE,NV,89991-1234,WASHOE,(000) 555-0101,Critical Access Hospitals,Government - Local,No,,Not Available,16
+SYN003,SYNTHETIC OUT OF STATE,1 ELSEWHERE,SOMEWHERE,CA,90000,LOS ANGELES,,Acute Care Hospitals,Proprietary,Yes,,2,

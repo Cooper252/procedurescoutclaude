@@ -10,6 +10,10 @@ See `DATABASE_DESIGN.md` for constraint names: value required; payer required/fo
 
 Blank is None not 0; floats rejected; no rounding; percentage never parsed as dollars; payer names never auto-merged.
 
+## Reference data (Phase 1, tested)
+
+PDC row count must equal the API's count; unknown hospital types, malformed CCNs and state mismatches are rejected; HCPCS loads stop if more than 1% of records fail the layout; MS-DRG loads stop below 700 codes by default; downloads over 50 MB are refused; every reject is stored in `src.reference_reject`.
+
 ## Planned (Phase 2 quality review)
 
 - Row-count swing > 30% vs previous version → hold for review.

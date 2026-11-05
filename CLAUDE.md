@@ -26,7 +26,7 @@ Instructions for any AI coding agent (Claude Code or Claude) working in this rep
 - Ask first before: paid infrastructure, production deploys, destructive migrations or deletes, downloads over 50 MB, any monetization feature.
 - Do not use Grok, xAI, or their infrastructure.
 - Stack: Python 3.12+, FastAPI, SQLAlchemy 2.x, Alembic, Pydantic v2, PostgreSQL 16 + PostGIS 3.4, pytest, ruff, mypy (strict). Frontend (Phase 3): TypeScript + Next.js.
-- Migrations are frozen history: never edit a migration that has been applied to staging or production; add a new one. (0001 is not yet applied anywhere shared.)
+- Migrations are frozen history: never edit a migration that has been applied to staging or production; add a new one. (0001 and 0002 are not yet applied anywhere shared.)
 
 ## Commands
 
@@ -36,6 +36,7 @@ make up         # PostgreSQL/PostGIS (+ MinIO) in Docker; runs scripts/db_init.s
 make migrate    # alembic upgrade head on DATABASE_URL
 make check      # ruff + mypy + pytest (tests rebuild TEST_DATABASE_URL from scratch)
 make api        # run the API on :8000
+make reference-nv AHRQ=<csv path or url>   # load Nevada reference data (needs internet)
 ```
 
 Without Docker: install PostgreSQL 16 + PostGIS, run `scripts/db_init.sql` as a superuser, then the same commands.
@@ -44,8 +45,9 @@ Without Docker: install PostgreSQL 16 + PostGIS, run `scripts/db_init.sql` as a 
 
 - `apps/api/procedurescout_api` — FastAPI app
 - `packages/core/procedurescout_core` — money parsing, enums, import state machine, payer matching
-- `packages/ingest/procedurescout_ingest` — parser adapter interface (adapters arrive in Phase 2)
-- `db/migrations` — Alembic; `0001_initial_schema.py` defines every table, constraint, trigger and grant
+- `packages/ingest/procedurescout_ingest` — parser adapter interface (adapters arrive in Phase 2); `reference/` holds the Phase 1 reference-data loaders and their CLI (`python -m procedurescout_ingest.reference.cli`)
+- `db/migrations` — Alembic; `0001_initial_schema.py` (core schema), `0002_facility_reference.py` (Phase 1 reference data)
+- `data/reference/` — small, human-reviewed reference files committed to the repo (e.g. reviewed facility relationships)
 - `tests/` — pytest; DB tests run inside rolled-back transactions
 - `docs/` — the living specification (list below)
 

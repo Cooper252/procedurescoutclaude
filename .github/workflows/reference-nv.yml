@@ -1,0 +1,82 @@
+name: Reference data — Nevada (manual)
+
+# Runs the real Phase 1 reference load against a throwaway PostGIS database
+# and uploads the report. Nothing is kept or deployed; this verifies that the
+# loaders work on the live official files. Start it from the Actions tab.
+
+on:
+  workflow_dispatch:
+    inputs:
+      ahrq_url:
+        description: "AHRQ Compendium hospital linkage CSV URL (optional; leave blank to skip)"
+        required: false
+        default: ""
+      ahrq_year:
+        description: "Compendium year of that file"
+        required: false
+        default: "2023"
+
+permissions:
+  contents: read
+
+jobs:
+  load:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    services:
+      db:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_PASSWORD: postgres_ci_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql+psycopg://ps_owner:ps_owner_dev@localhost:5432/procedurescout
+      PS_API_ROLE: ps_api
+      PYTHONPATH: packages/core:packages/ingest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Create roles and databases
+        env:
+          PGPASSWORD: postgres_ci_only
+        run: psql -h localhost -U postgres -v ON_ERROR_STOP=1 -f scripts/db_init.sql
+      - name: Migrate
+        run: python -m alembic upgrade head
+      - name: Load Nevada reference data
+        env:
+          AHRQ_URL: ${{ inputs.ahrq_url }}
+          AHRQ_YEAR: ${{ inputs.ahrq_year }}
+        run: |
+          set -o pipefail
+          args=(nv-all --state NV)
+          if [ -n "$AHRQ_URL" ]; then args+=(--ahrq-file "$AHRQ_URL" --ahrq-year "$AHRQ_YEAR"); fi
+          python -m procedurescout_ingest.reference.cli "${args[@]}" | tee reference-nv-report.txt
+      - name: Export load lineage and rejects
+        if: always()
+        env:
+          PGPASSWORD: ps_owner_dev
+        run: |
+          psql -h localhost -U ps_owner procedurescout -c "\copy (SELECT dataset, status, source_url, source_modified, sha256, rows_in, rows_loaded, rows_rejected, summary, error FROM src.reference_load ORDER BY started_at) TO 'reference-loads.csv' CSV HEADER"
+          psql -h localhost -U ps_owner procedurescout -c "\copy (SELECT l.dataset, r.row_ref, r.severity, r.rule, r.message FROM src.reference_reject r JOIN src.reference_load l ON l.id = r.load_id ORDER BY l.started_at, r.id) TO 'reference-rejects.csv' CSV HEADER"
+          psql -h localhost -U ps_owner procedurescout -c "\copy (SELECT ccn, name, facility_type, cms_facility_type_raw, city, zip5, county_fips, geocode_precision, geocode_source, health_system_source, cms_overall_rating, cms_rating_as_of FROM ref.facility ORDER BY facility_type, ccn) TO 'reference-facilities.csv' CSV HEADER"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: reference-nv
+          path: |
+            reference-nv-report.txt
+            reference-loads.csv
+            reference-rejects.csv
+            reference-facilities.csv
+          if-no-files-found: warn

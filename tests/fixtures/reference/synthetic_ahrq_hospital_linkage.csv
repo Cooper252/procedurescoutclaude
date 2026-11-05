@@ -1,0 +1,7 @@
+compendium_hospital_id,ccn,hospital_name,hospital_street,hospital_city,hospital_state,hospital_zip,acutehosp_flag,health_sys_id,health_sys_name,health_sys_city,health_sys_state
+CHSP0001,SYN001,Synthetic Valley Medical Center,100 Test Way,Las Vegas,NV,89990,1,HSI90000001,Synthetic Health,Nashville,TN
+CHSP0002,SYN002,Synthetic High Desert Hospital,200 Sample Rd,Testville,NV,89991,1,,, ,
+CHSP0003,SYN999,Synthetic Unknown Hospital,9 Nowhere,Testville,NV,89991,1,HSI90000002,Synthetic Health,Reno,NV
+CHSP0004,29001,Synthetic Lost Zero Hospital,1 Main,Testville,NV,89991,1,HSI90000001,Synthetic Health,Nashville,TN
+CHSP0005,,Synthetic No CCN Hospital,1 Main,Testville,NV,89991,1,,,,
+CHSP0006,SYN777,Synthetic Other State,1 Main,Somewhere,CA,90000,1,HSI90000003,Other,LA,CA

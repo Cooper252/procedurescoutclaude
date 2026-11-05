@@ -2,7 +2,7 @@
 
 What is tested and how.
 
-## Current suite (Phase 0)
+## Current suite (Phases 0–1)
 
 | File | Covers |
 |---|---|
@@ -15,6 +15,14 @@ What is tested and how.
 | `test_access_control.py` | API role cannot read fixtures or raw prices or write; published view hides staged data |
 | `test_enums_match_db.py` | Python enums equal PostgreSQL enums |
 | `test_api.py` | Health and version endpoints |
+| `test_reference_facilities.py` | Hospital/ASC parsing and upsert; CSV titles = API keys; unknown types and bad CCNs rejected; rating needs a date; address change clears geocode; NPI conflicts |
+| `test_reference_identity.py` | Exact-only name resolution; shared names ambiguous; unreviewed aliases ignored; two systems may share a name; relationship review rules, one campus parent, reversed pairs refused |
+| `test_reference_geo.py` | Census relationship/Gazetteer parsing; lookups for one state; geocoder request and response format; address → ZCTA → none preference with state/county validation |
+| `test_reference_links.py` | NPPES addresses only when consistent; AHRQ links by CCN, unknown CCNs reported, manual links kept, systems keyed by id |
+| `test_reference_codes.py` | HCPCS fixed-width parsing, wrapping, CPT-like codes and modifiers skipped, layout change refused; Table 5 .txt/.xlsx; minimum row guard; CPT text refused |
+| `test_reference_common.py` | Header normalization, ZIP parsing, download size cap, zip member choice, PDC paging and count check, load lineage on success and failure |
+
+Reference fixtures live in `tests/fixtures/reference/synthetic_*` (invented values in the official layouts). Real-file verification: `.github/workflows/reference-nv.yml` (manual).
 
 DB tests run inside rolled-back transactions on `TEST_DATABASE_URL`, rebuilt from scratch each run.
 
