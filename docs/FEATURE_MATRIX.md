@@ -21,7 +21,7 @@ Status levels are separate on purpose. A cell is filled only with evidence. Depl
 | FAC-05 | Health-system links (AHRQ Compendium) | 1 | Yes | Yes (synthetic) | — | — | `reference/ahrq.py`; `test_ahrq_links_by_ccn_and_reports_the_rest`, `test_ahrq_never_overwrites_manual_link`. Source file URL unconfirmed. |
 | REF-04 | Reference-load lineage | 1 | Yes | Yes | — | — | `src.reference_load`/`reference_reject` (0002), `reference/cli.py`; `test_load_lineage_success_and_failure` |
 | REF-03 | Reviewed consumer terms | 3 | Schema only | — | — | — | `ref.procedure*` |
-| SRC-01 | File discovery | 2 | Schema only | — | — | — | `src.transparency_source` |
+| SRC-01 | File discovery | 2 | Yes (cms-hpt.txt on approved websites) | Yes (synthetic) | — | — | `procedurescout_ingest/discovery.py`, `reference/websites.py`, migration 0003; `tests/test_discovery.py` (`test_discover`, `test_only_reviewed_websites_are_used`). 28 approved hospital websites; real run pending. |
 | SRC-02 | File metadata | 2 | Schema only | — | — | — | `src.transparency_file` |
 | ING-01 | Streaming parsers | 2 | Interface only | — | — | — | `procedurescout_ingest/base.py` |
 | ING-02 | Validation | 2 | Schema only | — | — | — | `src.validation_result` |

@@ -2,6 +2,9 @@
 
 Newest first. Each entry: decision, reason, consequences.
 
+## 2026-11-05 — D-018: Discovery starts from approved websites only
+Hospital websites are proposed (with evidence) and used only after a named person approves them; the database refuses a website without reviewer and date. Price files are found through `/cms-hpt.txt` on those sites. A cms-hpt.txt location is tied to a facility only by an exact name match through usable aliases; other names are stored and reported for review. A price file listed for several locations, or for any unmatched location, is not assigned to a single facility; the facility mapping happens per file when it is downloaded and read (Phase 2 step 2). Federally owned hospitals are marked exempt rather than searched.
+
 ## 2026-11-05 — D-017: Table 5 correction notice supersedes the final rule
 When the IPPS Table 5 workbook contains both the final-rule table and a correction-notice table, the correction notice is loaded and the differences are counted in the load summary. If several tables exist and exactly one is not marked as a correction, the load is refused rather than guessing.
 

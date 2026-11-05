@@ -20,6 +20,7 @@ What is tested and how.
 | `test_reference_geo.py` | Census relationship/Gazetteer parsing; lookups for one state; geocoder request and response format; address → ZCTA → none preference with state/county validation |
 | `test_reference_links.py` | NPPES addresses only when consistent; AHRQ links by CCN, unknown CCNs reported, manual links kept, systems keyed by id |
 | `test_reference_codes.py` | HCPCS fixed-width parsing, wrapping, CPT-like codes and modifiers skipped, layout change refused; Table 5 .txt/.xlsx; minimum row guard; CPT text refused |
+| `test_discovery.py` | cms-hpt.txt parsing (blocks, case, missing fields, bad URLs); fetcher (redirect, web page, 404, size cap); only reviewed websites used (and DB refusal); discovery matching, sources, failures; reviewed aliases; committed websites file well formed |
 | `test_reference_common.py` | Header normalization, ZIP parsing, download size cap, zip member choice, PDC paging and count check, load lineage on success and failure |
 
 Reference fixtures live in `tests/fixtures/reference/synthetic_*` (invented values in the official layouts). Real-file verification: `.github/workflows/reference-nv.yml` (manual).

@@ -1,0 +1,25 @@
+location-name: Synthetic Valley Medical Center
+source-page-url: https://synthetic-health.example/pricing
+mrf-url: https://synthetic-health.example/mrf/valley.json
+contact-name: Synthetic Pricing Team
+contact-email: pricing@synthetic-health.example
+
+location-name: Synthetic Valley North Campus
+source-page-url: https://synthetic-health.example/pricing
+mrf-url: https://synthetic-health.example/mrf/shared.json
+contact-name: Synthetic Pricing Team
+contact-email: pricing@synthetic-health.example
+Location-Name: Synthetic Desert Hospital
+SOURCE-PAGE-URL: https://synthetic-health.example/pricing
+mrf-url: https://synthetic-health.example/mrf/shared.json
+contact-name: Synthetic Pricing Team
+contact-email: pricing@synthetic-health.example
+
+location-name: Synthetic Clinic Nobody Knows
+source-page-url: https://synthetic-health.example/pricing
+mrf-url: https://synthetic-health.example/mrf/unknown.json
+contact-name: Synthetic Pricing Team
+contact-email: pricing@synthetic-health.example
+
+location-name: Synthetic Broken Block
+mrf-url: not a url

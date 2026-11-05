@@ -2,6 +2,42 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-05 — Phase 2, step 1: websites and cms-hpt.txt discovery
+
+Implemented and tested on synthetic fixtures; not yet run against real hospital sites.
+
+- `data/reference/facility_websites.csv`: all 46 CMS hospitals. 28 with a proposed website (evidence URL per row), 3 federal hospitals marked exempt (2 VA, 1 DoD), 15 with no website found by search. Researched by Claude with web search on 2026-11-05; for 7 sites a fetch of `/cms-hpt.txt` through the research tool showed the hospital's name (Renown ×2, Sunrise, North Vista, UMC, Northeastern Nevada Regional, Saint Mary's). **Approved by Cooper in chat on 2026-11-05 ("approve all")**, recorded as `reviewed_by = Cooper`, `reviewed_at = 2026-11-05`.
+- `data/reference/facility_aliases_reviewed.csv`: header only; for names a person confirms (e.g. names used in cms-hpt.txt).
+- Migration `0003_discovery.py`: website provenance on `ref.facility` (a website requires reviewer + date, enforced by CHECK), `hpt_exempt_reason`, `src.hpt_txt_fetch`, `src.hpt_txt_entry`.
+- `procedurescout_ingest/discovery.py`: fetches `https://<site>/cms-hpt.txt` (redirects followed, 1 MB cap, web pages refused), parses blocks, stores every fetch and block as published, matches location names exactly through usable aliases, creates `src.transparency_source` per price-file URL (assigned to a facility only when every block listing that URL is matched to the same facility).
+- `procedurescout_ingest/reference/websites.py`: loads only approved website/exempt rows and reviewed aliases.
+- CLI: `websites`, `aliases`, `discover`; `nv-all` runs them after the reference loads, so the existing manual workflow now also performs discovery. No workflow file change needed.
+- Smoke test: the real approved websites file loaded into a throwaway database (46 rows in, 28 websites, 3 exempt, 15 not found, 0 rejects).
+
+Found and fixed while testing: a block whose mrf-url is not a URL was counted as unmatched (now invalid); a price file listed for one matched and one unmatched location was assigned to the matched facility (now unassigned).
+
+`make lint typecheck test`: ruff clean, `Success: no issues found in 25 source files`, `200 passed, 1 warning`. Python 3.12.3: `200 passed, 1 warning`.
+
+Next: run the Nevada workflow; review unmatched cms-hpt.txt names and add reviewed aliases.
+
+## 2026-11-05 — Phase 1, fifth real Nevada run (GitHub Actions, run #5) — green
+
+Artifact `reference-nv (4).zip` (read 2026-11-05). All steps succeeded. Same counts as run #4 for hospitals (46), ASCs (68), census lookups (180 ZCTAs, 17 counties), NPPES (63/65), HCPCS (8,770), MS-DRG (768). Geocoding this time:
+
+- The Census **batch** endpoint answered (the HTTP 502 in runs #3–#4 was an outage, not a blocked request), so the one-address fallback was not needed and remains untested live.
+- 107 of 114 facilities have address-level coordinates (90 exact, 17 non-exact matches), all passing the state and county checks (no `geocode_wrong_state` / `geocode_wrong_county` rejects).
+- 7 at ZIP centroid: 290041 Summerlin Hospital (geocoder tie, not used), 29C0001131 (no match), and 5 ASCs with no street address (3 shared-NPI ASCs that got no NPI link, 2 NPPES ZIP mismatches).
+- County FIPS missing for 1 facility (its ZCTA crosses county lines).
+
+The coordinates themselves were not inspected (the artifact's facility list has no latitude/longitude columns); they are trusted only to the extent of the state/county agreement check.
+
+**Phase 1 status:** loaders Implemented and Tested, and verified against the live official sources in a throwaway CI database. Nothing is Deployed: no persistent database exists yet, so the data is reloaded from source on each run.
+
+Open items for Phase 1:
+- AHRQ health systems: not loaded (file URL unconfirmed, Q7).
+- Human review: 3 ASC pairs sharing an NPI (29C0001056/1079, 29C0001057/1077, 29C0001006/1084), 1 ASC listed twice by CMS (29C0001057), 5 names shared by more than one facility, Summerlin Hospital geocoder tie; campus relationships (Q8).
+- Revenue codes / ICD not loaded (Q10).
+
 ## 2026-11-05 — Phase 1, fourth real Nevada run (GitHub Actions, run #4) — first green run
 
 Workflow finished with a green check. Artifact `reference-nv (3).zip` (read 2026-11-05). All eight steps succeeded:

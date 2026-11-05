@@ -21,7 +21,8 @@ from typing import Any
 
 from sqlalchemy import Connection, Engine, create_engine, text
 
-from . import ahrq, census, cms_pdc, codes, facilities, geocode, nppes, relationships
+from .. import discovery
+from . import ahrq, census, cms_pdc, codes, facilities, geocode, nppes, relationships, websites
 from .common import (
     LoadStats,
     SourceBlob,
@@ -47,6 +48,8 @@ ZCTA_COUNTY_REL_URL = (
 HCPCS_OCT_2026_URL = "https://www.cms.gov/files/zip/october-2026-alpha-numeric-hcpcs-file.zip"
 MSDRG_FY2027_TABLE5_URL = "https://www.cms.gov/files/zip/fy2027-ipps-fr-table-5.zip"
 RELATIONSHIPS_CSV = "data/reference/facility_relationships_reviewed.csv"
+WEBSITES_CSV = "data/reference/facility_websites.csv"
+ALIASES_CSV = "data/reference/facility_aliases_reviewed.csv"
 STEP_DATASETS = {
     "hospitals": "cms_hospital_general_information",
     "ascs": "cms_asc_facility",
@@ -57,6 +60,9 @@ STEP_DATASETS = {
     "relationships": "manual_relationships",
     "hcpcs": "cms_hcpcs_level2",
     "msdrg": "cms_ms_drg_table5",
+    "websites": "facility_websites",
+    "aliases": "manual_relationships",
+    "discover": "cms_hpt_txt_discovery",
 }
 
 
@@ -233,6 +239,39 @@ def cmd_relationships(args: argparse.Namespace, engine: Engine) -> None:
     )
 
 
+def cmd_websites(args: argparse.Namespace, engine: Engine) -> None:
+    blob = acquire(args.file)
+    _run(
+        engine,
+        "facility_websites",
+        lambda c: websites.load_websites(c, decode_text(blob.data)),
+        blob=blob,
+    )
+
+
+def cmd_aliases(args: argparse.Namespace, engine: Engine) -> None:
+    blob = acquire(args.file)
+    _run(
+        engine,
+        "manual_relationships",
+        lambda c: websites.load_reviewed_aliases(c, decode_text(blob.data)),
+        blob=blob,
+        parameters={"kind": "reviewed_aliases"},
+    )
+
+
+def cmd_discover(args: argparse.Namespace, engine: Engine) -> None:
+    with new_client() as client:
+        fetch = discovery.http_fetcher(client)
+        _run(
+            engine,
+            "cms_hpt_txt_discovery",
+            lambda c: discovery.discover(c, args.state, fetch),
+            source_file="approved websites /cms-hpt.txt",
+            parameters={"state": args.state},
+        )
+
+
 def cmd_hcpcs(args: argparse.Namespace, engine: Engine) -> None:
     with new_client() as client:
         blob = acquire(args.file, client)
@@ -303,6 +342,15 @@ def cmd_report(args: argparse.Namespace, engine: Engine) -> None:
                 SELECT a.alias_normalized FROM ref.facility_alias a
                 JOIN ref.facility f ON f.id = a.facility_id WHERE f.state_code = :s
                 GROUP BY 1 HAVING count(DISTINCT a.facility_id) > 1) x""",
+        "websites_approved": """
+            SELECT website IS NOT NULL, count(*) FROM ref.facility
+            WHERE state_code = :s AND facility_type <> 'ambulatory_surgery_center'
+            GROUP BY 1 ORDER BY 1""",
+        "hpt_entries": """
+            SELECT match_status, count(*) FROM src.hpt_txt_entry GROUP BY 1 ORDER BY 1""",
+        "transparency_sources": """
+            SELECT facility_id IS NOT NULL, count(*) FROM src.transparency_source
+            GROUP BY 1 ORDER BY 1""",
         "loads": """
             SELECT dataset || ' ' || status, count(*) FROM src.reference_load
             GROUP BY 1 ORDER BY 1""",
@@ -375,6 +423,11 @@ def cmd_nv_all(args: argparse.Namespace, engine: Engine) -> None:
             engine,
         ),
     )
+    if os.path.exists(ALIASES_CSV):
+        step("aliases", lambda: cmd_aliases(ns(file=ALIASES_CSV), engine))
+    if os.path.exists(WEBSITES_CSV):
+        step("websites", lambda: cmd_websites(ns(file=WEBSITES_CSV), engine))
+        step("discover", lambda: cmd_discover(ns(state=st), engine))
     cmd_report(ns(state=st), engine)
     if failures:
         sys.exit(f"{len(failures)} step(s) failed: {', '.join(failures)}")
@@ -414,6 +467,15 @@ def build_parser() -> argparse.ArgumentParser:
     sp = sub.add_parser("relationships", help="reviewed campus/licence relationships CSV")
     sp.add_argument("--file", default=RELATIONSHIPS_CSV)
 
+    sp = sub.add_parser("websites", help="approved facility websites")
+    sp.add_argument("--file", default=WEBSITES_CSV)
+
+    sp = sub.add_parser("aliases", help="reviewed facility aliases")
+    sp.add_argument("--file", default=ALIASES_CSV)
+
+    sp = sub.add_parser("discover", help="read cms-hpt.txt on approved websites")
+    state(sp)
+
     sp = sub.add_parser("hcpcs", help="HCPCS Level II codes")
     sp.add_argument("--file", default=HCPCS_OCT_2026_URL)
     sp.add_argument("--release", default="2026-10")
@@ -448,6 +510,9 @@ def main(argv: list[str] | None = None) -> None:
             "ahrq": lambda: cmd_ahrq(args, engine),
             "relationships": lambda: cmd_relationships(args, engine),
             "hcpcs": lambda: cmd_hcpcs(args, engine),
+            "websites": lambda: cmd_websites(args, engine),
+            "aliases": lambda: cmd_aliases(args, engine),
+            "discover": lambda: cmd_discover(args, engine),
             "msdrg": lambda: cmd_msdrg(args, engine),
             "report": lambda: cmd_report(args, engine),
             "nv-all": lambda: cmd_nv_all(args, engine),

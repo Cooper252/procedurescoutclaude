@@ -1,0 +1,47 @@
+ccn,name,website,status,evidence_url,note,proposed_by,reviewed_by,reviewed_at
+290001,RENOWN REGIONAL MEDICAL CENTER,https://www.renown.org,website,https://www.renown.org/Patients-and-Visitors/Billing/Pricing-Transparency,Hospital's own pricing page; its cms-hpt.txt names this hospital,proposed:claude 2026-11-05,Cooper,2026-11-05
+290003,SUNRISE HOSPITAL AND MEDICAL CENTER,https://sunrisehospital.com,website,https://sunrisehospital.com/service/trauma-center,Site has a cms-hpt.txt listing Sunrise locations,proposed:claude 2026-11-05,Cooper,2026-11-05
+290005,NORTH VISTA HOSPITAL,https://www.northvistahospital.com,website,https://www.northvistahospital.com,Site has a cms-hpt.txt naming this hospital,proposed:claude 2026-11-05,Cooper,2026-11-05
+290007,UNIVERSITY MEDICAL CENTER,https://www.umcsn.com,website,https://umcsn.com/employees-physicians/pharmacy-residency,Site has a cms-hpt.txt naming University Medical Center of Southern Nevada,proposed:claude 2026-11-05,Cooper,2026-11-05
+290008,NORTHEASTERN NEVADA REGIONAL HOSPITAL,https://www.nnrhospital.com,website,https://www.nnrhospital.com/scheduling,Site has a cms-hpt.txt naming this hospital,proposed:claude 2026-11-05,Cooper,2026-11-05
+290009,SAINT MARY'S REGIONAL MEDICAL CENTER,https://saintmarysreno.com,website,https://saintmarysreno.com/about-us/,Site has a cms-hpt.txt naming this hospital,proposed:claude 2026-11-05,Cooper,2026-11-05
+290012,SAINT ROSE DOMINICAN HOSPITALS - ROSE DE LIMA,https://www.dignityhealth.org,website,https://www.dignityhealth.org/las-vegas/locations/rose-de-lima/hospital-overview,Dignity Health system site,proposed:claude 2026-11-05,Cooper,2026-11-05
+290019,CARSON TAHOE REGIONAL MEDICAL CENTER,https://www.carsontahoe.com,website,https://www.carsontahoe.com/carson-tahoe-regional-medical-center.html,,proposed:claude 2026-11-05,Cooper,2026-11-05
+29001F,99th Medical Group (Nellis AFB),,federal_exempt,,Department of Defense hospital; federally owned hospitals are deemed to meet the price transparency rule,proposed:claude 2026-11-05,Cooper,2026-11-05
+290021,VALLEY HOSPITAL MEDICAL CENTER,https://www.valleyhospital.net,website,https://www.valleyhospital.net/graduate-medical-education/hospitals,Valley Health System (UHS),proposed:claude 2026-11-05,Cooper,2026-11-05
+29002F,VA SIERRA NEVADA HEALTHCARE SYSTEM,,federal_exempt,,VA hospital; federally owned hospitals are deemed to meet the price transparency rule,proposed:claude 2026-11-05,Cooper,2026-11-05
+290032,NORTHERN NEVADA MEDICAL CENTER,,not_found,,Official site not identified by search; please add if known,proposed:claude 2026-11-05,Cooper,2026-11-05
+290039,MOUNTAINVIEW HOSPITAL,https://mountainview-hospital.com,website,https://mountainview-hospital.com/about,,proposed:claude 2026-11-05,Cooper,2026-11-05
+290041,SUMMERLIN HOSPITAL MEDICAL CENTER,https://www.summerlinhospital.com,website,https://summerlinhospital.com,Valley Health System (UHS),proposed:claude 2026-11-05,Cooper,2026-11-05
+290042,HARMON HOSPITAL,,not_found,,Official site not identified by search (listed elsewhere as THI of Nevada / Harmon Medical and Rehabilitation Hospital),proposed:claude 2026-11-05,Cooper,2026-11-05
+290045,SAINT ROSE DOMINICAN HOSPITALS - SIENA CAMPUS,https://www.dignityhealth.org,website,https://www.dignityhealth.org/las-vegas/locations/siena,Dignity Health system site,proposed:claude 2026-11-05,Cooper,2026-11-05
+290046,SPRING VALLEY HOSPITAL MEDICAL CENTER,https://springvalleyhospital.com,website,https://springvalleyhospital.com/about,Valley Health System (UHS),proposed:claude 2026-11-05,Cooper,2026-11-05
+290047,SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER,https://southernhillshospital.com,website,https://webchart.org/site/southernhillshospital.com,Weak evidence (a site directory listing); please check,proposed:claude 2026-11-05,Cooper,2026-11-05
+290049,RENOWN SOUTH MEADOWS MEDICAL CENTER,https://www.renown.org,website,https://www.renown.org/Patients-and-Visitors/Billing/Pricing-Transparency,Renown's cms-hpt.txt names this hospital,proposed:claude 2026-11-05,Cooper,2026-11-05
+29004F,VA SOUTHERN NEVADA HEALTHCARE SYSTEM,,federal_exempt,,VA hospital; federally owned hospitals are deemed to meet the price transparency rule,proposed:claude 2026-11-05,Cooper,2026-11-05
+290053,SAINT ROSE DOMINICAN HOSPITALS - SAN MARTIN CAMPUS,https://www.dignityhealth.org,website,https://dignityhealth.org/las-vegas/locations/san-martin,Dignity Health system site,proposed:claude 2026-11-05,Cooper,2026-11-05
+290054,CENTENNIAL HILLS HOSPITAL MEDICAL CENTER,https://www.centennialhillshospital.com,website,https://www.centennialhillshospital.com/,Valley Health System (UHS),proposed:claude 2026-11-05,Cooper,2026-11-05
+290057,HENDERSON HOSPITAL,https://www.valleyhealthsystemlv.com,website,https://www.valleyhealthsystemlv.com/our-facilities/henderson-hospital,Valley Health System site (no separate hospital site found),proposed:claude 2026-11-05,Cooper,2026-11-05
+290058,SAINT ROSE DOMINICAN HOSPITALS - NORTH LAS VEGAS,https://www.dignityhealth.org,website,https://dignityhealth.org/las-vegas/about-us,Dignity Health system site,proposed:claude 2026-11-05,Cooper,2026-11-05
+290062,WEST HENDERSON HOSPITAL,https://www.valleyhealthsystemlv.com,website,https://www.valleyhealthsystemlv.com/about/news/west-henderson-hospital-opens-for-patient-care,Valley Health System site (no separate hospital site found),proposed:claude 2026-11-05,Cooper,2026-11-05
+291300,MOUNT GRANT GENERAL HOSPITAL,,not_found,,Official site not identified by search; please add if known,proposed:claude 2026-11-05,Cooper,2026-11-05
+291301,INCLINE VILLAGE COMMUNITY HOSPITAL,https://www.tfhd.com,website,https://www.tfhd.com/ivch/services/,Part of Tahoe Forest Health System,proposed:claude 2026-11-05,Cooper,2026-11-05
+291302,WILLIAM BEE RIRIE HOSPITAL,,not_found,,Official site not identified by search; please add if known,proposed:claude 2026-11-05,Cooper,2026-11-05
+291303,BATTLE MOUNTAIN GENERAL HOSPITAL,,not_found,,Official site not identified by search; please add if known,proposed:claude 2026-11-05,Cooper,2026-11-05
+291304,PERSHING GENERAL HOSPITAL,,not_found,,Official site not identified by search; please add if known,proposed:claude 2026-11-05,Cooper,2026-11-05
+291306,CARSON VALLEY HEALTH,,not_found,,Official site not identified by search; please add if known,proposed:claude 2026-11-05,Cooper,2026-11-05
+291307,MESA VIEW REGIONAL HOSPITAL,https://mesaviewhospital.com,website,https://mesaviewhospital.com/?p=4277,,proposed:claude 2026-11-05,Cooper,2026-11-05
+291308,HUMBOLDT GENERAL HOSPITAL,,not_found,,Official site not identified by search; please add if known,proposed:claude 2026-11-05,Cooper,2026-11-05
+291309,BOULDER CITY HOSPITAL,https://bchcares.org,website,https://bchcares.org/local-healthcare-and-medical-services/,,proposed:claude 2026-11-05,Cooper,2026-11-05
+291311,DESERT VIEW HOSPITAL,,not_found,,"Affiliated with Valley Health System per its news page, but no hospital site identified",proposed:claude 2026-11-05,Cooper,2026-11-05
+291312,GROVER C DILS MEDICAL CENTER,,not_found,,Official site not identified by search; please add if known,proposed:claude 2026-11-05,Cooper,2026-11-05
+291313,BANNER CHURCHILL COMMUNITY HOSPITAL,https://www.bannerhealth.com,website,https://bannerhealth.com/locations/fallon/banner-churchill-community-hospital,Banner Health system site,proposed:claude 2026-11-05,Cooper,2026-11-05
+291314,SOUTH LYON MEDICAL CENTER,,not_found,,Official site not identified by search; please add if known,proposed:claude 2026-11-05,Cooper,2026-11-05
+294000,DINI-TOWNSEND HOSPITAL AT NNMH,https://dpbh.nv.gov,website,https://www.dpbh.nv.gov/siteassets/programs/bh-inpatient-services/hospital-charges/nnamhs--snamhs-hospital-charges-fy27.pdf,State hospital (Nevada Division of Public and Behavioral Health); publishes a charges PDF,proposed:claude 2026-11-05,Cooper,2026-11-05
+294002,SOUTHERN NEVADA ADULT MENTAL HEALTH SERVICES,https://dpbh.nv.gov,website,https://www.dpbh.nv.gov/siteassets/programs/bh-inpatient-services/hospital-charges/nnamhs--snamhs-hospital-charges-fy27.pdf,State hospital (Nevada Division of Public and Behavioral Health),proposed:claude 2026-11-05,Cooper,2026-11-05
+294010,SPRING MOUNTAIN SAHARA,,not_found,,Official site not identified by search; please add if known,proposed:claude 2026-11-05,Cooper,2026-11-05
+294011,SPRING MOUNTAIN TREATMENT CENTER,https://www.valleyhealthsystemlv.com,website,https://www.valleyhealthsystemlv.com/our-facilities/spring-mountain-treatment-center,Valley Health System site,proposed:claude 2026-11-05,Cooper,2026-11-05
+294012,SEVEN HILLS HOSPITAL,https://www.acadiahealthcare.com,website,https://www.acadiahealthcare.com/locations/seven-hills-hospital,Acadia Healthcare system site,proposed:claude 2026-11-05,Cooper,2026-11-05
+294013,"DESERT PARKWAY BEHAVIORAL HEALTHCARE HOSPITAL, LLC",,not_found,,Official site not identified by search; please add if known,proposed:claude 2026-11-05,Cooper,2026-11-05
+294015,"RENO BEHAVIORAL HEALTHCARE HOSPITAL, LLC",,not_found,,Official site not identified by search; please add if known,proposed:claude 2026-11-05,Cooper,2026-11-05
+294016,"THRIVE BEHAVIORAL HOSPITAL, LLC",,not_found,,Official site not identified by search; please add if known,proposed:claude 2026-11-05,Cooper,2026-11-05

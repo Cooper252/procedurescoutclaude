@@ -54,6 +54,12 @@ Partitioning: LIST (`state_code`) with `price_nv` and a DEFAULT partition. Index
 - `ref.code.descriptor_short`, under the same CPT licence CHECK.
 - `src.reference_load` (dataset, source, SHA-256, size, modified date, parameters, status, counts, summary, error) and `src.reference_reject`.
 
+## Phase 2 additions (migration 0003)
+
+- `ref.facility`: `website` must be `https://<host>` and requires `website_reviewed_by` + `website_reviewed_at`; `website_evidence_url`; `hpt_exempt_reason`.
+- `src.hpt_txt_fetch`: every attempt to read a site's cms-hpt.txt (status, final URL after redirects, SHA-256, size, error, entry count).
+- `src.hpt_txt_entry`: each block as published, with `match_status` (matched / unmatched / ambiguous / invalid), `problems`, and `facility_id` exactly when matched. Not readable by the API role.
+
 ## Deletion behaviour
 
 Lineage references use `ON DELETE RESTRICT` (files, runs, dataset versions, facilities cannot be deleted while prices point at them). Child detail rows (aliases, events, validation results) cascade with their parent.
