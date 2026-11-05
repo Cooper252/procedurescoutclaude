@@ -1,0 +1,44 @@
+[project]
+name = "procedurescout"
+version = "0.1.0"
+description = "ProcedureScout: U.S. hospital price transparency platform"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn>=0.30",
+  "sqlalchemy>=2.0.30",
+  "alembic>=1.13",
+  "psycopg[binary]>=3.2",
+  "pydantic>=2.7",
+  "pydantic-settings>=2.3",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "httpx>=0.27", "ruff>=0.6", "mypy>=1.11"]
+
+[tool.pytest.ini_options]
+pythonpath = ["packages/core", "packages/ingest", "apps/api"]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = [".venv"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "N", "S", "DTZ", "RUF"]
+ignore = ["S101"]  # assert is fine in tests
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S105", "S106", "S608"]
+"db/migrations/*" = ["S608", "E501"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+mypy_path = ["packages/core", "packages/ingest", "apps/api"]
+packages = ["procedurescout_core", "procedurescout_ingest", "procedurescout_api"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["procedurescout_core", "procedurescout_ingest", "procedurescout_api", "tests"]
