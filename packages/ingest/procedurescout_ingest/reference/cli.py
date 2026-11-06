@@ -66,6 +66,7 @@ STEP_DATASETS = {
     "aliases": "manual_relationships",
     "discover": "cms_hpt_txt_discovery",
     "manual_sources": "cms_hpt_txt_discovery",
+    "probe": "cms_hpt_txt_discovery",
 }
 
 
@@ -309,6 +310,18 @@ def cmd_manual_sources(args: argparse.Namespace, engine: Engine) -> None:
     )
 
 
+def cmd_probe(args: argparse.Namespace, engine: Engine) -> None:
+    with new_client() as client:
+        prober = discovery.http_prober(client)
+        _run(
+            engine,
+            "cms_hpt_txt_discovery",
+            lambda c: discovery.probe_sources(c, prober),
+            source_file="known price-file URLs (headers only)",
+            parameters={"kind": "probe"},
+        )
+
+
 def cmd_hcpcs(args: argparse.Namespace, engine: Engine) -> None:
     with new_client() as client:
         blob = acquire(args.file, client)
@@ -467,6 +480,7 @@ def cmd_nv_all(args: argparse.Namespace, engine: Engine) -> None:
         step("discover", lambda: cmd_discover(ns(state=st), engine))
     if os.path.exists(MANUAL_SOURCES_CSV):
         step("manual_sources", lambda: cmd_manual_sources(ns(file=MANUAL_SOURCES_CSV), engine))
+    step("probe", lambda: cmd_probe(ns(), engine))
     cmd_report(ns(state=st), engine)
     if failures:
         sys.exit(f"{len(failures)} step(s) failed: {', '.join(failures)}")
@@ -518,6 +532,8 @@ def build_parser() -> argparse.ArgumentParser:
     sp = sub.add_parser("manual-sources", help="reviewed hand-entered price-file links")
     sp.add_argument("--file", default=MANUAL_SOURCES_CSV)
 
+    sub.add_parser("probe", help="size/date check of known price files (no download)")
+
     sp = sub.add_parser("hcpcs", help="HCPCS Level II codes")
     sp.add_argument("--file", default=HCPCS_OCT_2026_URL)
     sp.add_argument("--release", default="2026-10")
@@ -556,6 +572,7 @@ def main(argv: list[str] | None = None) -> None:
             "aliases": lambda: cmd_aliases(args, engine),
             "discover": lambda: cmd_discover(args, engine),
             "manual-sources": lambda: cmd_manual_sources(args, engine),
+            "probe": lambda: cmd_probe(args, engine),
             "msdrg": lambda: cmd_msdrg(args, engine),
             "report": lambda: cmd_report(args, engine),
             "nv-all": lambda: cmd_nv_all(args, engine),

@@ -20,3 +20,16 @@ One card per facility; inside, one row per distinct payer/plan/price type with a
 ## TODO
 
 - Wireframes, empty/error/stale states, accessibility review.
+
+## Facilities without usable prices (D-022)
+
+A facility is always listed (name, address, distance) even when no prices can be shown, with one plain status instead of prices:
+
+| Status | Shown when | Text (draft) |
+|---|---|---|
+| `coming_soon` | A price file exists but could not be read automatically this run (e.g. the site refuses automated requests) | "Prices coming soon" |
+| `not_published` | No standard machine-readable price file found (no cms-hpt.txt entry, PDF only, file not listed) | "This hospital doesn't publish a standard price file" |
+| `exempt` | Federally owned hospital (`hpt_exempt_reason` set) | "Federal hospital — not required to publish prices" |
+| `unknown` | No website known | "Price information not available" |
+
+No estimate, average or neighbouring hospital's price is ever shown in their place. Statuses come from the latest discovery run, never from memory.

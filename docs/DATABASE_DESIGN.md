@@ -65,6 +65,11 @@ Partitioning: LIST (`state_code`) with `price_nv` and a DEFAULT partition. Index
 - `src.hpt_txt_fetch.content_source` (`live` | `captured`); captured rows require `captured_at`, `captured_from`, `copy_reviewed_by`.
 - `src.transparency_source.review_note`; required when `discovery_method = 'manual'`.
 
+## Migrations 0005–0006
+
+- `src.hpt_txt_fetch.fetched_via` (`github` | `home_runner`).
+- `src.source_probe`: headers-only size/date checks of each price-file URL (nothing downloaded).
+
 ## Deletion behaviour
 
 Lineage references use `ON DELETE RESTRICT` (files, runs, dataset versions, facilities cannot be deleted while prices point at them). Child detail rows (aliases, events, validation results) cascade with their parent.

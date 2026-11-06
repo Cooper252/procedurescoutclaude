@@ -2,6 +2,9 @@
 
 Newest first. Each entry: decision, reason, consequences.
 
+## 2026-11-06 — D-022: Placeholders, not workarounds, for hospitals we cannot read
+Cooper (2026-11-06): until Renown and Tahoe Forest allow automated access (emails drafted, to be sent once the site is running), those hospitals are listed with "Prices coming soon". Other hospitals without a usable file get a plain status (see `CONSUMER_USER_FLOWS.md`). Files downloaded by hand are not loaded for now; if added later they must carry who downloaded them, when, the source URL and SHA-256, be labeled as manually loaded, and be flagged once stale.
+
 ## 2026-11-06 — D-021: Live fetches from Cooper's computer for sites that refuse GitHub
 Cooper chose option A: a GitHub self-hosted runner on his own computer (label `procedurescout-home`) fetches every approved site's /cms-hpt.txt live at the start of the manual Nevada workflow (`scripts/fetch_hpt_home.ps1`), and the main job uses those files only for sites whose fetch from GitHub fails. Every fetch row records `fetched_via` (`github` | `home_runner`). The runner job reads only the approved websites list and writes only its output folder. Because a self-hosted runner executes workflow code, the repository must be private before the runner is connected. When the computer is off, untick "use_home_computer" when starting the run.
 

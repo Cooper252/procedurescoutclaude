@@ -500,3 +500,126 @@ def load_home_fetches(base_dir: Path, stats: LoadStats) -> dict[str, HptFetch]:
         )
         stats.count("home_fetches_ok" if data is not None and not error else "home_fetches_failed")
     return out
+
+
+# ------------------------------------------------------------------ probing
+@dataclass(frozen=True, slots=True)
+class ProbeResult:
+    method: str
+    http_status: int | None = None
+    final_url: str | None = None
+    content_length: int | None = None
+    content_type: str | None = None
+    last_modified: str | None = None
+    error: str | None = None
+
+
+Prober = Callable[[str], ProbeResult]
+NO_HEAD_STATUSES = frozenset({400, 403, 405, 501})
+
+
+def _length(value: str | None) -> int | None:
+    return int(value) if value and value.strip().isdigit() else None
+
+
+def http_prober(client: httpx.Client, sleep: Callable[[int], None] = time.sleep) -> Prober:
+    """Ask for a price file's headers without downloading it: HEAD first; if the
+    server does not answer HEAD usefully, a GET whose body is never read."""
+
+    def from_response(method: str, resp: httpx.Response) -> ProbeResult:
+        ok = 200 <= resp.status_code < 300
+        return ProbeResult(
+            method=method,
+            http_status=resp.status_code,
+            final_url=str(resp.url),
+            content_length=_length(resp.headers.get("content-length")) if ok else None,
+            content_type=resp.headers.get("content-type") if ok else None,
+            last_modified=resp.headers.get("last-modified") if ok else None,
+            error=None if ok else "HTTP error",
+        )
+
+    def once(url: str) -> ProbeResult:
+        try:
+            head = client.head(url)
+            if head.status_code not in NO_HEAD_STATUSES and not (
+                200 <= head.status_code < 300 and head.headers.get("content-length") is None
+            ):
+                return from_response("HEAD", head)
+            with client.stream("GET", url) as resp:  # body is never read
+                return from_response("GET-headers", resp)
+        except httpx.HTTPError as exc:
+            return ProbeResult(method="HEAD", error=f"{type(exc).__name__}: {exc}")
+
+    def probe(url: str) -> ProbeResult:
+        result = once(url)
+        if result.http_status in RETRY_STATUSES:
+            sleep(RATE_LIMIT_WAITS[0])
+            result = once(url)
+        return result
+
+    return probe
+
+
+def _megabytes(n: int) -> str:
+    whole, rest = divmod(n * 10 // (1024 * 1024), 10)
+    return f"{whole}.{rest} MB"
+
+
+def probe_sources(conn: Connection, prober: Prober) -> LoadStats:
+    """Check every known price-file URL's size and date; download nothing."""
+    stats = LoadStats()
+    sources = conn.execute(
+        text(
+            """
+            SELECT s.id, s.url, f.ccn
+            FROM src.transparency_source s LEFT JOIN ref.facility f ON f.id = s.facility_id
+            ORDER BY s.url
+            """
+        )
+    ).all()
+    total = 0
+    for sid, url, ccn in sources:
+        stats.rows_in += 1
+        r = prober(url)
+        conn.execute(
+            text(
+                """
+                INSERT INTO src.source_probe (source_id, method, http_status, final_url,
+                    content_length, content_type, last_modified, error)
+                VALUES (:s, :m, :st, :fu, :cl, :ct, :lm, :e)
+                """
+            ),
+            {
+                "s": sid,
+                "m": r.method,
+                "st": r.http_status,
+                "fu": r.final_url,
+                "cl": r.content_length,
+                "ct": r.content_type,
+                "lm": r.last_modified,
+                "e": r.error,
+            },
+        )
+        who = f"ccn:{ccn}" if ccn else "shared/unassigned"
+        if r.error is not None:
+            stats.count("probe_failed")
+            stats.reject(
+                who, "probe_failed", f"{url} | {r.error} (status {r.http_status})", Severity.WARNING
+            )
+            continue
+        stats.rows_loaded += 1
+        size = _megabytes(r.content_length) if r.content_length is not None else "size not reported"
+        if r.content_length is not None:
+            total += r.content_length
+            stats.count("probe_sized")
+        else:
+            stats.count("probe_size_unknown")
+        stats.reject(
+            who,
+            "probe_ok",
+            f"{url} | {size} | type {r.content_type} | last-modified {r.last_modified}",
+            Severity.INFO,
+        )
+    stats.summary["total_reported_bytes"] = total
+    stats.summary["total_reported"] = _megabytes(total)
+    return stats

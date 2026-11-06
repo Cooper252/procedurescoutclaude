@@ -11,6 +11,7 @@
 | Q8 | Who reviews facility campus relationships and fills `data/reference/facility_relationships_reviewed.csv`? | Cooper | Before Phase 2 file→facility mapping |
 | Q9 | ASCs outside the ASC Quality Reporting file: add a second source (CMS Provider of Services file or Nevada DPBH licensing list)? | Cooper | Phase 3 |
 | Q11 | Websites for Harmon Hospital (290042) and Thrive Behavioral Hospital (294016); where the St. Rose North Las Vegas campus publishes prices; Reno Behavioral's price file (its page refuses access). | Cooper | Phase 2 |
+| Q13 | Send the drafted emails to Renown (Auditandcompliance@renown.org) and Tahoe Forest (mhambrick@TFHD.COM) asking them to allow automated access. | Cooper | When the site is running |
 | Q10 | NUBC revenue code descriptions: licence or code-only display? | Cooper (counsel) | Phase 3 |
 
 ## Resolved

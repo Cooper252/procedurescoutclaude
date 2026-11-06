@@ -444,3 +444,71 @@ def test_no_home_directory_means_no_home_fetches(tmp_path: Path) -> None:
     from procedurescout_ingest.reference.common import LoadStats
 
     assert load_home_fetches(tmp_path / "missing", LoadStats()) == {}
+
+
+def test_prober_reads_headers_without_downloading() -> None:
+    from procedurescout_ingest.discovery import http_prober
+
+    seen: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(f"{request.method} {request.url.path}")
+        if request.url.path == "/head-ok.json":
+            return httpx.Response(
+                200,
+                headers={
+                    "content-length": "123456789",
+                    "content-type": "application/json",
+                    "last-modified": "Tue, 01 Sep 2026 00:00:00 GMT",
+                },
+            )
+        if request.url.path == "/no-head.csv":
+            if request.method == "HEAD":
+                return httpx.Response(405)
+            return httpx.Response(200, headers={"content-length": "2048"}, content=b"x" * 2048)
+        return httpx.Response(404)
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        probe = http_prober(client, sleep=lambda _s: None)
+        a = probe("https://files.example/head-ok.json")
+        b = probe("https://files.example/no-head.csv")
+        c = probe("https://files.example/missing.csv")
+    assert (a.method, a.content_length, a.last_modified) == (
+        "HEAD",
+        123456789,
+        "Tue, 01 Sep 2026 00:00:00 GMT",
+    )
+    assert (b.method, b.content_length) == ("GET-headers", 2048)
+    assert (c.http_status, c.error, c.content_length) == (404, "HTTP error", None)
+    assert seen == [
+        "HEAD /head-ok.json",
+        "HEAD /no-head.csv",
+        "GET /no-head.csv",
+        "HEAD /missing.csv",
+    ]
+
+
+def test_probe_sources_records_sizes(conn: Connection) -> None:
+    from procedurescout_ingest.discovery import ProbeResult, probe_sources
+
+    setup_hospitals(conn)
+    load_websites(conn, websites_csv())
+    discover(conn, "NV", fake_fetcher)
+    sizes = {f"{SITE}/mrf/valley.json": 3 * 1024 * 1024, f"{SITE}/mrf/shared.json": None}
+
+    def prober(url: str) -> ProbeResult:
+        if url.endswith("unknown.json"):
+            return ProbeResult("HEAD", 404, url, error="HTTP error")
+        return ProbeResult("HEAD", 200, url, sizes.get(url), "application/json", None)
+
+    stats = probe_sources(conn, prober)
+    assert stats.summary["probe_sized"] >= 1 and stats.summary["probe_failed"] >= 1
+    row = conn.execute(
+        text(
+            "SELECT p.content_length FROM src.source_probe p JOIN src.transparency_source s "
+            "ON s.id = p.source_id WHERE s.url = :u"
+        ),
+        {"u": f"{SITE}/mrf/valley.json"},
+    ).scalar()
+    assert row == 3 * 1024 * 1024
+    assert any("3.0 MB" in r.message for r in stats.rejects if r.rule == "probe_ok")

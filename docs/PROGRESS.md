@@ -2,7 +2,29 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
-## 2026-11-06 — Home-computer fetches (D-021), implemented and tested; not yet run for real
+## 2026-11-06 — Price-file size check (no downloads), implemented and tested
+
+Before any price file is downloaded (CLAUDE.md: ask before downloads over 50 MB), the run now asks each known price-file server for headers only.
+
+- Migration `0006_source_probe.py`: `src.source_probe` (method HEAD or GET-headers, status, final URL, Content-Length, Content-Type, Last-Modified, error).
+- `discovery.http_prober` (HEAD; if refused or no size, a GET whose body is never read; one retry on 429/5xx) and `discovery.probe_sources`; CLI `probe`; `nv-all` runs it after discovery. Results appear in the rejects export as `probe_ok` / `probe_failed` with size and last-modified per file.
+- Tests: `test_prober_reads_headers_without_downloading` (asserts the exact requests made), `test_probe_sources_records_sizes`.
+
+`make lint typecheck test`: `212 passed, 1 warning` (Python 3.13 and 3.12).
+
+## 2026-11-06 — Discovery run #8: live from GitHub + Cooper's computer (all live, no saved copies)
+
+Artifacts `reference-nv (7).zip` and `hpt-home.zip` (read 2026-11-06). Repository confirmed private (lock icon). Self-hosted runner `DESKTOP-69FBOU0`, labels self-hosted/Windows/X64/procedurescout-home, runner 2.338.2.
+
+- **Home runner job on Windows PowerShell 5.1 succeeded**: 29 of 34 sites fetched. Failures there: dpbh.nv.gov 404, renown.org 429, tfhd.com 403, wbrhely.org 403, hghospital.org "Could not create SSL/TLS secure channel" (GitHub's own fetch of hghospital.org worked, so no effect).
+- Discovery: 34 sites; 8 refused GitHub (403) and were read from the home runner's live fetch (Boulder City, Mesa View, Spring Valley, Centennial Hills, Desert Parkway, Henderson, Summerlin, Valley Hospital); 4 failed from both networks.
+- **33 hospitals matched to a live price-file entry**; 22 price files assigned to one hospital. Desert Parkway now matches (alias approved) and Banner Churchill matched again.
+- Not found, by reason: Renown Regional + Renown South Meadows (HTTP 429 to both networks, opens in a normal browser), Incline Village (HTTP 403 to both networks, opens in a browser), William Bee Ririe (no cms-hpt.txt), St. Rose North Las Vegas (not listed), Reno Behavioral (file lists no Reno location), 2 state hospitals (PDF only), Harmon and Thrive (no website), 3 federal (exempt).
+- No saved copies were used (`captured_copies_available: 0`); the manual William Bee Ririe link stayed unapproved.
+
+Status: SRC-01 discovery Implemented, Tested, and run against live sources for Nevada (throwaway database). Not Deployed.
+
+## 2026-11-06 — Home-computer fetches (D-021), implemented and tested; then run as #8
 
 - Migration `0005_home_runner.py`: `src.hpt_txt_fetch.fetched_via`.
 - `scripts/fetch_hpt_home.ps1`: fetches approved sites' cms-hpt.txt (redirects followed, 429/502/503/504 retried up to 3 times, other errors recorded), writes files byte-for-byte plus `fetches.json`. Tested with PowerShell 7.4.6 on Linux against a local test server: ok, redirect (final URL recorded), 403 (recorded, no file), 429 then 200 (retried), unreviewed and not-found rows skipped, CRLF bytes preserved. The first run found and fixed a file-naming bug. **Not yet run on Windows PowerShell 5.1** (Cooper's computer). PowerShell 7.4.6 (72 MB) was downloaded into the build workspace only for this test; it is not part of the project.
