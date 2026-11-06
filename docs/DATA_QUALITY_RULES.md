@@ -14,11 +14,14 @@ Blank is None not 0; floats rejected; no rounding; percentage never parsed as do
 
 PDC row count must equal the API's count; unknown hospital types, malformed CCNs and state mismatches are rejected; HCPCS loads stop if more than 1% of records fail the layout; MS-DRG loads stop below 700 codes by default; downloads over 50 MB are refused; every reject is stored in `src.reference_reject`.
 
+## Price-file check (Phase 2 step 2a, tested)
+
+Flagged per file (`file_problem`, stored in `src.transparency_file.read_error`): no `version`, or not a 2.x/3.x template; no `last_updated_on`, not a date, or more than a year old (CMS requires annual updates); CSV rows with a different column count than the header; bytes that are not valid UTF-8; fewer than three rows (not the CMS CSV template); invalid JSON; Excel workbooks; ZIPs with no or several JSON/CSV files. Download failures (`download_failed`) and files over the size limit are reported, never retried around.
+
 ## Planned (Phase 2 quality review)
 
 - Row-count swing > 30% vs previous version → hold for review.
 - $0 amounts, implausible ratios (cash > gross, negotiated > 10× gross) → flag.
-- Reported `last_updated_on` older than 12 months → stale warning.
 - v3.0 conditional rules from `CMS_SCHEMA_SUPPORT.md`.
 
 ## Consumer rules (Phase 3)

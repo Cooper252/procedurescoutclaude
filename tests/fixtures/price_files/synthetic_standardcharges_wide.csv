@@ -1,0 +1,5 @@
+hospital_name,last_updated_on,version,location_name,hospital_address,license_number|NV
+Synthetic Valley Medical Center,09/01/2026,2.2.0,Synthetic Valley Medical Center,"1 Synthetic Way",SYN-0001
+description,code|1,code|1|type,setting,standard_charge|gross,standard_charge|discounted_cash,standard_charge|Synthetic Payer One|PPO|negotiated_dollar,standard_charge|Synthetic Payer One|PPO|methodology,standard_charge|Synthetic Payer Two|HMO|negotiated_percentage,standard_charge|Synthetic Payer Two|HMO|methodology,standard_charge|min,standard_charge|max
+SYNTHETIC SERVICE A,99999,CPT,outpatient,100.10,80.00,75.25,fee schedule,60,percent of total billed charges,75.25,75.25
+SYNTHETIC SERVICE B,999,MS-DRG,inpatient,25000,,20000,case rate,,,20000,20000,extra

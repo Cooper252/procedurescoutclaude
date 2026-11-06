@@ -1,0 +1,40 @@
+{
+  "hospital_name": "Synthetic Valley Medical Center",
+  "last_updated_on": "2026-09-01",
+  "version": "3.0.0",
+  "location_name": ["Synthetic Valley Medical Center"],
+  "hospital_address": ["1 Synthetic Way, Nowhere, NV 89000"],
+  "license_information": {"license_number": "SYN-0001", "state": "NV"},
+  "type_2_npi": ["0000000000"],
+  "attestation": {
+    "attestation": "To the best of its knowledge and belief, this synthetic hospital has included all applicable standard charge information.",
+    "confirm_attestation": true,
+    "attester_name": "Synthetic Attester"
+  },
+  "standard_charge_information": [
+    {
+      "description": "SYNTHETIC SERVICE A",
+      "code_information": [{"code": "99999", "type": "CPT"}, {"code": "0450", "type": "RC"}],
+      "standard_charges": [
+        {
+          "setting": "outpatient",
+          "gross_charge": 100.10,
+          "discounted_cash": 80.00,
+          "payers_information": [
+            {"payer_name": "Synthetic Payer One", "plan_name": "PPO", "standard_charge_dollar": 75.25, "methodology": "fee schedule"},
+            {"payer_name": "Synthetic Payer Two", "plan_name": "HMO", "standard_charge_percentage": 60, "methodology": "percent of total billed charges"}
+          ]
+        }
+      ]
+    },
+    {
+      "description": "SYNTHETIC SERVICE B",
+      "code_information": [{"code": "999", "type": "MS-DRG"}],
+      "standard_charges": [
+        {"setting": "inpatient", "gross_charge": 25000,
+         "payers_information": [{"payer_name": "Synthetic Payer One", "plan_name": "PPO", "standard_charge_dollar": 20000, "methodology": "case rate"}]}
+      ]
+    }
+  ],
+  "modifier_information": []
+}

@@ -19,11 +19,13 @@ from collections.abc import Callable
 from datetime import date
 from typing import Any
 
+import httpx
 from sqlalchemy import Connection, Engine, create_engine, text
 
 from .. import discovery
 from . import ahrq, census, cms_pdc, codes, facilities, geocode, nppes, relationships, websites
 from .common import (
+    USER_AGENT,
     LoadStats,
     SourceBlob,
     SourceError,
@@ -52,6 +54,7 @@ WEBSITES_CSV = "data/reference/facility_websites.csv"
 ALIASES_CSV = "data/reference/facility_aliases_reviewed.csv"
 CAPTURED_DIR = "data/reference/hpt_captured"
 MANUAL_SOURCES_CSV = "data/reference/price_file_sources_reviewed.csv"
+CO_LISTED_CSV = "data/reference/hpt_co_listed_locations_reviewed.csv"
 STEP_DATASETS = {
     "hospitals": "cms_hospital_general_information",
     "ascs": "cms_asc_facility",
@@ -67,6 +70,7 @@ STEP_DATASETS = {
     "discover": "cms_hpt_txt_discovery",
     "manual_sources": "cms_hpt_txt_discovery",
     "probe": "cms_hpt_txt_discovery",
+    "price_files": "price_file_check",
 }
 
 
@@ -281,7 +285,12 @@ def cmd_discover(args: argparse.Namespace, engine: Engine) -> None:
     home = discovery.load_home_fetches(Path(home_dir).resolve(), captured_stats) if home_dir else {}
 
     def work(c: Connection) -> LoadStats:
-        stats = discovery.discover(c, args.state, fetch, captured, home)
+        co_listed = (
+            discovery.load_co_listed(c, Path(CO_LISTED_CSV).read_text(), captured_stats)
+            if Path(CO_LISTED_CSV).exists()
+            else {}
+        )
+        stats = discovery.discover(c, args.state, fetch, captured, home, co_listed)
         stats.summary["home_fetches_available"] = len(home)
         stats.rejects.extend(captured_stats.rejects)
         stats.summary.update({f"manifest_{k}": v for k, v in captured_stats.summary.items()})
@@ -319,6 +328,30 @@ def cmd_probe(args: argparse.Namespace, engine: Engine) -> None:
             lambda c: discovery.probe_sources(c, prober),
             source_file="known price-file URLs (headers only)",
             parameters={"kind": "probe"},
+        )
+
+
+def cmd_price_files(args: argparse.Namespace, engine: Engine) -> None:
+    """Download each assigned price file, check it, delete it (step 2a)."""
+    import tempfile
+    from pathlib import Path
+
+    from .. import price_files
+
+    max_bytes = int(os.environ.get("PRICE_FILE_MAX_BYTES", price_files.DEFAULT_MAX_BYTES))
+    client = httpx.Client(
+        headers={"User-Agent": USER_AGENT},
+        timeout=httpx.Timeout(60, read=300),
+        follow_redirects=True,
+    )
+    with client, tempfile.TemporaryDirectory(prefix="price-files-") as work:
+        downloader = price_files.http_downloader(client, max_bytes)
+        _run(
+            engine,
+            "price_file_check",
+            lambda c: price_files.check_price_files(c, args.state, downloader, Path(work)),
+            source_file="assigned price files (downloaded, checked, deleted)",
+            parameters={"state": args.state, "max_bytes": max_bytes},
         )
 
 
@@ -481,6 +514,11 @@ def cmd_nv_all(args: argparse.Namespace, engine: Engine) -> None:
     if os.path.exists(MANUAL_SOURCES_CSV):
         step("manual_sources", lambda: cmd_manual_sources(ns(file=MANUAL_SOURCES_CSV), engine))
     step("probe", lambda: cmd_probe(ns(), engine))
+    if os.environ.get("PRICE_FILE_DOWNLOADS") == "1":
+        # Large downloads (about 5 GB for Nevada): only when the run asks for it.
+        step("price_files", lambda: cmd_price_files(ns(state=st), engine))
+    else:
+        print("price-file downloads skipped (PRICE_FILE_DOWNLOADS is not 1)", file=sys.stderr)
     cmd_report(ns(state=st), engine)
     if failures:
         sys.exit(f"{len(failures)} step(s) failed: {', '.join(failures)}")
@@ -534,6 +572,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     sub.add_parser("probe", help="size/date check of known price files (no download)")
 
+    sp = sub.add_parser(
+        "price-files", help="download, check and delete each assigned price file (large)"
+    )
+    state(sp)
+
     sp = sub.add_parser("hcpcs", help="HCPCS Level II codes")
     sp.add_argument("--file", default=HCPCS_OCT_2026_URL)
     sp.add_argument("--release", default="2026-10")
@@ -573,6 +616,7 @@ def main(argv: list[str] | None = None) -> None:
             "discover": lambda: cmd_discover(args, engine),
             "manual-sources": lambda: cmd_manual_sources(args, engine),
             "probe": lambda: cmd_probe(args, engine),
+            "price-files": lambda: cmd_price_files(args, engine),
             "msdrg": lambda: cmd_msdrg(args, engine),
             "report": lambda: cmd_report(args, engine),
             "nv-all": lambda: cmd_nv_all(args, engine),

@@ -485,6 +485,7 @@ def test_prober_reads_headers_without_downloading() -> None:
         "HEAD /no-head.csv",
         "GET /no-head.csv",
         "HEAD /missing.csv",
+        "GET /missing.csv",
     ]
 
 
@@ -496,13 +497,22 @@ def test_probe_sources_records_sizes(conn: Connection) -> None:
     discover(conn, "NV", fake_fetcher)
     sizes = {f"{SITE}/mrf/valley.json": 3 * 1024 * 1024, f"{SITE}/mrf/shared.json": None}
 
+    probed: list[str] = []
+
     def prober(url: str) -> ProbeResult:
-        if url.endswith("unknown.json"):
+        probed.append(url)
+        if url.endswith("shared.json"):
             return ProbeResult("HEAD", 404, url, error="HTTP error")
         return ProbeResult("HEAD", 200, url, sizes.get(url), "application/json", None)
 
     stats = probe_sources(conn, prober)
-    assert stats.summary["probe_sized"] >= 1 and stats.summary["probe_failed"] >= 1
+    # valley.json is assigned; shared.json is held back but lists a facility of
+    # ours; unknown.json lists nobody we know and is skipped.
+    assert sorted(probed) == [f"{SITE}/mrf/shared.json", f"{SITE}/mrf/valley.json"]
+    assert stats.summary["probe_skipped_out_of_area"] >= 1  # other suites may add sources
+    assert stats.summary["probe_sized"] == 1 and stats.summary["probe_failed"] == 1
+    failed = [r for r in stats.rejects if r.rule == "probe_failed"]
+    assert failed[0].row_ref.startswith("held back (matched ccn ")
     row = conn.execute(
         text(
             "SELECT p.content_length FROM src.source_probe p JOIN src.transparency_source s "
@@ -512,3 +522,86 @@ def test_probe_sources_records_sizes(conn: Connection) -> None:
     ).scalar()
     assert row == 3 * 1024 * 1024
     assert any("3.0 MB" in r.message for r in stats.rejects if r.rule == "probe_ok")
+
+
+CO_HEADER = "location_name,parent_ccn,note,reviewed_by,reviewed_at\n"
+
+
+def _source_owner(conn: Connection, url: str) -> str | None:
+    return conn.execute(
+        text(
+            "SELECT f.ccn FROM src.transparency_source s "
+            "LEFT JOIN ref.facility f ON f.id = s.facility_id WHERE s.url = :u"
+        ),
+        {"u": url},
+    ).scalar()
+
+
+def test_co_listed_location_lets_file_be_assigned(conn: Connection) -> None:
+    from procedurescout_ingest.discovery import load_co_listed
+    from procedurescout_ingest.reference.common import LoadStats
+
+    setup_hospitals(conn)
+    load_websites(conn, websites_csv())
+    stats0 = LoadStats()
+    approved = load_co_listed(
+        conn,
+        CO_HEADER
+        # spacing and letter case aside, the published name must match exactly
+        + "synthetic valley  north campus,SYN503,listed in its file,tester,2026-11-06\n"
+        + "Synthetic Clinic Nobody Knows,SYN501,unreviewed row,,\n",
+        stats0,
+    )
+    assert len(approved) == 1 and stats0.summary["co_listed_unreviewed"] == 1
+    stats = discover(conn, "NV", fake_fetcher, co_listed=approved)
+    assert _source_owner(conn, f"{SITE}/mrf/shared.json") == "SYN503"
+    assert _source_owner(conn, f"{SITE}/mrf/unknown.json") is None  # nobody matched there
+    row = conn.execute(
+        text(
+            "SELECT e.match_status, e.facility_id, f.ccn FROM src.hpt_txt_entry e "
+            "JOIN ref.facility f ON f.id = e.co_listed_with "
+            "WHERE e.location_name = 'Synthetic Valley North Campus'"
+        )
+    ).one()
+    assert tuple(row) == ("co_listed", None, "SYN503")  # not made into a facility of ours
+    assert stats.summary["entries_co_listed"] == 1
+    assert stats.summary["entries_unmatched"] == 1  # the unknown clinic
+
+
+def test_co_listed_approval_for_another_hospital_does_not_assign(conn: Connection) -> None:
+    from procedurescout_ingest.discovery import load_co_listed
+    from procedurescout_ingest.reference.common import LoadStats
+
+    setup_hospitals(conn)
+    load_websites(conn, websites_csv())
+    approved = load_co_listed(
+        conn,
+        CO_HEADER + "Synthetic Valley North Campus,SYN501,wrong hospital,tester,2026-11-06\n",
+        LoadStats(),
+    )
+    discover(conn, "NV", fake_fetcher, co_listed=approved)
+    assert _source_owner(conn, f"{SITE}/mrf/shared.json") is None
+    status = conn.execute(
+        text(
+            "SELECT match_status FROM src.hpt_txt_entry "
+            "WHERE location_name = 'Synthetic Valley North Campus'"
+        )
+    ).scalar()
+    assert status == "unmatched"
+
+
+def test_co_listed_requires_parent(conn: Connection) -> None:
+    with pytest.raises(IntegrityError):
+        with conn.begin_nested():
+            conn.execute(
+                text(
+                    "INSERT INTO src.hpt_txt_fetch (id, site, url) VALUES "
+                    "('00000000-0000-0000-0000-000000000077', 'https://x.example', 'u')"
+                )
+            )
+            conn.execute(
+                text(
+                    "INSERT INTO src.hpt_txt_entry (fetch_id, block_index, match_status) VALUES "
+                    "('00000000-0000-0000-0000-000000000077', 0, 'co_listed')"
+                )
+            )

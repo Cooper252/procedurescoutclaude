@@ -21,9 +21,10 @@ What is tested and how.
 | `test_reference_links.py` | NPPES addresses only when consistent; AHRQ links by CCN, unknown CCNs reported, manual links kept, systems keyed by id |
 | `test_reference_codes.py` | HCPCS fixed-width parsing, wrapping, CPT-like codes and modifiers skipped, layout change refused; Table 5 .txt/.xlsx; minimum row guard; CPT text refused |
 | `test_discovery.py` | cms-hpt.txt parsing (blocks, case, missing fields, bad URLs); fetcher (redirect, web page, 404, size cap); only reviewed websites used (and DB refusal); discovery matching, sources, failures; reviewed aliases; committed websites file well formed |
+| `test_price_files.py` | Price-file check on synthetic files: JSON header and counts, broken JSON, CSV tall and wide, ragged rows, bad bytes, non-template CSV, ZIP and Excel detection, date parsing, newest-link choice, streamed download with hash and size limit, records written and temporary files deleted, stale date flagged |
 | `test_reference_common.py` | Header normalization, ZIP parsing, download size cap, zip member choice, PDC paging and count check, load lineage on success and failure |
 
-Reference fixtures live in `tests/fixtures/reference/synthetic_*` (invented values in the official layouts). Real-file verification: `.github/workflows/reference-nv.yml` (manual).
+Price-file fixtures live in `tests/fixtures/price_files/synthetic_*`. Reference fixtures live in `tests/fixtures/reference/synthetic_*` (invented values in the official layouts). Real-file verification: `.github/workflows/reference-nv.yml` (manual).
 
 DB tests run inside rolled-back transactions on `TEST_DATABASE_URL`, rebuilt from scratch each run.
 

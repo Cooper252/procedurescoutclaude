@@ -16,6 +16,9 @@ Rules:
 - Each distinct mrf-url becomes a src.transparency_source; it carries a
   facility only when every block listing that URL is matched to the same
   facility (one file listed for an unmatched location stays unassigned).
+  Exception: a location a person approved as listed inside that hospital's own
+  file (data/reference/hpt_co_listed_locations_reviewed.csv, exact name and
+  hospital) is recorded as 'co_listed' and does not block the assignment.
 - Nothing is downloaded here except the small text file itself.
 """
 
@@ -248,14 +251,53 @@ def _insert_fetch(conn: Connection, f: HptFetch, entries: int | None) -> uuid.UU
     return uuid.UUID(str(value))
 
 
+CO_LISTED_COLUMNS = ("location_name", "parent_ccn", "note", "reviewed_by", "reviewed_at")
+CoListed = dict[tuple[str, uuid.UUID], str]
+
+
+def _name_key(name: str) -> str:
+    return " ".join(name.split()).casefold()
+
+
+def load_co_listed(conn: Connection, csv_text: str, stats: LoadStats) -> CoListed:
+    """Approved (location name, hospital) pairs: the location may appear in that
+    hospital's own price file without stopping the file from being assigned.
+    Names are compared exactly (spacing and letter case aside)."""
+    rows = read_delimited(csv_text, ",")
+    out: CoListed = {}
+    if not rows:
+        return out
+    require_columns(rows, CO_LISTED_COLUMNS, "reviewed co-listed locations CSV")
+    for i, row in enumerate(rows, start=2):
+        if not row["reviewed_by"] or not row["reviewed_at"] or not row["location_name"]:
+            stats.count("co_listed_unreviewed")
+            continue
+        fid = resolve_facility_by_ccn(conn, row["parent_ccn"])
+        if fid is None:
+            stats.reject(
+                f"line:{i}", "co_listed_parent_not_found", f"CCN {row['parent_ccn']!r} not loaded"
+            )
+            continue
+        out[(_name_key(row["location_name"]), fid)] = row["reviewed_by"]
+    stats.summary["co_listed_approved"] = len(out)
+    return out
+
+
 def discover(
     conn: Connection,
     state_code: str,
     fetcher: Fetcher,
     captured: dict[str, HptFetch] | None = None,
     home: dict[str, HptFetch] | None = None,
+    co_listed: CoListed | None = None,
 ) -> LoadStats:
     stats = LoadStats()
+    ccn_of = {
+        uuid.UUID(str(fid)): ccn
+        for fid, ccn in conn.execute(
+            text("SELECT id, ccn FROM ref.facility WHERE state_code = :s"), {"s": state_code}
+        ).all()
+    }
     facilities = conn.execute(
         text(
             "SELECT id, ccn, website FROM ref.facility "
@@ -270,6 +312,9 @@ def discover(
 
     mrf_facilities: dict[str, set[uuid.UUID]] = {}
     mrf_has_unmatched: set[str] = set()
+    # unmatched entries per file, kept until we know whom the file belongs to
+    pending: dict[str, list[tuple[int, str, str, str]]] = {}
+    mrf_ambiguous: set[str] = set()
     named: set[uuid.UUID] = set()
     for site, members in by_site.items():
         fetched = fetcher(site)
@@ -335,13 +380,14 @@ def discover(
                     status, facility_id = "matched", match.facility_id
                 elif match.status is FacilityMatchStatus.AMBIGUOUS:
                     status = "ambiguous"
-            conn.execute(
+            entry_id = conn.execute(
                 text(
                     """
                     INSERT INTO src.hpt_txt_entry
                         (fetch_id, block_index, location_name, source_page_url, mrf_url,
                          contact_name, contact_email, facility_id, match_status, problems)
                     VALUES (:f, :i, :n, :sp, :m, :cn, :ce, :fac, :st, :p)
+                    RETURNING id
                     """
                 ),
                 {
@@ -356,23 +402,61 @@ def discover(
                     "st": status,
                     "p": list(e.problems),
                 },
-            )
-            stats.count(f"entries_{status}")
+            ).scalar_one()
+            if status != "unmatched":
+                stats.count(f"entries_{status}")
             detail = f"{site} | {name!r} | {mrf}"
             if e.problems:
                 detail += f" | problems: {'; '.join(e.problems)}"
             if status == "matched" and facility_id is not None:
                 named.add(facility_id)
                 stats.rows_loaded += 1
-                ccn = next((c for f, c in members if f == facility_id), None)
+                ccn = ccn_of.get(facility_id)
                 stats.reject(f"ccn:{ccn or '?'}", "hpt_entry_matched", detail, Severity.INFO)
                 if mrf:
                     mrf_facilities.setdefault(mrf, set()).add(facility_id)
+            elif status == "unmatched" and mrf:
+                pending.setdefault(mrf, []).append((int(entry_id), name or "", site, detail))
+                mrf_facilities.setdefault(mrf, set())
+                mrf_has_unmatched.add(mrf)
             else:
                 stats.reject(site, f"hpt_entry_{status}", detail, Severity.INFO)
                 if mrf and status != "invalid":
                     mrf_facilities.setdefault(mrf, set())
                     mrf_has_unmatched.add(mrf)
+                    mrf_ambiguous.add(mrf)
+
+    # Approved co-listed locations: only when the file's matched locations are
+    # all one hospital and every unmatched name is approved for that hospital
+    # (an ambiguous name always blocks).
+    approved = co_listed or {}
+    for mrf, items in pending.items():
+        fids = mrf_facilities.get(mrf, set())
+        parent = next(iter(fids)) if len(fids) == 1 else None
+        all_approved = parent is not None and all(
+            (_name_key(name), parent) in approved for _, name, _, _ in items
+        )
+        if all_approved and parent is not None and mrf not in mrf_ambiguous:
+            for entry_id, _, site, detail in items:
+                conn.execute(
+                    text(
+                        "UPDATE src.hpt_txt_entry SET match_status = 'co_listed', "
+                        "co_listed_with = :p WHERE id = :i"
+                    ),
+                    {"p": parent, "i": entry_id},
+                )
+                stats.count("entries_co_listed")
+                stats.reject(
+                    site,
+                    "hpt_entry_co_listed",
+                    f"{detail} | approved as listed in ccn {ccn_of.get(parent)}'s file",
+                    Severity.INFO,
+                )
+            mrf_has_unmatched.discard(mrf)
+        else:
+            for _, _, site, detail in items:
+                stats.count("entries_unmatched")
+                stats.reject(site, "hpt_entry_unmatched", detail, Severity.INFO)
 
     for mrf, fids in sorted(mrf_facilities.items()):
         if not _URL.match(mrf):
@@ -515,7 +599,9 @@ class ProbeResult:
 
 
 Prober = Callable[[str], ProbeResult]
-NO_HEAD_STATUSES = frozenset({400, 403, 405, 501})
+# Statuses after which a HEAD answer is not trusted and the headers of a GET are
+# read instead. 404 is included because some pricing APIs answer only GET.
+NO_HEAD_STATUSES = frozenset({400, 403, 404, 405, 501})
 
 
 def _length(value: str | None) -> int | None:
@@ -566,19 +652,31 @@ def _megabytes(n: int) -> str:
 
 
 def probe_sources(conn: Connection, prober: Prober) -> LoadStats:
-    """Check every known price-file URL's size and date; download nothing."""
+    """Check the size and date of every price-file URL that belongs to one of our
+    facilities; download nothing.
+
+    In scope: files assigned to one facility, and files held back because they
+    also list locations we could not match (at least one entry in them matched
+    one of our facilities). Files that only list out-of-area locations, which
+    network-wide cms-hpt.txt files contain, are counted and skipped."""
     stats = LoadStats()
     sources = conn.execute(
         text(
             """
-            SELECT s.id, s.url, f.ccn
+            SELECT s.id, s.url, f.ccn,
+                   (SELECT string_agg(DISTINCT mf.ccn, ',' ORDER BY mf.ccn)
+                      FROM src.hpt_txt_entry e JOIN ref.facility mf ON mf.id = e.facility_id
+                     WHERE e.mrf_url = s.url AND e.match_status = 'matched') AS matched_ccns
             FROM src.transparency_source s LEFT JOIN ref.facility f ON f.id = s.facility_id
             ORDER BY s.url
             """
         )
     ).all()
     total = 0
-    for sid, url, ccn in sources:
+    for sid, url, ccn, matched_ccns in sources:
+        if ccn is None and matched_ccns is None:
+            stats.count("probe_skipped_out_of_area")
+            continue
         stats.rows_in += 1
         r = prober(url)
         conn.execute(
@@ -600,7 +698,7 @@ def probe_sources(conn: Connection, prober: Prober) -> LoadStats:
                 "e": r.error,
             },
         )
-        who = f"ccn:{ccn}" if ccn else "shared/unassigned"
+        who = f"ccn:{ccn}" if ccn else f"held back (matched ccn {matched_ccns})"
         if r.error is not None:
             stats.count("probe_failed")
             stats.reject(

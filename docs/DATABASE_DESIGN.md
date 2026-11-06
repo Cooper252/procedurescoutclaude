@@ -70,6 +70,12 @@ Partitioning: LIST (`state_code`) with `price_nv` and a DEFAULT partition. Index
 - `src.hpt_txt_fetch.fetched_via` (`github` | `home_runner`).
 - `src.source_probe`: headers-only size/date checks of each price-file URL (nothing downloaded).
 
+## Migration 0007
+
+- `src.hpt_txt_entry.match_status` adds `co_listed`; `co_listed_with` names the hospital whose file lists that location (required exactly when co_listed). See D-023.
+- `src.transparency_file.object_store_key` is optional (NULL = downloaded, checked and deleted, D-025); new columns `final_url`, `content_type`, `server_last_modified`, `last_updated_raw` (as published), `header` (jsonb, top-level fields as published), `read_summary` (jsonb counts), `read_error` (problems found).
+- Reference-load dataset `price_file_check`.
+
 ## Deletion behaviour
 
 Lineage references use `ON DELETE RESTRICT` (files, runs, dataset versions, facilities cannot be deleted while prices point at them). Child detail rows (aliases, events, validation results) cascade with their parent.

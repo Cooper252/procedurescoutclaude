@@ -2,6 +2,48 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-06 — Cooper's approvals; price-file download + check (step 2a), implemented and tested
+
+Cooper answered "1, 1, 1" (2026-11-06):
+1. Assign the 7 held-back files to their hospitals → `data/reference/hpt_co_listed_locations_reviewed.csv` (31 exact location/hospital pairs from run #9), `match_status = 'co_listed'` (D-023).
+2. Use the newer Sunrise/MountainView links → general rule: newest server Last-Modified wins per hospital (D-024).
+3. Download the Nevada price files on GitHub's throwaway runner (≈5 GB) → D-025.
+
+Built:
+- Migration `0007_price_file_check.py` (co_listed status + `co_listed_with`; `transparency_file.object_store_key` optional and check-result columns; dataset `price_file_check`).
+- `discovery.load_co_listed` and the co-listed pass in `discover` (only when the file's matched locations are one hospital and every other name is approved for that hospital; ambiguous names still block). Matched entries from another site's cms-hpt.txt now show their CCN instead of `ccn:?`.
+- `procedurescout_ingest/price_files.py`: one file per hospital (newest server date), streamed download with SHA-256 and a 4 GiB limit, format detection, one bounded-memory read (JSON via `ijson` events, numbers as Decimal and only counted; CSV tall/wide), results to `src.transparency_file` + `src.file_facility`, temporary file deleted. Flags: missing/unsupported version, missing/invalid/over-a-year-old `last_updated_on`, ragged CSV rows, non-UTF-8 bytes, Excel, ZIP oddities.
+- CLI `price-files`; `nv-all` runs it only when `PRICE_FILE_DOWNLOADS=1`.
+- Workflow `reference-nv.yml`: new tick box `download_price_files` (default off), job time limit 150 minutes, new export `price-files.csv`. (Protected file: Cooper copies it.)
+- New dependency `ijson==3.6.0` (C backend). Reading a 300 MB synthetic JSON took 9.2 s in the workspace.
+- Tests: `tests/test_price_files.py` (10 tests) and 3 co-listed tests in `tests/test_discovery.py`; synthetic fixtures in `tests/fixtures/price_files/`.
+
+`make lint typecheck test`: `225 passed, 1 warning` (Python 3.13); `/tmp/v312/bin/python -m pytest -q`: `225 passed, 1 warning`.
+
+Status: Implemented and Tested (synthetic). Not yet run against real files.
+
+## 2026-11-06 — Size-check run #9 (headers only, nothing downloaded); probe narrowed
+
+Artifact `reference-nv (8).zip` (read 2026-11-06). Home runner job ran.
+
+- 135 price-file URLs were checked; **113 of them were out-of-area or shared** (CommonSpirit and Banner network cms-hpt.txt files list hospitals in other states). The headline `total_reported: 8654.8 MB` therefore overstates Nevada.
+- **Nevada files only** (22 assigned + 7 held back), sizes as the servers report them:
+  - Sized, assigned (8): UMC 2438.7 MB, West Henderson 168.4, Carson Valley 57.1, Banner Churchill 25.8, Northeastern Nevada 16.6, Seven Hills 8.1, Battle Mountain 1.3, Pershing 0.9 = 2716.9 MB.
+  - Held back, sized (7 hospitals): Sunrise 953.2 (hospital-site link) / 788.1 (sunrisehealthinfo.com link), MountainView 576.6 / 471.9, Southern Hills 433.1, Summerlin 168.4, Henderson 168.4, Northern Nevada Medical Center 71.8, Valley 59.5.
+  - Size not reported (9): North Vista, Saint Mary's, the 3 Dignity St. Rose campuses, Mt. Grant, Mesa View, Desert View, South Lyon.
+  - Failed (5): Carson Tahoe and Humboldt (Craneware API, HEAD answered 404), Boulder City and Desert Parkway (HTTP 403 to GitHub; both cms-hpt.txt files came from the home runner), Grover C. Dils / Lincoln County (assets.changehealthcare.com does not resolve: the published link looks dead).
+  - Known Nevada total ≈ 4.9 GB (using the newer Sunrise/MountainView links) plus 9 files of unknown size.
+- **Why 7 hospitals are held back**: each file also lists the hospital's own freestanding ERs or clinics ("ER at Green Valley Ranch, an Extension of Henderson Hospital", "SLS - SUNRISE HOSPITAL AND MC", …), which are not CMS hospitals in `ref.facility`. The rule that a shared file is assigned only when every location matches did its job; these need a reviewer's decision.
+- **Server dates worth flagging** (Last-Modified header, a server claim, not the file's own `last_updated_on`): South Lyon 2023-11-30, Pershing 2024-10-14, Sunrise and MountainView hospital-site links 2025-01-03 (the sunrisehealthinfo.com links say 2026-10-21).
+- Spring Valley and Centennial Hills cms-hpt.txt timed out from the home computer this time (they worked in run #8); dpbh.nv.gov timed out too.
+
+Changes after the run:
+- `discovery.probe_sources` now checks only files assigned to one of our facilities or held back with at least one matched entry; out-of-area files are counted as `probe_skipped_out_of_area`, and held-back rows name the matched CCNs.
+- `discovery.http_prober` reads GET headers when HEAD returns 404 (pricing APIs such as Craneware may answer only GET).
+- Tests updated: `test_prober_reads_headers_without_downloading`, `test_probe_sources_records_sizes`.
+
+`make lint typecheck test`: `212 passed, 1 warning` (Python 3.13); `/tmp/v312/bin/python -m pytest -q`: `212 passed, 1 warning`.
+
 ## 2026-11-06 — Price-file size check (no downloads), implemented and tested
 
 Before any price file is downloaded (CLAUDE.md: ask before downloads over 50 MB), the run now asks each known price-file server for headers only.

@@ -17,6 +17,10 @@ How a hospital file becomes published prices.
 7. **Quality review** — automatic rules (see `DATA_QUALITY_RULES.md`) block publish; a person approves flagged runs.
 8. **Publish** — flip the facility's published dataset version in one transaction; previous version retired but kept.
 
+## Step 2a (built 2026-11-06): download, check, delete
+
+`procedurescout_ingest/price_files.py`, CLI `price-files`, workflow input `download_price_files`. For each facility with an assigned file (one link per facility; newest server date wins, D-024): stream to a temporary file with SHA-256 and a size limit; detect the format from the bytes (JSON, CSV tall/wide, ZIP; Excel reported as not machine-readable); read once in bounded memory (`ijson` events for JSON) to record the header as published and counts (charge items, payer names, code types, settings); store in `src.transparency_file` with `object_store_key` NULL; delete the file. No prices are loaded yet.
+
 ## TODO
 
 - Adapter list and parser_version scheme.

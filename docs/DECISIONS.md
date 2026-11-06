@@ -2,6 +2,15 @@
 
 Newest first. Each entry: decision, reason, consequences.
 
+## 2026-11-06 — D-025: Price files downloaded, checked and deleted; nothing stored yet
+Cooper (2026-11-06) approved downloading the Nevada price files (about 5 GB; CLAUDE.md requires approval over 50 MB) on GitHub's free, throwaway runner. Each file is streamed to a temporary file with its SHA-256, read once to record the header as published and counts, then deleted (`src.transparency_file.object_store_key` is NULL). Runs only when the workflow input `download_price_files` is ticked (`PRICE_FILE_DOWNLOADS=1`). A size limit (4 GiB per file by default, `PRICE_FILE_MAX_BYTES`) stops runaway downloads. Permanent storage and a hosted database are separate decisions, to be asked about before any paid service.
+
+## 2026-11-06 — D-024: When a hospital has two price-file links, use the newer one
+Cooper (2026-11-06), for Sunrise and MountainView: use the link whose server reports the newer Last-Modified date (the HCA sunrisehealthinfo.com links, 2026-10-21) over the hospital-site links (2025-01-03). Implemented as a general rule in `price_files.choose_per_facility`: newest server date wins, the other links are reported as `older_link_skipped`; if any link of that hospital has no usable date, all are read (no guessing). The date written inside the file (`last_updated_on`) is recorded too and flagged when older than a year.
+
+## 2026-11-06 — D-023: Reviewed "co-listed" locations in a hospital's own price file
+Seven Nevada hospitals (Sunrise, MountainView, Southern Hills, Summerlin, Henderson, Valley, Northern Nevada Medical Center) publish one file that also names their freestanding ERs, clinics or service lines. Cooper approved (2026-11-06) assigning each file to its hospital. Recorded in `data/reference/hpt_co_listed_locations_reviewed.csv` as exact (location name, hospital) pairs taken from run #9; such entries get `match_status = 'co_listed'` with `co_listed_with` (migration 0007) and do not block the assignment. They are not facilities of ours and get no prices of their own. A new, unapproved name in the same file, or an ambiguous one, holds the file back again.
+
 ## 2026-11-06 — D-022: Placeholders, not workarounds, for hospitals we cannot read
 Cooper (2026-11-06): until Renown and Tahoe Forest allow automated access (emails drafted, to be sent once the site is running), those hospitals are listed with "Prices coming soon". Other hospitals without a usable file get a plain status (see `CONSUMER_USER_FLOWS.md`). Files downloaded by hand are not loaded for now; if added later they must carry who downloaded them, when, the source URL and SHA-256, be labeled as manually loaded, and be flagged once stale.
 

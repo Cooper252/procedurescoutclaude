@@ -1,0 +1,6 @@
+hospital_name,last_updated_on,version,location_name,hospital_address,license_number|NV,attester_name,"To the best of its knowledge and belief, the hospital has included all applicable standard charge information."
+Synthetic Desert Hospital,2023-11-30,3.0.0,Synthetic Desert Hospital,"2 Synthetic Rd, Nowhere, NV",SYN-0003,Synthetic Attester,true
+description,code|1,code|1|type,code|2,code|2|type,modifiers,setting,drug_unit_of_measurement,drug_type_of_measurement,standard_charge|gross,standard_charge|discounted_cash,payer_name,plan_name,standard_charge|negotiated_dollar,standard_charge|negotiated_percentage,standard_charge|negotiated_algorithm,standard_charge|methodology,standard_charge|min,standard_charge|max,additional_generic_notes
+SYNTHETIC SERVICE A,99999,CPT,0450,RC,,outpatient,,,100.10,80.00,Synthetic Payer One,PPO,75.25,,,fee schedule,75.25,75.25,
+SYNTHETIC SERVICE A,99999,CPT,0450,RC,,outpatient,,,100.10,80.00,Synthetic Payer Two,HMO,,60,,percent of total billed charges,75.25,75.25,
+SYNTHETIC SERVICE B,999,MS-DRG,,,,inpatient,,,25000,,Synthetic Payer One,PPO,20000,,,case rate,20000,20000,
