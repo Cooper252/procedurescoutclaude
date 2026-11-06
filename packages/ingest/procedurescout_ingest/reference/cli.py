@@ -276,8 +276,12 @@ def cmd_discover(args: argparse.Namespace, engine: Engine) -> None:
         else {}
     )
 
+    home_dir = os.environ.get("HPT_HOME_DIR")
+    home = discovery.load_home_fetches(Path(home_dir).resolve(), captured_stats) if home_dir else {}
+
     def work(c: Connection) -> LoadStats:
-        stats = discovery.discover(c, args.state, fetch, captured)
+        stats = discovery.discover(c, args.state, fetch, captured, home)
+        stats.summary["home_fetches_available"] = len(home)
         stats.rejects.extend(captured_stats.rejects)
         stats.summary.update({f"manifest_{k}": v for k, v in captured_stats.summary.items()})
         stats.summary["captured_copies_available"] = len(captured)

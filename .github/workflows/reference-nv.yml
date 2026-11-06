@@ -1,12 +1,21 @@
 name: Reference data — Nevada (manual)
 
-# Runs the real Phase 1 reference load against a throwaway PostGIS database
-# and uploads the report. Nothing is kept or deployed; this verifies that the
-# loaders work on the live official files. Start it from the Actions tab.
+# Runs the real Phase 1 reference load and Phase 2 discovery against a
+# throwaway PostGIS database and uploads the report. Nothing is kept or
+# deployed. Start it from the Actions tab.
+#
+# Optional first job: fetch every approved hospital's /cms-hpt.txt live from
+# Cooper's own computer (a GitHub self-hosted runner labeled
+# "procedurescout-home"), because some hospital sites refuse GitHub's servers.
+# Untick "use_home_computer" when that computer is off, or the run will wait.
 
 on:
   workflow_dispatch:
     inputs:
+      use_home_computer:
+        description: "Also fetch hospital index files live from Cooper's computer (it must be on)"
+        type: boolean
+        default: true
       ahrq_url:
         description: "AHRQ Compendium hospital linkage CSV URL (optional; leave blank to skip)"
         required: false
@@ -20,7 +29,26 @@ permissions:
   contents: read
 
 jobs:
+  home-fetch:
+    if: ${{ inputs.use_home_computer }}
+    runs-on: [self-hosted, windows, procedurescout-home]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Fetch cms-hpt.txt files live from this computer
+        shell: cmd
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\fetch_hpt_home.ps1 -OutDir hpt-home
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hpt-home
+          path: hpt-home
+          retention-days: 7
+
   load:
+    needs: [home-fetch]
+    if: ${{ always() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     services:
@@ -53,12 +81,20 @@ jobs:
         run: psql -h localhost -U postgres -v ON_ERROR_STOP=1 -f scripts/db_init.sql
       - name: Migrate
         run: python -m alembic upgrade head
-      - name: Load Nevada reference data
+      - name: Get the files fetched from Cooper's computer
+        if: ${{ needs.home-fetch.result == 'success' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: hpt-home
+          path: hpt-home
+      - name: Load Nevada reference data and discover price files
         env:
           AHRQ_URL: ${{ inputs.ahrq_url }}
           AHRQ_YEAR: ${{ inputs.ahrq_year }}
+          HPT_HOME_DIR: ${{ needs.home-fetch.result == 'success' && 'hpt-home' || '' }}
         run: |
           set -o pipefail
+          echo "home computer job: ${{ needs.home-fetch.result }}"
           args=(nv-all --state NV)
           if [ -n "$AHRQ_URL" ]; then args+=(--ahrq-file "$AHRQ_URL" --ahrq-year "$AHRQ_YEAR"); fi
           python -m procedurescout_ingest.reference.cli "${args[@]}" | tee reference-nv-report.txt

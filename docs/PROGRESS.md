@@ -2,6 +2,37 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-06 — Home-computer fetches (D-021), implemented and tested; not yet run for real
+
+- Migration `0005_home_runner.py`: `src.hpt_txt_fetch.fetched_via`.
+- `scripts/fetch_hpt_home.ps1`: fetches approved sites' cms-hpt.txt (redirects followed, 429/502/503/504 retried up to 3 times, other errors recorded), writes files byte-for-byte plus `fetches.json`. Tested with PowerShell 7.4.6 on Linux against a local test server: ok, redirect (final URL recorded), 403 (recorded, no file), 429 then 200 (retried), unreviewed and not-found rows skipped, CRLF bytes preserved. The first run found and fixed a file-naming bug. **Not yet run on Windows PowerShell 5.1** (Cooper's computer). PowerShell 7.4.6 (72 MB) was downloaded into the build workspace only for this test; it is not part of the project.
+- `discovery.load_home_fetches` + `discover(..., home=...)`; `HPT_HOME_DIR` read by the CLI. Tests: `test_home_runner_fetch_used_when_github_is_refused`, `test_home_runner_failure_is_reported`, `test_no_home_directory_means_no_home_fetches`.
+- `.github/workflows/reference-nv.yml`: new optional `home-fetch` job on `[self-hosted, windows, procedurescout-home]`; the `load` job downloads its output and passes it on. Input `use_home_computer` (default on).
+- The repository was found to be **public** (2026-11-06); it must be made private before connecting the runner.
+
+`make lint typecheck test`: `210 passed, 1 warning` (Python 3.13 and 3.12).
+
+## 2026-11-06 — Saved copies switched off (D-020); Desert Parkway alias approved
+
+- Cooper: do not use anything saved. All 20 rows in `data/reference/hpt_captured/manifest.csv` (19 approved copies + the pending Renown copy) are now unapproved; the William Bee Ririe manual link is unapproved. Added `data/reference/hpt_captured/README.md` explaining why the files remain.
+- Cooper confirmed "Desert Parkway Behavioral Healthcare Hospital" = 294013 (alias approved 2026-11-06).
+- Expected effect on the next run: the sites that refuse GitHub's servers (in run #7: Boulder City, Spring Valley incl. the two Spring Mountain hospitals, Centennial Hills, Henderson, Summerlin, Tahoe Forest/Incline Village, Valley Hospital; plus Renown ×2 if it rate-limits again) will be reported as not reachable instead of matched.
+
+`make lint typecheck test`: `207 passed, 1 warning`.
+
+## 2026-11-06 — Discovery run #7 (GitHub Actions)
+
+Artifact `reference-nv (6).zip` (read 2026-11-06). First push failed with GitHub's server-side "fatal error in commit_refs_rules"; it succeeded on retry.
+
+- 34 sites, 167 cms-hpt.txt blocks; **32 hospitals matched to a price-file entry**; 21 price files assigned to a single hospital; William Bee Ririe's hand-entered link loaded (33 hospitals with a known price-file location).
+- 7 sites refused GitHub's servers (HTTP 403) and were read from the approved captured copies (Boulder City, Spring Valley, Centennial Hills, Henderson, Summerlin, Tahoe Forest, Valley Hospital); the other 12 captured copies were not needed because the live fetch worked.
+- Not matched: Renown ×2 (HTTP 429 even after waiting), Banner Churchill (Banner answered HTTP 502 this time; matched live in run #6), Desert Parkway (name differs by ", LLC"; alias awaiting confirmation), Reno Behavioral (its file lists no Reno location), St. Rose North Las Vegas (no file listed), William Bee Ririe (no cms-hpt.txt; manual link instead), the two state hospitals (PDF only).
+- MountainView and Sunrise also appear in sunrisehealthinfo.com's file with different price-file URLs than in their own sites' files; both are stored.
+
+Changes: temporary server errors (502/503/504) are now retried like 429 (`test_temporary_server_error_is_retried`). A captured copy of Renown's cms-hpt.txt (923 bytes, matches the browser's length) and the Desert Parkway alias were added **unreviewed**, so they are not used until Cooper approves.
+
+`make lint typecheck test`: `207 passed, 1 warning` (Python 3.13 and 3.12).
+
 ## 2026-11-05 — Browser-check proposals approved
 
 Cooper replied "approve all" (2026-11-05): 22 website rows, 10 aliases, 19 captured cms-hpt.txt copies and 1 manual price-file link now carry `reviewed_by = Cooper`, `reviewed_at = 2026-11-05`. Offline check in a throwaway database (live fetches disabled, captured copies only): 41 approved websites, 19 sites read from captured copies, 20 hospitals matched, 12 price files assigned to a single hospital, 1 manual source loaded. The other sites need the live run. One more name needs confirmation: "Desert Parkway Behavioral Healthcare Hospital" vs CMS "DESERT PARKWAY BEHAVIORAL HEALTHCARE HOSPITAL, LLC" (not added).

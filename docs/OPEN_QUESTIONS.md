@@ -15,6 +15,7 @@
 
 ## Resolved
 
+- Q12: sites that refuse GitHub's servers are fetched live from Cooper's computer via a self-hosted runner (D-021).
 - Q5: Hospital General Information is still `xubh-q36u` (PDC metastore, modified 2026-07-22). ASC facility file is `4jcv-atw7`.
 - Old code: audited 2026-11-04 (`LEGACY_AUDIT.md`).
 - CPT licensing: no license at launch (D-002).

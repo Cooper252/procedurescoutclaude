@@ -2,6 +2,12 @@
 
 Newest first. Each entry: decision, reason, consequences.
 
+## 2026-11-06 — D-021: Live fetches from Cooper's computer for sites that refuse GitHub
+Cooper chose option A: a GitHub self-hosted runner on his own computer (label `procedurescout-home`) fetches every approved site's /cms-hpt.txt live at the start of the manual Nevada workflow (`scripts/fetch_hpt_home.ps1`), and the main job uses those files only for sites whose fetch from GitHub fails. Every fetch row records `fetched_via` (`github` | `home_runner`). The runner job reads only the approved websites list and writes only its output folder. Because a self-hosted runner executes workflow code, the repository must be private before the runner is connected. When the computer is off, untick "use_home_computer" when starting the run.
+
+## 2026-11-06 — D-020: Live sources only; no saved copies (supersedes D-019 in practice)
+Cooper (2026-11-06): "Don't use anything saved. I want everything to use updated and correct pricing." Captured cms-hpt.txt copies are no longer approved and are ignored; every run reads each hospital's current cms-hpt.txt live, and a site that refuses the request is reported as not reachable that run. The hand-entered William Bee Ririe link (an .xlsx apparently from 2023) is also unapproved. The captured files stay in `data/reference/hpt_captured/` only as a dated record (see its README). The code path for captured copies remains but has no approved input. Price files themselves were never saved and are always downloaded live.
+
 ## 2026-11-05 — D-019: Browser-captured cms-hpt.txt copies as a labeled fallback
 Some hospital sites refuse automated requests from cloud servers but serve the same public file to a person's browser. A copy captured in a browser is stored verbatim with its source URL and date, used only after a person approves it, used only when that site's live fetch fails, and every fetch row records whether its content was `live` or `captured`. Challenges meant to stop automation (CAPTCHAs) are never answered on anyone's behalf, and access refused to a browser is reported, not worked around. Hand-entered price-file links are allowed only with evidence and a reviewer, and carry a note explaining why they exist.
 

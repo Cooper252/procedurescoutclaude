@@ -18,3 +18,7 @@ Protecting users and the platform.
 ## TODO
 
 - Threat model; retention schedule; privacy notice.
+
+## Self-hosted runner (2026-11-06)
+
+Cooper's computer runs a GitHub self-hosted runner for the manual Nevada workflow (D-021). Rules: the repository must be private; the runner is used only by the `home-fetch` job of `reference-nv.yml` (label `procedurescout-home`); that job only reads `data/reference/facility_websites.csv` and writes `hpt-home/`; no credentials are kept in the checkout (`persist-credentials: false`). Remove the runner in GitHub Settings → Actions → Runners if it is no longer needed.

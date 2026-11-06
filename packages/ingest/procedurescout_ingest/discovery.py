@@ -117,6 +117,7 @@ class HptFetch:
     captured_at: date | None = None
     captured_from: str | None = None
     copy_reviewed_by: str | None = None
+    fetched_via: str = "github"  # or "home_runner": fetched live from Cooper's computer
 
 
 Fetcher = Callable[[str], HptFetch]
@@ -164,7 +165,8 @@ def load_captured_copies(
     return out
 
 
-RATE_LIMIT_WAITS = (15, 45)  # seconds; used only when a site answers HTTP 429
+RATE_LIMIT_WAITS = (15, 45)  # seconds; used when a site answers 429 or a 502/503/504
+RETRY_STATUSES = frozenset({429, 502, 503, 504})
 
 
 def _retry_after(value: str | None, default: int) -> int:
@@ -175,9 +177,9 @@ def _retry_after(value: str | None, default: int) -> int:
 
 def http_fetcher(client: httpx.Client, sleep: Callable[[int], None] = time.sleep) -> Fetcher:
     """Plain GET of /cms-hpt.txt with an honest User-Agent. A "too many
-    requests" answer (429) is retried after the site's Retry-After (or a short
-    wait); other refusals (403 etc.) are recorded as they are, never worked
-    around."""
+    requests" answer (429) or a temporary server error (502/503/504) is retried
+    after the site's Retry-After (or a short wait); refusals such as 403 are
+    recorded as they are, never worked around."""
 
     def fetch_once(site: str, url: str) -> tuple[HptFetch, str | None]:
         try:
@@ -206,7 +208,7 @@ def http_fetcher(client: httpx.Client, sleep: Callable[[int], None] = time.sleep
         url = f"{site}/cms-hpt.txt"
         result, retry_after = fetch_once(site, url)
         for wait in RATE_LIMIT_WAITS:
-            if result.http_status != 429:
+            if result.http_status not in RETRY_STATUSES:
                 break
             sleep(_retry_after(retry_after, wait))
             result, retry_after = fetch_once(site, url)
@@ -221,9 +223,9 @@ def _insert_fetch(conn: Connection, f: HptFetch, entries: int | None) -> uuid.UU
             """
             INSERT INTO src.hpt_txt_fetch
                 (site, url, http_status, final_url, sha256, bytes, error, entries,
-                 content_source, captured_at, captured_from, copy_reviewed_by)
+                 content_source, captured_at, captured_from, copy_reviewed_by, fetched_via)
             VALUES (:site, :url, :st, :final, :sha, :b, :err, :n,
-                    :cs, :cat, :cfrom, :crb)
+                    :cs, :cat, :cfrom, :crb, :via)
             RETURNING id
             """
         ),
@@ -240,6 +242,7 @@ def _insert_fetch(conn: Connection, f: HptFetch, entries: int | None) -> uuid.UU
             "cat": f.captured_at,
             "cfrom": f.captured_from,
             "crb": f.copy_reviewed_by,
+            "via": f.fetched_via,
         },
     ).scalar_one()
     return uuid.UUID(str(value))
@@ -250,6 +253,7 @@ def discover(
     state_code: str,
     fetcher: Fetcher,
     captured: dict[str, HptFetch] | None = None,
+    home: dict[str, HptFetch] | None = None,
 ) -> LoadStats:
     stats = LoadStats()
     facilities = conn.execute(
@@ -272,26 +276,47 @@ def discover(
         if fetched.error is not None or fetched.data is None:
             _insert_fetch(conn, fetched, None)
             ccns = ", ".join(c for _, c in members)
+            home_fetch = (home or {}).get(site)
+            if home_fetch is not None and (home_fetch.error is not None or home_fetch.data is None):
+                _insert_fetch(conn, home_fetch, None)
+                home_note = (
+                    f"; from Cooper's computer: {home_fetch.error} "
+                    f"(status {home_fetch.http_status})"
+                )
+                home_fetch = None
+            else:
+                home_note = ""
             copy = (captured or {}).get(site)
-            if copy is None:
+            if home_fetch is not None:
+                stats.count("sites_from_home_runner")
+                stats.reject(
+                    site,
+                    "hpt_fetched_from_home_runner",
+                    f"GitHub's request failed ({fetched.error}, status {fetched.http_status}); "
+                    f"fetched live from Cooper's computer instead",
+                    Severity.INFO,
+                )
+                fetched = home_fetch
+            elif copy is None:
                 stats.count("sites_failed")
                 stats.reject(
                     site,
                     "hpt_fetch_failed",
-                    f"{fetched.url}: {fetched.error} (status {fetched.http_status}); "
+                    f"{fetched.url}: {fetched.error} (status {fetched.http_status}){home_note}; "
                     f"facilities {ccns}",
                     Severity.WARNING,
                 )
                 continue
-            stats.count("sites_from_captured_copy")
-            stats.reject(
-                site,
-                "hpt_used_captured_copy",
-                f"live fetch failed ({fetched.error}, status {fetched.http_status}); used copy "
-                f"captured {copy.captured_at} from {copy.captured_from}",
-                Severity.INFO,
-            )
-            fetched = copy
+            else:
+                stats.count("sites_from_captured_copy")
+                stats.reject(
+                    site,
+                    "hpt_used_captured_copy",
+                    f"live fetch failed ({fetched.error}, status {fetched.http_status}); used copy "
+                    f"captured {copy.captured_at} from {copy.captured_from}",
+                    Severity.INFO,
+                )
+                fetched = copy
         entries = parse_hpt_txt(decode_text(fetched.data or b""))
         fetch_id = _insert_fetch(conn, fetched, len(entries))
         stats.count("sites_ok")
@@ -432,3 +457,46 @@ def load_manual_sources(conn: Connection, csv_text: str) -> LoadStats:
         )
         stats.rows_loaded += 1
     return stats
+
+
+def load_home_fetches(base_dir: Path, stats: LoadStats) -> dict[str, HptFetch]:
+    """cms-hpt.txt files fetched live from Cooper's computer earlier in the same
+    workflow run (scripts/fetch_hpt_home.ps1). Used only for sites whose fetch
+    from GitHub's servers fails."""
+    import json
+
+    index = base_dir / "fetches.json"
+    if not index.is_file():
+        return {}
+    records = json.loads(index.read_text(encoding="utf-8-sig"))
+    if isinstance(records, dict):  # PowerShell writes a single object for one record
+        records = [records]
+    out: dict[str, HptFetch] = {}
+    for rec in records:
+        site = str(rec.get("site", "")).rstrip("/").lower()
+        if not site.startswith("https://"):
+            continue
+        data: bytes | None = None
+        error = rec.get("error") or None
+        file_name = rec.get("file")
+        if file_name and error is None:
+            path = base_dir / str(file_name)
+            if path.parent == base_dir and path.is_file():
+                data = path.read_bytes()
+                head = data[:200].lstrip().lower()
+                if head.startswith((b"<!doctype", b"<html")):
+                    error = "returned a web page, not a text file"
+            else:
+                error = "file missing from home-runner output"
+        status = rec.get("http_status")
+        out[site] = HptFetch(
+            site=site,
+            url=str(rec.get("url") or f"{site}/cms-hpt.txt"),
+            http_status=int(status) if isinstance(status, int) else None,
+            final_url=rec.get("final_url") or None,
+            data=data,
+            error=str(error) if error else None,
+            fetched_via="home_runner",
+        )
+        stats.count("home_fetches_ok" if data is not None and not error else "home_fetches_failed")
+    return out

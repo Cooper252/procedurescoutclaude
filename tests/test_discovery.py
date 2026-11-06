@@ -56,15 +56,18 @@ def transport(routes: dict[str, httpx.Response]) -> httpx.MockTransport:
 
 def test_http_fetcher_cases() -> None:
     routes = {
-        "https://a.example/cms-hpt.txt": httpx.Response(200, text=HPT,
-                                                        headers={"content-type": "text/plain"}),
-        "https://b.example/cms-hpt.txt": httpx.Response(200, text="<!DOCTYPE html><p>Home</p>",
-                                                        headers={"content-type": "text/html"}),
+        "https://a.example/cms-hpt.txt": httpx.Response(
+            200, text=HPT, headers={"content-type": "text/plain"}
+        ),
+        "https://b.example/cms-hpt.txt": httpx.Response(
+            200, text="<!DOCTYPE html><p>Home</p>", headers={"content-type": "text/html"}
+        ),
         "https://c.example/cms-hpt.txt": httpx.Response(
-            301, headers={"location": "https://c.example/files/cms-hpt.txt"}),
+            301, headers={"location": "https://c.example/files/cms-hpt.txt"}
+        ),
         "https://c.example/files/cms-hpt.txt": httpx.Response(200, text=HPT),
         "https://e.example/cms-hpt.txt": httpx.Response(200, content=b"x" * (1024 * 1024 + 1)),
-    }  # fmt: skip
+    }
     with httpx.Client(transport=transport(routes), follow_redirects=True) as client:
         fetch = http_fetcher(client)
         ok = fetch("https://a.example")
@@ -79,11 +82,20 @@ def test_http_fetcher_cases() -> None:
 
 
 def hospital(ccn: str, name: str) -> dict[str, str]:
-    return {"facility_id": ccn, "facility_name": name, "address": "1 TEST WAY",
-            "citytown": "TESTVILLE", "state": "NV", "zip_code": "89990",
-            "countyparish": "CLARK", "telephone_number": "",
-            "hospital_type": "Acute Care Hospitals", "hospital_ownership": "",
-            "emergency_services": "", "hospital_overall_rating": ""}  # fmt: skip
+    return {
+        "facility_id": ccn,
+        "facility_name": name,
+        "address": "1 TEST WAY",
+        "citytown": "TESTVILLE",
+        "state": "NV",
+        "zip_code": "89990",
+        "countyparish": "CLARK",
+        "telephone_number": "",
+        "hospital_type": "Acute Care Hospitals",
+        "hospital_ownership": "",
+        "emergency_services": "",
+        "hospital_overall_rating": "",
+    }
 
 
 def setup_hospitals(conn: Connection) -> None:
@@ -141,8 +153,9 @@ def test_reviewed_websites_load(conn: Connection) -> None:
 def test_database_refuses_unreviewed_website(conn: Connection) -> None:
     setup_hospitals(conn)
     with pytest.raises(IntegrityError):
-        conn.execute(text("UPDATE ref.facility SET website = 'https://x.example' "
-                          "WHERE ccn = 'SYN501'"))  # fmt: skip
+        conn.execute(
+            text("UPDATE ref.facility SET website = 'https://x.example' WHERE ccn = 'SYN501'")
+        )
 
 
 def fake_fetcher(site: str) -> HptFetch:
@@ -330,3 +343,104 @@ def test_committed_captured_manifest_matches_files() -> None:
         assert (base / r["file"]).is_file(), r
         assert r["site"].startswith("https://"), r
         assert parse_hpt_txt((base / r["file"]).read_text())[0].get("mrf-url"), r
+
+
+def test_temporary_server_error_is_retried() -> None:
+    answers = [httpx.Response(502), httpx.Response(200, text=HPT)]
+    waits: list[int] = []
+    with httpx.Client(transport=httpx.MockTransport(lambda r: answers.pop(0))) as client:
+        result = http_fetcher(client, sleep=waits.append)("https://flaky.example")
+    assert result.error is None and waits == [15]
+
+
+def write_home(tmp_path: Path, records: object) -> None:
+    import json
+
+    (tmp_path / "fetches.json").write_text(
+        "﻿" + json.dumps(records), encoding="utf-8"
+    )  # PowerShell 5.1 writes UTF-8 with a BOM
+
+
+def test_home_runner_fetch_used_when_github_is_refused(conn: Connection, tmp_path: Path) -> None:
+    from procedurescout_ingest.discovery import load_home_fetches
+    from procedurescout_ingest.reference.common import LoadStats
+
+    setup_hospitals(conn)
+    load_websites(conn, websites_csv())
+    (tmp_path / "down.example.txt").write_text(
+        "location-name: SYNTHETIC OTHER SITE HOSPITAL\n"
+        "source-page-url: https://down.example/pricing\n"
+        "mrf-url: https://down.example/mrf/other.csv\n"
+        "contact-name: Synthetic\ncontact-email: x@down.example\n"
+    )
+    write_home(
+        tmp_path,
+        [
+            {
+                "site": "https://down.example",
+                "url": "https://down.example/cms-hpt.txt",
+                "file": "down.example.txt",
+                "http_status": 200,
+                "final_url": "https://down.example/cms-hpt.txt",
+                "error": None,
+            },
+            {
+                "site": SITE,
+                "url": f"{SITE}/cms-hpt.txt",
+                "file": None,
+                "http_status": 404,
+                "final_url": None,
+                "error": "Not Found",
+            },
+        ],
+    )
+    hstats = LoadStats()
+    home = load_home_fetches(tmp_path, hstats)
+    assert hstats.summary == {"home_fetches_ok": 1, "home_fetches_failed": 1}
+    stats = discover(conn, "NV", fake_fetcher, None, home)
+    assert stats.summary["sites_from_home_runner"] == 1
+    rows = conn.execute(
+        text(
+            "SELECT fetched_via, http_status, error IS NULL, entries FROM src.hpt_txt_fetch "
+            "WHERE site = 'https://down.example' ORDER BY fetched_via"
+        )
+    ).all()
+    assert [tuple(r) for r in rows] == [("github", 503, False, None), ("home_runner", 200, True, 1)]
+    owner = conn.execute(
+        text(
+            "SELECT f.ccn FROM src.transparency_source s JOIN ref.facility f "
+            "ON f.id = s.facility_id WHERE s.url = 'https://down.example/mrf/other.csv'"
+        )
+    ).scalar()
+    assert owner == "SYN504"
+
+
+def test_home_runner_failure_is_reported(conn: Connection, tmp_path: Path) -> None:
+    from procedurescout_ingest.discovery import load_home_fetches
+    from procedurescout_ingest.reference.common import LoadStats
+
+    setup_hospitals(conn)
+    load_websites(conn, websites_csv())
+    (tmp_path / "down.example.txt").write_text("<!DOCTYPE html><p>blocked</p>")
+    write_home(
+        tmp_path,
+        {
+            "site": "https://down.example",
+            "url": "https://down.example/cms-hpt.txt",
+            "file": "down.example.txt",
+            "http_status": 200,
+            "final_url": None,
+            "error": None,
+        },
+    )
+    home = load_home_fetches(tmp_path, LoadStats())
+    stats = discover(conn, "NV", fake_fetcher, None, home)
+    failed = [r.message for r in stats.rejects if r.rule == "hpt_fetch_failed"]
+    assert any("from Cooper's computer: returned a web page" in m for m in failed)
+
+
+def test_no_home_directory_means_no_home_fetches(tmp_path: Path) -> None:
+    from procedurescout_ingest.discovery import load_home_fetches
+    from procedurescout_ingest.reference.common import LoadStats
+
+    assert load_home_fetches(tmp_path / "missing", LoadStats()) == {}
