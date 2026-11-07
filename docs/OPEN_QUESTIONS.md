@@ -12,6 +12,11 @@
 | Q9 | ASCs outside the ASC Quality Reporting file: add a second source (CMS Provider of Services file or Nevada DPBH licensing list)? | Cooper | Phase 3 |
 | Q11 | Websites for Harmon Hospital (290042) and Thrive Behavioral Hospital (294016); where the St. Rose North Las Vegas campus publishes prices; Reno Behavioral's price file (its page refuses access). | Cooper | Phase 2 |
 | Q13 | Send the drafted emails to Renown (Auditandcompliance@renown.org) and Tahoe Forest (mhambrick@TFHD.COM) asking them to allow automated access. | Cooper | When the site is running |
+| Q14 | How is a provider's authority verified (NPI/CCN match, email on the approved website domain, phone call to the facility, document upload), and who approves? | Cooper | Phase 9 |
+| Q15 | When a hospital's correction differs from its own published file, which is shown first, and must the hospital also fix its file? (Proposed: show the correction labeled, keep the file value one click away, ask the hospital to update its file.) | Cooper (counsel) | Phase 9 |
+| Q16 | CDT (dental) descriptor licence from the ADA, or code numbers with our own names only? | Cooper (counsel) | Before dental launch |
+| Q17 | Paid listings (D-031, rules confirmed 2026-11-07): length of the free period and the prices; counsel review of the advertising terms. | Cooper (counsel) | Before Phase 9 |
+| Q18 | First list of provider types and catalog services to launch with (e.g. Botox per unit, filler per syringe, semaglutide program per month, teeth cleaning), and who reviews new ones. | Cooper | Phase 9 |
 | Q10 | NUBC revenue code descriptions: licence or code-only display? | Cooper (counsel) | Phase 3 |
 
 ## Resolved

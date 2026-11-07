@@ -33,4 +33,9 @@ Status levels are separate on purpose. A cell is filled only with evidence. Depl
 | BUN-01 | Bundles | 6 | — | — | — | — | |
 | ADM-01..02 | Admin | 2–3 | — | — | — | — | |
 | A11Y-01 | Accessibility | 3 | — | — | — | — | |
+| NAT-01 | National coverage (all states, all provider types) | 7 | — | — | — | — | Scope recorded (D-030) |
+| NAT-02 | Storage and search at national scale | 2–7 | Partly (measurement only) | Yes (synthetic) | — | — | Nevada measured in run #12: 45,162,271 rows, 17.7 GB. Layout comparison: `procedurescout_ingest/storage_experiment.py` (current PostgreSQL, normalized estimate, compressed Parquet per facility with exact round-trip check and lookup timing); `test_storage_experiment_measures_layouts`. Not yet run on real files. |
+| PRV-07 / SRCH-06 | All provider types; search by service or provider type | 3/9 | — | — | — | — | Recorded (D-032) |
+| PRV-06 | Paid provider listings | 9 | — | — | — | — | Approved; rules confirmed (D-031, D-032) |
+| PRV-01..05 | Provider accounts, self-entered prices, hospital corrections, audit, review | 9 | — | — | — | — | Requirements and design rules recorded (D-030) |
 | EXP-01 | Exports | 8 | — | — | — | — | |

@@ -159,4 +159,5 @@ jobs:
             price-files.csv
             price-load.csv
             price-size.txt
+            storage-experiment.json
           if-no-files-found: warn

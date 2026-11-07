@@ -2,6 +2,8 @@
 
 Functional requirements with IDs used in `FEATURE_MATRIX.md`. Priority: Must / Should / Could.
 
+**Scope (Cooper, 2026-11-07):** the launched product covers every US state: all hospitals, surgery centers, dental offices and any other medical or wellness provider (medical spas, weight-loss clinics, ...). People search by service (e.g. Botox) or by provider type (D-032). Nevada is the pilot. Providers can sign up to enter their own prices (to compete with hospital prices), and hospitals can sign up to correct their own prices so that what is shown is accurate. See D-030.
+
 | ID | Area | Requirement | Priority | Phase | Acceptance check |
 |---|---|---|---|---|---|
 | FND-01 | Foundation | Repo, docs, local env, CI | Must | 0 | `make check` green; CI workflow present |
@@ -37,4 +39,14 @@ Functional requirements with IDs used in `FEATURE_MATRIX.md`. Priority: Must / S
 | ADM-02 | Admin | Mapping review queue, audit trail, MFA | Must | 2 | Every mapping change audited |
 | SEC-01 | Privacy | No account for search; no ad trackers; minimal logs | Must | 3 | Privacy checklist passes |
 | A11Y-01 | UX | WCAG 2.2 AA | Must | 3 | axe-core zero serious issues + keyboard walkthrough |
+| NAT-01 | National | Every US state: hospitals (CMS), ASCs, and other providers (dental offices, imaging, labs, clinics) from public registries such as NPPES | Must | 7 | Facility counts reconcile to each source per state |
+| NAT-02 | National | Price storage and search sized for national data (Nevada pilot: 45.2M rows, ≈17 GB; national extrapolation in the billions of rows) | Must | 2–7 | Measured load and query times at a stated national volume before launch |
+| PRV-01 | Providers | Provider accounts with verified authority to speak for a facility (e.g. NPI/CCN match, work email on the facility's approved website domain, manual review), MFA | Must | 9 | Unverified accounts cannot change anything public |
+| PRV-02 | Providers | Providers without a CMS file (ASCs, dental, etc.) enter their own prices: code, price type, cash or payer/plan, effective date, attestation | Must | 9 | Shown labeled "submitted by the provider" with date; never mixed unlabeled with hospital-file prices |
+| PRV-03 | Providers | Hospitals correct or annotate their published prices | Must | 9 | The original file value is kept; the correction is labeled, dated, attributed and audited; nothing is overwritten |
+| PRV-04 | Providers | Terms of use, attestation and full audit trail for every provider change | Must | 9 | Every change has who, when, before, after; counsel-reviewed terms (Q1) |
+| PRV-05 | Providers | Review and anomaly checks on provider-entered prices (new accounts, large changes, $0) | Must | 9 | Flagged changes wait for review before publishing |
+| PRV-07 | Providers | Any medical or wellness provider can list (med spas, weight-loss clinics, imaging, labs, urgent care, chiropractors, ...); each tagged with reviewed provider types | Must | 9 | Provider type filter returns only providers with that type |
+| SRCH-06 | Search | Home search by service (our own catalog, e.g. "Botox") across all provider types near the person, with an optional provider-type filter (e.g. medical spas) | Must | 3/9 | Results never mix units (per unit vs per area) without saying so |
+| PRV-06 | Providers | Paid listings of provider-entered prices after a free period (D-031); payment never changes ranking or labels; paid placements labeled "Sponsored" | Should | 9 | Billing status cannot affect search order or labels (tested) |
 | EXP-01 | Export | CSV/XLSX/Parquet async exports | Could | 8 | Large export runs as a job with expiring link |

@@ -13,6 +13,7 @@ dependencies = [
   "pydantic-settings>=2.3",
   "httpx>=0.27",
   "ijson>=3.3",
+  "duckdb>=1.5",
 ]
 
 [project.optional-dependencies]
@@ -35,6 +36,8 @@ ignore = ["S101"]  # assert is fine in tests
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["S105", "S106", "S608"]
 "db/migrations/*" = ["S608", "E501"]
+# SQL built only from fixed column lists, checked UUIDs and own temp paths (see module docstring)
+"packages/ingest/procedurescout_ingest/storage_experiment.py" = ["S608"]
 
 [tool.mypy]
 python_version = "3.12"

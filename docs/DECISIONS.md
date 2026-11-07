@@ -2,6 +2,38 @@
 
 Newest first. Each entry: decision, reason, consequences.
 
+## 2026-11-07 — D-032: Any medical or wellness provider can list; search by service and by provider type
+Cooper (2026-11-07): listings are open to any medical or wellness provider, not only surgery centers and dental offices (e.g. medical spas, weight-loss clinics). The home search lets a person pick what they are looking for (e.g. Botox) and search every provider near them that offers it, or narrow to one provider type (e.g. medical spas).
+
+Consequences:
+- **Provider types** become a reviewed list (hospital, surgery center, dental office, medical spa, weight-loss clinic, imaging center, lab, urgent care, chiropractor, ...), each provider tagged with one or more.
+- **A service catalog of our own.** Many such services have no billing code (cosmetic Botox is priced per unit or per area; weight-loss programs per month). Searchable services are entries in our own catalog with plain-English names and units; an entry links to billing codes (CPT, HCPCS, CDT, DRG) when they exist. Hospital-file prices reach the catalog only through reviewed code links; provider-entered prices are entered against catalog entries. Prices with different units (per unit, per area, per session, per month) are never compared as if they were the same.
+- The price layout being redesigned (NAT-02) carries price source (D-030), provider type and catalog entry from the start.
+
+Cooper also confirmed the three D-031 rules (2026-11-07): payment buys a listing, never a better rank or different labels, and paid placements are marked "Sponsored"; hospital-file prices stay shown free; correcting your own errors is free.
+
+## 2026-11-07 — D-031: Providers will pay to list their own prices (after a free period)
+Cooper (2026-11-07): provider listings start free for a few months, then become paid; surgery centers and others who want to advertise their prices pay to do so. This is the approval CLAUDE.md asks for before monetization is *designed*; building the billing feature still waits for Phase 9 and its own go-ahead.
+
+Rules (confirmed by Cooper 2026-11-07, see D-032):
+- Payment buys a listing of the provider's own prices, never a different ranking of results, different labels, or the removal of anyone else's prices. Any paid placement is labeled "Sponsored".
+- Prices from hospitals' government-required files stay shown whether or not the hospital pays, so comparisons stay complete.
+- A hospital correcting an error in its own prices should not need to pay (otherwise accuracy becomes something we sell).
+- Advertising rules (e.g. FTC disclosure of paid placements) and these terms are part of the counsel review (Q1).
+
+Also recorded: why there is a price database at all. Searching hospital files live is not workable: one search would have to download gigabytes from dozens of sites (minutes per search), several sites refuse automated requests or limit them, and codes and payer names must be matched before prices can be compared. Files are therefore downloaded on a schedule and stored in a searchable form. To keep national storage cheap, the redesign (NAT-02) will test storing prices as compressed per-hospital files in low-cost object storage, read only for the hospitals a search needs, with a small database for facilities and codes, against a full PostgreSQL table.
+
+## 2026-11-07 — D-030: National scope; providers enter and correct their own prices
+Cooper (2026-11-07): the launched site covers every US state and every kind of provider (hospitals, surgery centers, dental offices and others), not only Nevada. Providers will sign up to enter their own prices, and hospitals to correct theirs, so the site is accurate and ProcedureScout is not the one asserting the prices.
+
+Consequences, built into the design from now on:
+- **Every price carries its source**, and the sources are never blended silently: `hospital_file` (CMS machine-readable file), `provider_submitted` (entered by a verified provider), `provider_correction` (a hospital's correction of its own file price). Display labels say which.
+- **Nothing is overwritten.** A correction is a new, attributed, dated row linked to the file price it replaces; the file value stays stored and reachable. Rule 8 (no silent substitution) applies.
+- **Authority is verified before anything goes public** (PRV-01), every change is audited (who, when, before, after), and changes can be held for review (PRV-05). Provider prices are subject to the same exactness rules (Decimal, no rounding, no invented values).
+- **Liability:** provider attestation and terms of use help but do not by themselves remove liability; counsel review stays a launch requirement (Q1).
+- **Scale:** Nevada's pilot load was 45.2 million price rows (≈17 GB). Extrapolated by hospital count (≈1.7 million rows per hospital × ≈6,000 US hospitals) that is on the order of 10 billion rows (several TB) in the current layout, before ASCs and other providers; a very rough figure. The price layout is redesigned for this before any hosting is chosen (NAT-02).
+- **Dental codes (CDT)** are owned by the American Dental Association, like CPT by the AMA: show code numbers and our own names until licensing is settled (Q16).
+
 ## 2026-11-07 — D-029: Amounts stored exactly as published (unconstrained NUMERIC); supersedes D-008's 4-place limit
 Run #12 refused about 120,000 real prices for having more than 4 decimal places: sub-cent negotiated rates (UHS files: 2669.73225, 1.53765) and spreadsheet artifacts (460.370000000001; JSON 19.380000000000003). Rounding is not allowed, so `amount`, `percentage` and `drug_unit` become unconstrained NUMERIC (migration 0010; its downgrade refuses rather than rounds) and the parsers accept up to 15 decimal places. Such prices are flagged `more_than_4_decimals`; rounding to cents happens only on screen. Trailing zeros ("2781.00000") are kept as published.
 

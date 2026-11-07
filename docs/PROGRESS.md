@@ -2,6 +2,28 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-07 — Storage experiment for national scale (NAT-02), implemented and tested
+
+- `procedurescout_ingest/storage_experiment.py`: for the loaded prices, measures (A) the current PostgreSQL table, (B) a normalized PostgreSQL layout, estimated from exact distinct item and payer/plan counts and sampled column sizes, and (C) compressed Parquet files per facility written with DuckDB (sorted by code, zstd), with an exact round-trip check of all amounts and percentages and a timed lookup of the most widely listed CPT/HCPCS code in Parquet vs PostgreSQL. Intermediate CSVs are gzip-compressed and deleted; Parquet files live in a temporary folder.
+- CLI `storage-experiment`; `nv-all` runs it after the price load when `PRICE_LOAD=1` (a failure is printed, never fails the run). Workflow artifact gains `storage-experiment.json`.
+- New dependency `duckdb==1.5.6` (released 2026-09-28; 24 MB wheel). A `pyarrow` wheel (55 MB) was downloaded into the build workspace while checking options, before noticing it exceeded the 50 MB ask-first limit; it was deleted and is not used.
+- Workspace run on 848,430 synthetic rows (all identical items, so compression there is not representative): experiment 9.0 s, round trip exact, lookup 6 ms Parquet vs 185 ms PostgreSQL.
+- Test: `test_storage_experiment_measures_layouts`.
+
+`make lint typecheck test`: `242 passed, 1 warning` (Python 3.13); `/tmp/v312/bin/python -m pytest -q`: `242 passed, 1 warning`.
+
+## 2026-11-07 — All provider types and search by service recorded (D-032); D-031 rules confirmed
+
+Cooper: any medical or wellness provider may list (e.g. medical spas, weight-loss clinics); the home search picks a service (e.g. Botox) across everyone nearby, or narrows to a provider type. Recorded as D-032 (provider types, our own service catalog with units, code links where codes exist), PRV-07, SRCH-06, Q18. The D-031 paid-listing rules are confirmed. No code changed.
+
+## 2026-11-07 — Paid provider listings recorded (D-031)
+
+Cooper: provider listings free for a few months, then paid. Recorded as D-031, PRV-06 and an updated Q17 with proposed safeguards (hospital-file prices always shown, own-error corrections free, paid placements labeled and never re-ranked). D-031 also records why prices are stored rather than read live from hospital files, and that the storage redesign will compare low-cost compressed files in object storage with a full PostgreSQL table. No code changed.
+
+## 2026-11-07 — Scope recorded: national, all provider types, provider-entered prices and hospital corrections
+
+Cooper: the launched site covers every US state and all provider types (hospitals, surgery centers, dental offices, others); providers sign up to enter their own prices, hospitals to correct theirs. Recorded as D-030, requirements NAT-01/02 and PRV-01–05, open questions Q14–Q17, architecture "Price sources". No code changed in this entry. Next engineering step: redesign the price layout for national volume (NAT-02) and include a source field (hospital file / provider-submitted / provider correction) from the start.
+
 ## 2026-11-07 — Run #12: first real price load (Nevada, throwaway database); fixes; hosting numbers
 
 Artifact `reference-nv (11).zip` (read 2026-11-07). Home runner and `download_price_files` ticked.

@@ -365,6 +365,21 @@ def cmd_price_files(args: argparse.Namespace, engine: Engine) -> None:
         )
 
 
+def cmd_storage_experiment(args: argparse.Namespace, engine: Engine) -> None:
+    """Measure storage layouts for the loaded prices (NAT-02); writes the JSON
+    result to storage-experiment.json in the current folder."""
+    import tempfile
+    from pathlib import Path
+
+    from .. import storage_experiment
+
+    with tempfile.TemporaryDirectory(prefix="parquet-") as work, engine.connect() as conn:
+        result = storage_experiment.run(conn, Path(work))
+    out = json.dumps(result, indent=2, sort_keys=True, default=str)
+    Path("storage-experiment.json").write_text(out)
+    print(out)
+
+
 def cmd_hcpcs(args: argparse.Namespace, engine: Engine) -> None:
     with new_client() as client:
         blob = acquire(args.file, client)
@@ -527,6 +542,11 @@ def cmd_nv_all(args: argparse.Namespace, engine: Engine) -> None:
     if os.environ.get("PRICE_FILE_DOWNLOADS") == "1":
         # Large downloads (about 5 GB for Nevada): only when the run asks for it.
         step("price_files", lambda: cmd_price_files(ns(state=st), engine))
+        if os.environ.get("PRICE_LOAD") == "1":
+            try:
+                cmd_storage_experiment(ns(), engine)
+            except Exception as exc:  # a measurement; never fails the run
+                print(f"storage experiment failed: {type(exc).__name__}: {exc}", file=sys.stderr)
     else:
         print("price-file downloads skipped (PRICE_FILE_DOWNLOADS is not 1)", file=sys.stderr)
     cmd_report(ns(state=st), engine)
@@ -581,6 +601,7 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--file", default=MANUAL_SOURCES_CSV)
 
     sub.add_parser("probe", help="size/date check of known price files (no download)")
+    sub.add_parser("storage-experiment", help="measure storage layouts for loaded prices")
 
     sp = sub.add_parser(
         "price-files", help="download, check and delete each assigned price file (large)"
@@ -627,6 +648,7 @@ def main(argv: list[str] | None = None) -> None:
             "manual-sources": lambda: cmd_manual_sources(args, engine),
             "probe": lambda: cmd_probe(args, engine),
             "price-files": lambda: cmd_price_files(args, engine),
+            "storage-experiment": lambda: cmd_storage_experiment(args, engine),
             "msdrg": lambda: cmd_msdrg(args, engine),
             "report": lambda: cmd_report(args, engine),
             "nv-all": lambda: cmd_nv_all(args, engine),
