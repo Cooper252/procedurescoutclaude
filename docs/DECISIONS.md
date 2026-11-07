@@ -2,6 +2,9 @@
 
 Newest first. Each entry: decision, reason, consequences.
 
+## 2026-11-07 — D-027: Centennial Hills and Spring Valley files; campus children point to the parent's file
+Cooper answered "1" (2026-11-07) to two questions whose first options were: approve Centennial Hills' two ERs as co-listed (as in D-023); and use Spring Valley's file for Spring Valley only. Spring Valley's cms-hpt.txt lists Spring Mountain Sahara (294010) and Spring Mountain Treatment Center (294011) "an Extension of Spring Valley Hospital" with the same file. Recorded as approved `campus_of` relationships (290046 parent) in `data/reference/facility_relationships_reviewed.csv`; discovery gives a file to the parent when the only other facilities it names are the parent's approved campus children, and reports each child as `listed_in_parent_file`. The children show the `in_parent_file` status, never the parent's prices. The answer "1" was read as the first option for both questions; this can be reversed by removing those rows.
+
 ## 2026-11-07 — D-026: Price files from sites that refuse GitHub are downloaded on Cooper's computer
 Extends D-021 to price files. Run #10: Boulder City and Desert Parkway answered 403 to GitHub's servers. Sites listed in `data/reference/home_runner_price_sites.csv` have the price files named in their cms-hpt.txt downloaded live on Cooper's computer in the same run (`scripts/fetch_prices_home.ps1`, 500 MB limit per file); the main job uses such a file only when its own download of that URL fails, and records `fetched_via = 'home_runner'` (migration 0008). Same rule as before: no browser disguise, no retrying around a refusal from the same network. Dropped connections (e.g. Carson Valley, "connection reset by peer") are now retried once after 15 seconds.
 

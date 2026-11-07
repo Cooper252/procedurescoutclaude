@@ -18,7 +18,9 @@ Rules:
   facility (one file listed for an unmatched location stays unassigned).
   Exception: a location a person approved as listed inside that hospital's own
   file (data/reference/hpt_co_listed_locations_reviewed.csv, exact name and
-  hospital) is recorded as 'co_listed' and does not block the assignment.
+  hospital) is recorded as 'co_listed' and does not block the assignment;
+  likewise a facility with an approved campus_of parent listed in the same file
+  (the file goes to the parent only).
 - Nothing is downloaded here except the small text file itself.
 """
 
@@ -292,6 +294,21 @@ def discover(
     co_listed: CoListed | None = None,
 ) -> LoadStats:
     stats = LoadStats()
+    # Approved campus children: a file listing a hospital and its approved campus
+    # children belongs to the hospital (the children point to the hospital's file).
+    campus_parent = {
+        uuid.UUID(str(c)): uuid.UUID(str(p))
+        for c, p in conn.execute(
+            text(
+                "SELECT child_facility_id, parent_facility_id FROM ref.facility_relationship "
+                "WHERE relationship_type = 'campus_of' AND review_state = 'approved'"
+            )
+        ).all()
+    }
+
+    def owners(fids: set[uuid.UUID]) -> set[uuid.UUID]:
+        return {f for f in fids if campus_parent.get(f) not in fids}
+
     ccn_of = {
         uuid.UUID(str(fid)): ccn
         for fid, ccn in conn.execute(
@@ -431,7 +448,7 @@ def discover(
     # (an ambiguous name always blocks).
     approved = co_listed or {}
     for mrf, items in pending.items():
-        fids = mrf_facilities.get(mrf, set())
+        fids = owners(mrf_facilities.get(mrf, set()))
         parent = next(iter(fids)) if len(fids) == 1 else None
         all_approved = parent is not None and all(
             (_name_key(name), parent) in approved for _, name, _, _ in items
@@ -461,7 +478,18 @@ def discover(
     for mrf, fids in sorted(mrf_facilities.items()):
         if not _URL.match(mrf):
             continue
-        owner = next(iter(fids)) if len(fids) == 1 and mrf not in mrf_has_unmatched else None
+        top = owners(fids)
+        owner = next(iter(top)) if len(top) == 1 and mrf not in mrf_has_unmatched else None
+        for child in sorted(fids - top, key=str):
+            if owner is not None:
+                stats.count("campus_children_in_parent_file")
+                stats.reject(
+                    f"ccn:{ccn_of.get(child)}",
+                    "listed_in_parent_file",
+                    f"{mrf} belongs to ccn {ccn_of.get(owner)} (approved campus parent); "
+                    "no prices are shown on this facility's own page",
+                    Severity.INFO,
+                )
         conn.execute(
             text(
                 """

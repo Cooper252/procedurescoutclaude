@@ -150,10 +150,21 @@ def test_load_lineage_success_and_failure(engine: Engine) -> None:
             )
 
 
-def test_reviewed_relationships_file_is_header_only() -> None:
+def test_reviewed_relationships_file_is_well_formed() -> None:
+    import csv
+    import io
+    from datetime import date
+
+    from procedurescout_ingest.reference.relationships import RELATIONSHIP_TYPES
+
     path = Path(__file__).resolve().parent.parent / cli.RELATIONSHIPS_CSV
-    lines = path.read_text().splitlines()
-    assert lines == ["parent_ccn,child_ccn,relationship_type,evidence,reviewed_by,reviewed_at"]
+    rows = list(csv.DictReader(io.StringIO(path.read_text())))
+    for row in rows:  # every committed row is a reviewed decision with evidence
+        assert row["relationship_type"] in RELATIONSHIP_TYPES
+        assert row["parent_ccn"].isdigit() and len(row["parent_ccn"]) == 6
+        assert row["child_ccn"].isdigit() and len(row["child_ccn"]) == 6
+        assert row["evidence"] and row["reviewed_by"]
+        date.fromisoformat(row["reviewed_at"])
 
 
 def test_cli_parser_defaults() -> None:

@@ -605,3 +605,29 @@ def test_co_listed_requires_parent(conn: Connection) -> None:
                     "('00000000-0000-0000-0000-000000000077', 0, 'co_listed')"
                 )
             )
+
+
+def test_campus_child_listed_with_parent_gives_file_to_parent(conn: Connection) -> None:
+    from procedurescout_ingest.reference.relationships import load_reviewed_relationships
+
+    setup_hospitals(conn)
+    load_websites(conn, websites_csv())
+    load_reviewed_aliases(
+        conn,
+        "ccn,alias,evidence,reviewed_by,reviewed_at\n"
+        "SYN502,Synthetic Valley North Campus,name used in its cms-hpt.txt,tester,2026-11-07\n",
+    )
+    # without a relationship: the file names two of our facilities, so nobody gets it
+    discover(conn, "NV", fake_fetcher)
+    assert _source_owner(conn, f"{SITE}/mrf/shared.json") is None
+    rel = load_reviewed_relationships(
+        conn,
+        "parent_ccn,child_ccn,relationship_type,evidence,reviewed_by,reviewed_at\n"
+        "SYN503,SYN502,campus_of,listed as an extension in the parent's file,tester,2026-11-07\n",
+    )
+    assert rel.rows_loaded == 1
+    conn.execute(text("DELETE FROM src.transparency_source WHERE url LIKE :u"), {"u": f"{SITE}/%"})
+    stats = discover(conn, "NV", fake_fetcher)
+    assert _source_owner(conn, f"{SITE}/mrf/shared.json") == "SYN503"
+    child = [r for r in stats.rejects if r.rule == "listed_in_parent_file"]
+    assert [r.row_ref for r in child] == ["ccn:SYN502"]

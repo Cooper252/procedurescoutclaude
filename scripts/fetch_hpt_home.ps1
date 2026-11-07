@@ -8,7 +8,12 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+# TLS 1.2, plus TLS 1.3 where this Windows supports it (some sites accept only 1.3)
+try {
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]12288
+} catch {
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+}
 New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
 
 $sites = Import-Csv $WebsitesCsv |

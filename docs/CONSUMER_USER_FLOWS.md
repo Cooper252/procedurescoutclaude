@@ -29,6 +29,7 @@ A facility is always listed (name, address, distance) even when no prices can be
 |---|---|---|
 | `coming_soon` | A price file exists but could not be read automatically this run (e.g. the site refuses automated requests) | "Prices coming soon" |
 | `not_published` | No standard machine-readable price file found (no cms-hpt.txt entry, PDF only, file not listed, or the file is not in the CMS template, e.g. South Lyon in run #10) | "This hospital doesn't publish a standard price file" |
+| `in_parent_file` | The facility has an approved `campus_of` parent and is listed in the parent's price file (e.g. Spring Mountain Sahara and Spring Mountain Treatment Center → Spring Valley, D-027) | "Prices are published in Spring Valley Hospital's file" (link to the parent) |
 | `exempt` | Federally owned hospital (`hpt_exempt_reason` set) | "Federal hospital — not required to publish prices" |
 | `unknown` | No website known | "Price information not available" |
 

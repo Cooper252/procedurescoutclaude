@@ -2,6 +2,21 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-07 — Run #11: 27 Nevada price files read; Centennial Hills and Spring Valley decisions; TLS 1.3 at home
+
+Artifact `reference-nv (10).zip` (read 2026-11-07), plus `prices-home.zip` and `hpt-home (3).zip` produced by the run.
+
+- Price-file check: 28 chosen, **27 downloaded and read** (5,500,329,327 bytes). New since run #10: Carson Valley (CSV tall, 153,291 rows, 2026-03-27; the dropped-connection retry or a calmer server), **Boulder City and Desert Parkway downloaded on Cooper's computer** (`fetched_via = home_runner`).
+  - Boulder City: CSV tall v2.0.0, 51,548 rows, `last_updated_on` 9/30/2025 (**over a year old**), 87 rows with non-UTF-8 bytes (likely a Windows-1252 file: the price reader must handle it).
+  - Desert Parkway: CSV wide v3.0.0, 41 rows, 2026-02-05.
+  - Still not downloaded: Grover C. Dils (dead Change Healthcare link).
+- **Humboldt dropped out this run**: its cms-hpt.txt answered 403 to GitHub (it worked in runs #8–#10), and Cooper's computer failed with "Could not create SSL/TLS secure channel" (Windows PowerShell 5.1 allowed only TLS 1.2). Both home scripts now also allow TLS 1.3 where Windows supports it (parse-checked and re-run under PowerShell 7.4.6; not yet run on Windows PowerShell 5.1).
+- **Spring Valley's and Centennial Hills' cms-hpt.txt were read** this time (both matched), but their files were held back: Centennial Hills' file also lists 2 of its ERs; Spring Valley's lists its ER at Blue Diamond plus Spring Mountain Sahara (294010) and Spring Mountain Treatment Center (294011), separate CMS facilities described as its extensions. Cooper's answer "1" → D-027: 3 more co-listed rows, 2 approved `campus_of` relationships, and discovery now gives a file to the parent when the only other named facilities are its approved campus children (`listed_in_parent_file` for each child). New consumer status `in_parent_file`.
+
+Tests: `test_campus_child_listed_with_parent_gives_file_to_parent`; `test_reviewed_relationships_file_is_well_formed` replaces the header-only check now that the file holds reviewed rows.
+
+`make lint typecheck test`: `230 passed, 1 warning` (Python 3.13); `/tmp/v312/bin/python -m pytest -q`: `230 passed, 1 warning`.
+
 ## 2026-11-07 — Run #10: Nevada price files downloaded, read and deleted; home-computer fallback for price files
 
 Artifact `reference-nv (9).zip` (read 2026-11-07). Home runner job and `download_price_files` both ticked.
