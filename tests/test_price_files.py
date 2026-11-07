@@ -209,3 +209,115 @@ def test_check_price_files_records_and_deletes(conn: Connection, tmp_path: Path)
     ]
     assert stats.summary["files_with_problems"] == 1
     assert any(r.rule == "file_read" and "csv_tall" in r.message for r in stats.rejects)
+
+
+def test_downloader_retries_a_dropped_connection(tmp_path: Path) -> None:
+    calls = {"n": 0}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise httpx.ConnectError("Connection reset by peer", request=request)
+        return httpx.Response(200, content=b"synthetic")
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        waits: list[int] = []
+        d = http_downloader(client, sleep=waits.append)("https://h.example/x.csv", tmp_path / "x")
+    assert (d.error, d.nbytes, calls["n"], waits) == (None, 9, 2, [15])
+
+
+def _home_dir(tmp_path: Path) -> Path:
+    import json
+
+    home = tmp_path / "prices-home"
+    home.mkdir()
+    (home / "price-1.bin").write_bytes(TALL.read_bytes())
+    records = [
+        {
+            "url": f"{SITE}/mrf/shared.json",
+            "file": "price-1.bin",
+            "http_status": 200,
+            "final_url": f"{SITE}/mrf/shared.json",
+            "error": None,
+        },
+        {
+            "url": "https://h.example/blocked.csv",
+            "file": None,
+            "http_status": 403,
+            "error": "Forbidden",
+        },
+        {
+            "url": "https://h.example/escape.csv",
+            "file": "../outside.bin",
+            "http_status": 200,
+            "error": None,
+        },
+    ]
+    # PowerShell writes UTF-8 with a byte-order mark
+    (home / "prices.json").write_text(json.dumps(records), encoding="utf-8-sig")
+    return home
+
+
+def test_load_home_price_files(tmp_path: Path) -> None:
+    import hashlib
+
+    from procedurescout_ingest.price_files import load_home_price_files
+
+    home = load_home_price_files(_home_dir(tmp_path))
+    ok = home[f"{SITE}/mrf/shared.json"]
+    assert ok.fetched_via == "home_runner" and ok.error is None
+    assert ok.sha256 == hashlib.sha256(TALL.read_bytes()).hexdigest()
+    assert home["https://h.example/blocked.csv"].error == "Forbidden"
+    assert home["https://h.example/escape.csv"].error is not None  # stays inside the folder
+    assert load_home_price_files(tmp_path / "missing") == {}
+
+
+def test_home_fallback_only_when_github_fails(tmp_path: Path) -> None:
+    from procedurescout_ingest.price_files import load_home_price_files, with_home_fallback
+
+    home = load_home_price_files(_home_dir(tmp_path))
+
+    def github(url: str, dest: Path) -> Download:
+        if url.endswith("good.csv"):
+            return Download(url, dest, "0" * 64, 1, 200, url)
+        return Download(url, http_status=403, error="HTTP error")
+
+    dl = with_home_fallback(github, home)
+    assert dl("https://h.example/good.csv", tmp_path / "g").fetched_via == "github"
+    used = dl(f"{SITE}/mrf/shared.json", tmp_path / "s")
+    assert (used.fetched_via, used.error) == ("home_runner", None)
+    both = dl("https://h.example/blocked.csv", tmp_path / "b")
+    assert both.error == "HTTP error; from Cooper's computer: Forbidden (status 403)"
+    assert dl("https://h.example/nowhere.csv", tmp_path / "n").error == "HTTP error"
+
+
+def test_check_records_home_download_and_deletes_it(conn: Connection, tmp_path: Path) -> None:
+    from procedurescout_ingest.price_files import load_home_price_files, with_home_fallback
+
+    setup_hospitals(conn)
+    load_websites(conn, websites_csv())
+    approved = load_co_listed(
+        conn,
+        "location_name,parent_ccn,note,reviewed_by,reviewed_at\n"
+        "Synthetic Valley North Campus,SYN503,listed in its file,tester,2026-11-06\n",
+        LoadStats(),
+    )
+    discover(conn, "NV", fake_fetcher, co_listed=approved)
+    home_dir = _home_dir(tmp_path)
+
+    def github(url: str, dest: Path) -> Download:
+        return Download(url, http_status=403, error="HTTP error")
+
+    dl = with_home_fallback(github, load_home_price_files(home_dir))
+    stats = check_price_files(conn, "NV", dl, tmp_path / "work", today=date(2026, 11, 7))
+    via = conn.execute(
+        text(
+            "SELECT t.fetched_via FROM src.transparency_file t "
+            "JOIN src.transparency_source s ON s.id = t.source_id WHERE s.url = :u"
+        ),
+        {"u": f"{SITE}/mrf/shared.json"},
+    ).scalar()
+    assert via == "home_runner"
+    assert not (home_dir / "price-1.bin").exists()
+    assert stats.summary["download_failed"] == 1  # valley.json: GitHub refused, not at home
+    assert any("downloaded on Cooper's computer" in r.message for r in stats.rejects)

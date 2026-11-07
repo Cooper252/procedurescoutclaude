@@ -346,6 +346,11 @@ def cmd_price_files(args: argparse.Namespace, engine: Engine) -> None:
     )
     with client, tempfile.TemporaryDirectory(prefix="price-files-") as work:
         downloader = price_files.http_downloader(client, max_bytes)
+        home_dir = os.environ.get("HOME_PRICE_DIR")
+        if home_dir:
+            home = price_files.load_home_price_files(Path(home_dir).resolve())
+            print(f"price files available from Cooper's computer: {len(home)}", file=sys.stderr)
+            downloader = price_files.with_home_fallback(downloader, home)
         _run(
             engine,
             "price_file_check",

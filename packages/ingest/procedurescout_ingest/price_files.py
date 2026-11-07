@@ -65,6 +65,7 @@ class Download:
     content_type: str | None = None
     last_modified: str | None = None
     error: str | None = None
+    fetched_via: str = "github"  # or "home_runner": downloaded on Cooper's computer
 
 
 Downloader = Callable[[str, Path], Download]
@@ -75,8 +76,8 @@ def http_downloader(
     max_bytes: int = DEFAULT_MAX_BYTES,
     sleep: Callable[[int], None] = time.sleep,
 ) -> Downloader:
-    """Plain GET, streamed to `dest`. One retry after a 429/502/503/504; any
-    other refusal is recorded as it is."""
+    """Plain GET, streamed to `dest`. One retry after a 429/502/503/504 or a
+    dropped connection; any other refusal (403, 404, ...) is recorded as it is."""
 
     def once(url: str, dest: Path) -> Download:
         digest = hashlib.sha256()
@@ -110,10 +111,79 @@ def http_downloader(
 
     def download(url: str, dest: Path) -> Download:
         result = once(url, dest)
-        if result.http_status in RETRY_STATUSES:
+        dropped = result.http_status is None and result.error is not None
+        if result.http_status in RETRY_STATUSES or dropped:
             sleep(RATE_LIMIT_WAITS[0])
             result = once(url, dest)
         return result
+
+    return download
+
+
+def load_home_price_files(base_dir: Path) -> dict[str, Download]:
+    """Price files downloaded live on Cooper's computer earlier in the same run
+    (scripts/fetch_prices_home.ps1), keyed by URL. Used only when GitHub's own
+    download of that URL fails."""
+    index = base_dir / "prices.json"
+    if not index.is_file():
+        return {}
+    records = json.loads(index.read_text(encoding="utf-8-sig"))
+    if isinstance(records, dict):  # PowerShell writes one object for one record
+        records = [records]
+    out: dict[str, Download] = {}
+    for rec in records:
+        url = str(rec.get("url") or "")
+        if not url.startswith(("https://", "http://")):
+            continue
+        status = rec.get("http_status")
+        http_status = int(status) if isinstance(status, int) else None
+        final_url = str(rec["final_url"]) if rec.get("final_url") else None
+        name = rec.get("file")
+        path = base_dir / str(name) if name else None
+        if rec.get("error") or path is None or path.parent != base_dir or not path.is_file():
+            out[url] = Download(
+                url,
+                http_status=http_status,
+                final_url=final_url,
+                error=str(rec.get("error") or "file missing"),
+                fetched_via="home_runner",
+            )
+            continue
+        digest = hashlib.sha256()
+        with path.open("rb") as f:
+            for chunk in iter(lambda: f.read(CHUNK), b""):
+                digest.update(chunk)
+        out[url] = Download(
+            url,
+            path=path,
+            sha256=digest.hexdigest(),
+            nbytes=path.stat().st_size,
+            http_status=http_status,
+            final_url=final_url,
+            fetched_via="home_runner",
+        )
+    return out
+
+
+def with_home_fallback(primary: Downloader, home: dict[str, Download]) -> Downloader:
+    """Try GitHub first; if that fails and Cooper's computer has the same URL,
+    use that live download instead and say so in the error-free result."""
+
+    def download(url: str, dest: Path) -> Download:
+        result = primary(url, dest)
+        if result.error is None:
+            return result
+        alt = home.get(url)
+        if alt is None:
+            return result
+        if alt.error is not None:
+            return Download(
+                url,
+                http_status=result.http_status,
+                error=f"{result.error}; from Cooper's computer: {alt.error} "
+                f"(status {alt.http_status})",
+            )
+        return alt
 
     return download
 
@@ -526,6 +596,8 @@ def check_price_files(
             _record(conn, c, d, check, today, stats, seconds)
         finally:
             dest.unlink(missing_ok=True)
+            if d.path is not None:
+                d.path.unlink(missing_ok=True)
     stats.summary["bytes_downloaded"] = total
     stats.summary["files_chosen"] = len(chosen)
     return stats
@@ -565,9 +637,9 @@ def _record(
                 (source_id, sha256, bytes, http_status, reported_last_updated, schema_version,
                  format, object_store_key, attester_name, attestation_text, final_url,
                  content_type, server_last_modified, last_updated_raw, header, read_summary,
-                 read_error)
+                 read_error, fetched_via)
             VALUES (:s, :sha, :b, :st, :rlu, :v, CAST(:fmt AS src.file_format), NULL, :an,
-                    :at, :fu, :ct, :lm, :lur, CAST(:h AS jsonb), CAST(:rs AS jsonb), :err)
+                    :at, :fu, :ct, :lm, :lur, CAST(:h AS jsonb), CAST(:rs AS jsonb), :err, :via)
             ON CONFLICT (source_id, sha256) DO UPDATE SET downloaded_at = now(),
                 read_summary = EXCLUDED.read_summary, read_error = EXCLUDED.read_error
             RETURNING id
@@ -590,6 +662,7 @@ def _record(
             "h": json.dumps(check.header, default=str),
             "rs": json.dumps(summary, default=str),
             "err": "; ".join(problems) or None,
+            "via": d.fetched_via,
         },
     ).scalar_one()
     conn.execute(
@@ -607,6 +680,8 @@ def _record(
         f"{d.nbytes} bytes | {size} rows/items | "
         f"{summary.get('payer_names_distinct')} payer names | {seconds}s"
     )
+    if d.fetched_via == "home_runner":
+        line += " | downloaded on Cooper's computer"
     stats.reject(who, "file_read", line, Severity.INFO)
     if problems:
         stats.count("files_with_problems")

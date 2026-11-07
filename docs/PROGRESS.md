@@ -2,6 +2,30 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-07 — Run #10: Nevada price files downloaded, read and deleted; home-computer fallback for price files
+
+Artifact `reference-nv (9).zip` (read 2026-11-07). Home runner job and `download_price_files` both ticked.
+
+Discovery: 49 entries recorded as co-listed (the 31 approved names; some appear in more than one file), **31 price files assigned to one hospital** (22 in run #9). Probe checked only the 32 Nevada files and skipped 104 out-of-area ones.
+
+Price-file check (`price_file_check`): 29 files chosen (one per hospital; the older Sunrise and MountainView hospital-site links skipped as decided), **25 downloaded and read**, 5,448,758,364 bytes in total, about 3.0 million charge items/rows. Formats: 10 JSON, 10 CSV wide, 4 CSV tall, 1 not the CMS template. Versions: 22 × 3.0/3.0.0, 2 × 2.0.0. UMC (2.4 GB JSON) read in 177 s; Sunrise (788 MB) in 37 s.
+
+- Dates written inside the files: 22 dated 2026, Seven Hills 2025-12-31, **Pershing 2024-10-15 (flagged: over a year old)**.
+- **South Lyon**: not in the CMS template (no version, no last_updated_on, no payer columns) → status `not_published`.
+- Small encoding problems: 1–3 rows each in the UHS files (Valley, Northern Nevada, Summerlin, Henderson, West Henderson) and Seven Hills contain bytes that are not UTF-8; one ragged row at Valley. The price reader must handle these per row.
+- Summerlin, Henderson and West Henderson files are different files (different SHA-256) with the same 210,460 rows: the UHS Las Vegas hospitals publish the same chargemaster.
+- **Not downloaded (4)**: Carson Valley (connection reset by peer, transient: now retried once), Boulder City and Desert Parkway (HTTP 403 to GitHub: now downloaded on Cooper's computer, D-026), Grover C. Dils / Lincoln County (assets.changehealthcare.com does not exist: dead link, hospital to be told).
+- Still no file: Renown ×2 (429), Incline Village (403), William Bee Ririe (no cms-hpt.txt), Spring Valley + its two behavioral units (403 to GitHub; Cooper's computer could not resolve the name this time), St. Rose North Las Vegas, Reno Behavioral, 2 state hospitals, Harmon, Thrive, 3 federal.
+
+Changes after the run:
+- `price_files.http_downloader`: one retry after a dropped connection.
+- `price_files.load_home_price_files` + `with_home_fallback`; CLI reads `HOME_PRICE_DIR`. `scripts/fetch_prices_home.ps1` (tested with PowerShell 7.4.6 on Linux against a local test server: ok, 503 then 200 retried, 403 recorded, over-limit file removed, duplicate URLs downloaded once, mixed-case `MRF-URL` lines, missing site reported). `data/reference/home_runner_price_sites.csv` (bchcares.org, desertparkway.com).
+- Migration `0008_price_file_via.py`; `price-files.csv` export gains `fetched_via`.
+- Workflow: the home job also downloads those price files when `download_price_files` is ticked (non-blocking step, artifact `prices-home` kept 1 day); the load job uses them only when GitHub's download fails.
+- Tests: `test_downloader_retries_a_dropped_connection`, `test_load_home_price_files`, `test_home_fallback_only_when_github_fails`, `test_check_records_home_download_and_deletes_it`.
+
+`make lint typecheck test`: `229 passed, 1 warning` (Python 3.13); `/tmp/v312/bin/python -m pytest -q`: `229 passed, 1 warning`.
+
 ## 2026-11-06 — Cooper's approvals; price-file download + check (step 2a), implemented and tested
 
 Cooper answered "1, 1, 1" (2026-11-06):

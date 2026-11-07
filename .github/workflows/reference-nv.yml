@@ -48,11 +48,23 @@ jobs:
       - name: Fetch cms-hpt.txt files live from this computer
         shell: cmd
         run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\fetch_hpt_home.ps1 -OutDir hpt-home
+      - name: Download price files from sites that refuse GitHub (live, from this computer)
+        if: ${{ inputs.download_price_files }}
+        continue-on-error: true
+        shell: cmd
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\fetch_prices_home.ps1 -HptDir hpt-home -OutDir prices-home
       - uses: actions/upload-artifact@v4
         with:
           name: hpt-home
           path: hpt-home
           retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: ${{ inputs.download_price_files }}
+        with:
+          name: prices-home
+          path: prices-home
+          retention-days: 1
+          if-no-files-found: ignore
 
   load:
     needs: [home-fetch]
@@ -95,12 +107,20 @@ jobs:
         with:
           name: hpt-home
           path: hpt-home
+      - name: Get the price files downloaded on Cooper's computer
+        if: ${{ needs.home-fetch.result == 'success' && inputs.download_price_files }}
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: prices-home
+          path: prices-home
       - name: Load Nevada reference data and discover price files
         env:
           AHRQ_URL: ${{ inputs.ahrq_url }}
           AHRQ_YEAR: ${{ inputs.ahrq_year }}
           HPT_HOME_DIR: ${{ needs.home-fetch.result == 'success' && 'hpt-home' || '' }}
           PRICE_FILE_DOWNLOADS: ${{ inputs.download_price_files && '1' || '0' }}
+          HOME_PRICE_DIR: ${{ needs.home-fetch.result == 'success' && inputs.download_price_files && 'prices-home' || '' }}
         run: |
           set -o pipefail
           echo "home computer job: ${{ needs.home-fetch.result }}"
@@ -114,7 +134,7 @@ jobs:
         run: |
           psql -h localhost -U ps_owner procedurescout -c "\copy (SELECT dataset, status, source_url, source_modified, sha256, rows_in, rows_loaded, rows_rejected, summary, error FROM src.reference_load ORDER BY started_at) TO 'reference-loads.csv' CSV HEADER"
           psql -h localhost -U ps_owner procedurescout -c "\copy (SELECT l.dataset, r.row_ref, r.severity, r.rule, r.message FROM src.reference_reject r JOIN src.reference_load l ON l.id = r.load_id ORDER BY l.started_at, r.id) TO 'reference-rejects.csv' CSV HEADER"
-          psql -h localhost -U ps_owner procedurescout -c "\copy (SELECT fac.ccn, fac.name, t.format, t.schema_version, t.last_updated_raw, t.reported_last_updated, t.bytes, t.sha256, t.server_last_modified, t.read_summary->>'rows' AS csv_rows, t.read_summary->>'charge_items' AS json_items, t.read_summary->>'payer_names_distinct' AS payer_names, t.read_summary->>'seconds' AS seconds, t.read_error AS problems, t.attester_name, s.url FROM src.transparency_file t JOIN src.transparency_source s ON s.id = t.source_id JOIN src.file_facility ff ON ff.file_id = t.id JOIN ref.facility fac ON fac.id = ff.facility_id ORDER BY fac.ccn) TO 'price-files.csv' CSV HEADER"
+          psql -h localhost -U ps_owner procedurescout -c "\copy (SELECT fac.ccn, fac.name, t.format, t.schema_version, t.last_updated_raw, t.reported_last_updated, t.bytes, t.sha256, t.server_last_modified, t.read_summary->>'rows' AS csv_rows, t.read_summary->>'charge_items' AS json_items, t.read_summary->>'payer_names_distinct' AS payer_names, t.read_summary->>'seconds' AS seconds, t.read_error AS problems, t.attester_name, t.fetched_via, s.url FROM src.transparency_file t JOIN src.transparency_source s ON s.id = t.source_id JOIN src.file_facility ff ON ff.file_id = t.id JOIN ref.facility fac ON fac.id = ff.facility_id ORDER BY fac.ccn) TO 'price-files.csv' CSV HEADER"
           psql -h localhost -U ps_owner procedurescout -c "\copy (SELECT ccn, name, facility_type, cms_facility_type_raw, city, zip5, county_fips, geocode_precision, geocode_source, health_system_source, cms_overall_rating, cms_rating_as_of FROM ref.facility ORDER BY facility_type, ccn) TO 'reference-facilities.csv' CSV HEADER"
       - uses: actions/upload-artifact@v4
         if: always()

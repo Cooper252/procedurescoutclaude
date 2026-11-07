@@ -2,6 +2,9 @@
 
 Newest first. Each entry: decision, reason, consequences.
 
+## 2026-11-07 — D-026: Price files from sites that refuse GitHub are downloaded on Cooper's computer
+Extends D-021 to price files. Run #10: Boulder City and Desert Parkway answered 403 to GitHub's servers. Sites listed in `data/reference/home_runner_price_sites.csv` have the price files named in their cms-hpt.txt downloaded live on Cooper's computer in the same run (`scripts/fetch_prices_home.ps1`, 500 MB limit per file); the main job uses such a file only when its own download of that URL fails, and records `fetched_via = 'home_runner'` (migration 0008). Same rule as before: no browser disguise, no retrying around a refusal from the same network. Dropped connections (e.g. Carson Valley, "connection reset by peer") are now retried once after 15 seconds.
+
 ## 2026-11-06 — D-025: Price files downloaded, checked and deleted; nothing stored yet
 Cooper (2026-11-06) approved downloading the Nevada price files (about 5 GB; CLAUDE.md requires approval over 50 MB) on GitHub's free, throwaway runner. Each file is streamed to a temporary file with its SHA-256, read once to record the header as published and counts, then deleted (`src.transparency_file.object_store_key` is NULL). Runs only when the workflow input `download_price_files` is ticked (`PRICE_FILE_DOWNLOADS=1`). A size limit (4 GiB per file by default, `PRICE_FILE_MAX_BYTES`) stops runaway downloads. Permanent storage and a hosted database are separate decisions, to be asked about before any paid service.
 
