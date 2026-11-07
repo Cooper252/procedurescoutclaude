@@ -96,7 +96,7 @@ def test_refusals_are_explicit() -> None:
         b"BAD CODE TYPE,11114,XYZ,,,outpatient,,,10,,,,,,,,,,\n"
         b"NO CODE,,,,,outpatient,,,10,,,,,,,,,,\n"
         b"NEGATIVE,11115,CPT,,,outpatient,,,-5,,,,,,,,,,\n"
-        b"ROUNDING,11116,CPT,,,outpatient,,,1.23456,,,,,,,,,,\n"
+        b"ROUNDING,11116,CPT,,,outpatient,,,1.1234567890123456,,,,,,,,,,\n"
     )
     prices, rejects = run(HEAD + body, FileFormat.CSV_TALL)
     rules = Counter(r.rule for r in rejects)
@@ -132,7 +132,7 @@ def test_v2_estimates_drugs_cp1252_and_counts() -> None:
     est = next(p for p in prices if p.price_type is PriceType.ESTIMATED_ALLOWED)
     assert (est.amount, est.payer_name_raw) == (Decimal("28.50"), "Synthetic Payer")
     odd = next(p for p in prices if p.code == "J9998")
-    assert odd.drug_unit is None and "drug_unit_unreadable" in odd.quality_flags
+    assert odd.drug_unit is None and "drug_unit_amount_unreadable" in odd.quality_flags
     zero = next(p for p in prices if p.code == "J9997" and p.price_type is PriceType.GROSS)
     assert zero.amount == Decimal("0") and "zero_amount" in zero.quality_flags
     median = next(p for p in prices if p.price_type is PriceType.MEDIAN_ALLOWED)
@@ -145,3 +145,45 @@ def test_code_type_spellings() -> None:
     assert code_system("apr_drg") is CodeSystem.APR_DRG
     assert code_system("cpt ") is CodeSystem.CPT
     assert code_system("CPT4") is None  # not a CMS code type: refused, not guessed
+
+
+def test_spaced_column_names_and_payer_labels_in_different_case() -> None:
+    # Seen in real Nevada files (run #12): "code |1" with a space, and a payer's
+    # dollar column spelled differently from its methodology column.
+    data = (
+        b"hospital_name,last_updated_on,version\n"
+        b"Synthetic Hospital,2026-01-01,2.0.0\n"
+        b"description ,code |1,code|1|type,setting,standard_charge|gross,"
+        b"standard_charge|Synthetic Health Plan NV | All|negotiated_dollar,"
+        b"standard_charge|synthetic health plan nv|all|methodology,"
+        b"standard_charge| Synthetic Blue  |All|negotiated_dollar,"
+        b"standard_charge|synthetic blue|all|methodology\n"
+        b"SYNTHETIC ROOM,101,RC,inpatient,1184,1065.60,per diem,1124.8,per diem\n"
+    )
+    prices, rejects = run(data, FileFormat.CSV_WIDE)
+    assert rejects == []
+    negotiated = sorted(
+        (p.payer_name_raw or "", p.plan_name_raw or "", str(p.amount), str(p.methodology))
+        for p in prices
+        if p.price_type is PriceType.NEGOTIATED
+    )
+    assert negotiated == [
+        ("Synthetic Blue", "All", "1124.8", "per_diem"),
+        ("Synthetic Health Plan NV", "All", "1065.60", "per_diem"),
+    ]
+    gross = next(p for p in prices if p.price_type is PriceType.GROSS)
+    assert (gross.code_system, gross.code, gross.description_raw) == (
+        CodeSystem.RC,
+        "101",
+        "SYNTHETIC ROOM",
+    )
+
+
+def test_sub_cent_amounts_kept_and_flagged() -> None:
+    body = b"SUB CENT,11117,CPT,,,outpatient,,,2669.73225,2781.00000,,,,,,,,,\n"
+    prices, rejects = run(HEAD + body, FileFormat.CSV_TALL)
+    assert rejects == []
+    by = {p.price_type: p for p in prices}
+    assert by[PriceType.GROSS].amount == Decimal("2669.73225")
+    assert "more_than_4_decimals" in by[PriceType.GROSS].quality_flags
+    assert "more_than_4_decimals" not in by[PriceType.DISCOUNTED_CASH].quality_flags

@@ -52,9 +52,15 @@ def test_float_rejected() -> None:
         parse_dollar(12.5)
 
 
+def test_sub_cent_values_kept_exactly() -> None:
+    assert parse_dollar("2669.73225") == Decimal("2669.73225")
+    assert parse_dollar("460.370000000001") == Decimal("460.370000000001")
+    assert str(parse_dollar("2781.00000")) == "2781.00000"  # as published
+
+
 def test_too_many_places_refused_not_rounded() -> None:
     with pytest.raises(MoneyParseError, match="refusing to round"):
-        parse_dollar("1.23456")
+        parse_dollar("1.1234567890123456")
 
 
 @pytest.mark.parametrize(

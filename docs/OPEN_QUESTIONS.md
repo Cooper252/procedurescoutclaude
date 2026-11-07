@@ -3,7 +3,7 @@
 | # | Question | Owner | Needed by |
 |---|---|---|---|
 | Q1 | Will a healthcare attorney review MRF redistribution, CPT code-number display, HIPAA applicability, and disclaimer text before public launch? | Cooper | Before public launch |
-| Q2 | Hosting preference (AWS, GCP, Azure, or a simpler host such as Render/Fly)? | Cooper | Phase 3 |
+| Q2 | Hosting preference (AWS, GCP, Azure, or a simpler host such as Render/Fly)? Run #12 measured Nevada at 45.2 million price rows, 16.5 GB with indexes (free database tiers hold 0.5–1 GB). Options with prices checked 2026-11-07 are in PROGRESS.md (run #12). | Cooper | Phase 3 |
 | Q3 | Monthly budget ceiling for staging infrastructure and raw-file storage? | Cooper | Phase 2 |
 | Q4 | Who clinically reviews code mappings and bundle templates? | Cooper | Phase 3 |
 | Q6 | Python 3.12 (CI) vs 3.13 (where Phase 0 was built): pin one for production. | Engineering | Phase 3 |

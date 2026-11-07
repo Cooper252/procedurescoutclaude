@@ -11,7 +11,7 @@ Instructions for any AI coding agent (Claude Code or Claude) working in this rep
 1. Never claim a test passed unless you ran it in this session and can show the output. Paste real output into `docs/PROGRESS.md`.
 2. Track four separate status levels and never merge them: **Implemented → Tested → Deployed → Verified in production.** Generated code alone is not "done".
 3. Every change updates `docs/PROGRESS.md` and `docs/FEATURE_MATRIX.md`. An "Implemented" cell needs a file path as evidence; a "Tested" cell needs a test name.
-4. Money is `decimal.Decimal` in Python and `NUMERIC` in PostgreSQL. `float` is banned in `packages/core` and `packages/ingest` (enforced by `tests/test_no_float_money.py`). Never round source values; refuse values that would need rounding.
+4. Money is `decimal.Decimal` in Python and unconstrained `NUMERIC` in PostgreSQL (exact as published, D-029). `float` is banned in `packages/core` and `packages/ingest` (enforced by `tests/test_no_float_money.py`). Never round source values; refuse values that would need rounding.
 5. Missing amounts are `NULL`/`None`, never `0`. Amount columns have no defaults.
 6. Sample or synthetic data lives only in the `fixture` schema and in files named `synthetic_*`. It never reaches `ref`, `src`, or `price`, and the API role cannot read it.
 7. The API reads prices only through `price.published_price`. Never grant the API role access to `price.price` or `fixture`.
@@ -26,7 +26,7 @@ Instructions for any AI coding agent (Claude Code or Claude) working in this rep
 - Ask first before: paid infrastructure, production deploys, destructive migrations or deletes, downloads over 50 MB, any monetization feature.
 - Do not use Grok, xAI, or their infrastructure.
 - Stack: Python 3.12+, FastAPI, SQLAlchemy 2.x, Alembic, Pydantic v2, PostgreSQL 16 + PostGIS 3.4, pytest, ruff, mypy (strict). Frontend (Phase 3): TypeScript + Next.js.
-- Migrations are frozen history: never edit a migration that has been applied to staging or production; add a new one. (0001–0009 are not yet applied anywhere shared.)
+- Migrations are frozen history: never edit a migration that has been applied to staging or production; add a new one. (0001–0010 are not yet applied anywhere shared.)
 
 ## Commands
 
@@ -46,7 +46,7 @@ Without Docker: install PostgreSQL 16 + PostGIS, run `scripts/db_init.sql` as a 
 - `apps/api/procedurescout_api` — FastAPI app
 - `packages/core/procedurescout_core` — money parsing, enums, import state machine, payer matching
 - `packages/ingest/procedurescout_ingest` — parser adapter interface (adapters arrive in Phase 2); `reference/` holds the Phase 1 reference-data loaders and their CLI (`python -m procedurescout_ingest.reference.cli`); `discovery.py` reads cms-hpt.txt on approved hospital websites; `price_files.py` downloads, checks and deletes each assigned price file; `price_parser.py` reads its prices and `price_load.py` stages them (never publishes)
-- `db/migrations` — Alembic; `0001_initial_schema.py` (core schema), `0002_facility_reference.py` (Phase 1 reference data), `0003_discovery.py` (Phase 2 websites + cms-hpt.txt discovery), `0004_captured_hpt.py` (captured cms-hpt.txt copies, manual sources), `0005_home_runner.py` (which network fetched a cms-hpt.txt), `0006_source_probe.py` (price-file size checks), `0007_price_file_check.py` (reviewed co-listed locations, price files checked without keeping them), `0008_price_file_via.py` (which network downloaded a price file), `0009_price_other_codes.py` (other codes of a price item)
+- `db/migrations` — Alembic; `0001_initial_schema.py` (core schema), `0002_facility_reference.py` (Phase 1 reference data), `0003_discovery.py` (Phase 2 websites + cms-hpt.txt discovery), `0004_captured_hpt.py` (captured cms-hpt.txt copies, manual sources), `0005_home_runner.py` (which network fetched a cms-hpt.txt), `0006_source_probe.py` (price-file size checks), `0007_price_file_check.py` (reviewed co-listed locations, price files checked without keeping them), `0008_price_file_via.py` (which network downloaded a price file), `0009_price_other_codes.py` (other codes of a price item), `0010_exact_numeric.py` (amounts stored exactly)
 - `data/reference/` — small, human-reviewed reference files committed to the repo (e.g. reviewed facility relationships)
 - `tests/` — pytest; DB tests run inside rolled-back transactions
 - `docs/` — the living specification (list below)

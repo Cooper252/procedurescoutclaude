@@ -2,8 +2,10 @@
 
 Rules (see docs/DATA_NORMALIZATION.md):
 - Blank or missing values return None. They never become 0.
-- Values are parsed with Decimal and are never rounded. A value with more
-  decimal places than the database can hold raises instead of being rounded.
+- Values are parsed with Decimal and are never rounded. The database columns
+  are unconstrained NUMERIC, so every published value is stored exactly
+  (D-029); a value with more than 15 decimal places is refused as garbage
+  rather than rounded.
 - Python floats are rejected outright: they cannot represent cents exactly.
 - A percentage passed to the dollar parser (e.g. "65%") raises.
 """
@@ -13,10 +15,13 @@ from __future__ import annotations
 import re
 from decimal import Decimal, InvalidOperation
 
-# Database columns: NUMERIC(16,4) for dollars, NUMERIC(9,4) for percentages.
-DOLLAR_MAX_PLACES = 4
+# Database columns are unconstrained NUMERIC (migration 0010, D-029). Hospitals
+# publish sub-cent values (2669.73225) and spreadsheet float artifacts
+# (460.370000000001); both are stored exactly as published and rounded only
+# for display. More than 15 places is not a price anyone published on purpose.
+DOLLAR_MAX_PLACES = 15
 DOLLAR_MAX = Decimal("999999999999.9999")
-PERCENT_MAX_PLACES = 4
+PERCENT_MAX_PLACES = 15
 PERCENT_MAX = Decimal("1000")
 
 _BLANK_TOKENS = frozenset({"", "na", "n/a", "nan", "null", "none", "-", "--"})

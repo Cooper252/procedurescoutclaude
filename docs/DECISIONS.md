@@ -2,6 +2,11 @@
 
 Newest first. Each entry: decision, reason, consequences.
 
+## 2026-11-07 — D-029: Amounts stored exactly as published (unconstrained NUMERIC); supersedes D-008's 4-place limit
+Run #12 refused about 120,000 real prices for having more than 4 decimal places: sub-cent negotiated rates (UHS files: 2669.73225, 1.53765) and spreadsheet artifacts (460.370000000001; JSON 19.380000000000003). Rounding is not allowed, so `amount`, `percentage` and `drug_unit` become unconstrained NUMERIC (migration 0010; its downgrade refuses rather than rounds) and the parsers accept up to 15 decimal places. Such prices are flagged `more_than_4_decimals`; rounding to cents happens only on screen. Trailing zeros ("2781.00000") are kept as published.
+
+Also from run #12: CSV column names are compared without case or spaces around "|" ("code |1" = "code|1", Seven Hills), and inside one wide CSV the columns of one payer/plan are grouped by label without case or extra spaces ("Hometown Health Plan NV | All" with "hometown health plan nv|all", Pershing). This only joins one file's own columns; the stored payer and plan names are the labels as first published, and matching to canonical payers still needs approved aliases.
+
 ## 2026-11-07 — D-028: Prices are read into staged datasets; publishing needs a person
 `price_parser.py` turns each CMS file into one row per published amount and `price_load.py` copies them into `price.price` under a new *staged* `src.dataset_version`; the import run stops in `quality_review`. Staged rows are invisible to the API (`price.published_price` shows published datasets only), so no price reaches a user before a person reviews the load. Each item is stored once under its most specific code, the other codes kept in `price.price.other_codes` (migration 0009), instead of one row per code (which would multiply the table 2–3×). Anything that cannot be read exactly is refused with a reason (see `DATA_QUALITY_RULES.md`). In the manual workflow, the price load runs in GitHub's throwaway database to measure real row counts and size before any hosting decision.
 

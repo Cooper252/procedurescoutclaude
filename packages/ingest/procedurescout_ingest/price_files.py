@@ -26,6 +26,7 @@ import csv
 import hashlib
 import io
 import json
+import re
 import shutil
 import time
 import zipfile
@@ -375,15 +376,23 @@ def read_csv(stream: IO[bytes]) -> FileCheck:
     for i, label in enumerate(labels):
         if label.strip():
             check.header[label.strip()] = _clip(values[i].strip() if i < len(values) else None)
-    cols = [c.strip().casefold() for c in columns]
+    cols = [re.sub(r"\s*\|\s*", "|", c.strip()).casefold() for c in columns]
     payers = _Payers()
-    wide_payer_cols = [c for c in columns if c.count("|") >= 3 and c.startswith("standard_charge|")]
+    wide_payer_cols = [
+        c
+        for c in columns
+        if c.count("|") >= 3 and c.strip().casefold().startswith("standard_charge")
+    ]
     if "payer_name" in cols:
         check.format = FileFormat.CSV_TALL
     elif wide_payer_cols:
         check.format = FileFormat.CSV_WIDE
+        first_seen: dict[str, str] = {}
         for c in wide_payer_cols:
-            payers.add(c.split("|")[1])
+            label = c.split("|")[1].strip()
+            first_seen.setdefault(" ".join(label.split()).casefold(), label)
+        for label in first_seen.values():
+            payers.add(label)
     else:
         check.problems.append(
             "column row has neither payer_name nor standard_charge|payer|... columns"

@@ -2,6 +2,31 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-07 — Run #12: first real price load (Nevada, throwaway database); fixes; hosting numbers
+
+Artifact `reference-nv (11).zip` (read 2026-11-07). Home runner and `download_price_files` ticked.
+
+**Measured:** 30 files chosen, 28 downloaded (5,634,642,372 bytes), 27 loaded (South Lyon not in the CMS template). **45,162,271 prices staged**, 156,776 refused. `price.price_nv` 17,691,525,120 bytes with indexes (14,604,566,528 table only); whole database 17,713,877,475 bytes. Nothing published. Largest: UMC 15,536,335 prices (1,674 s), Sunrise 5,399,799, MountainView 3,204,221, the four UHS Las Vegas files 3,152,020 each, Southern Hills 2,908,512. Disk guard not triggered.
+
+New this run: Humboldt back (155,547 prices) and Centennial Hills assigned (3,152,020). Not downloaded: Carson Valley (connection reset again → now also downloaded on Cooper's computer as a fallback, `home_runner_price_sites.csv`), Grover C. Dils (dead link). Spring Valley's cms-hpt.txt timed out from Cooper's computer and was refused by GitHub this run.
+
+Refusals investigated (the first 5 examples per rule, plus the header rows of two files read in the in-app browser on Cooper's computer):
+- ~120,000 `bad_amount` for more than 4 decimal places (UHS sub-cent rates, Banner "2781.00000", Mesa View and Mt. Grant float artifacts) → amounts now stored exactly (migration 0010, D-029).
+- Seven Hills: all 13,141 rows `no_code` because its columns are named "code |1" → column names compared without spaces around "|".
+- Pershing: 13,065 `missing_methodology` because its dollar columns say "Hometown Health Plan NV | All" and its methodology columns "hometown health plan nv|all" → one file's payer/plan columns grouped by label ignoring case and spaces.
+- Banner Churchill: 16 `no_code` rows at the very end of the file (left as refused).
+- HCA files and Carson Tahoe: ~93,700 prices flagged `drug_unit_unreadable` (drug information dropped, price kept) → now split into `drug_unit_amount_unreadable` / `drug_unit_type_unknown` to see which.
+
+**Hosting numbers** (prices checked 2026-11-07 on the providers' pages; nothing bought): free tiers hold 0.5–1 GB, so Nevada (≈17 GB today) needs a paid database.
+- Supabase Pro: $25/month including 8 GB disk and a 1 GB-RAM "Micro" server; extra disk $0.125/GB; 2 GB RAM "Small" $15/month (the plan's $10 credit covers Micro). About $31/month for Nevada as stored today.
+- Neon Launch: no minimum; storage $0.35/GB-month (≈$6 for 17 GB) plus compute $0.106 per CU-hour, which sleeps when idle.
+- DigitalOcean managed PostgreSQL: from $15/month (1 GiB RAM); extra storage $0.215/GiB-month.
+The row layout repeats descriptions and long row references on every price; moving them to a per-item table could roughly halve the size before anything is bought.
+
+Tests after the fixes: `test_spaced_column_names_and_payer_labels_in_different_case`, `test_sub_cent_amounts_kept_and_flagged`, `test_sub_cent_values_kept_exactly`; refusal test now uses 16 decimal places.
+
+`make lint typecheck test`: `241 passed, 1 warning` (Python 3.13); `/tmp/v312/bin/python -m pytest -q`: `241 passed, 1 warning`.
+
 ## 2026-11-07 — Price reader (step 2b), implemented and tested; not yet run on real files
 
 - `procedurescout_ingest/price_parser.py`: CMS JSON, CSV tall and CSV wide (v2.x and v3.x) → one `ParsedPrice` per published amount, or a `RejectedRow` with a reason. Exact Decimal amounts via `procedurescout_core.money`; negotiated rates need payer, plan and methodology; primary code by `CODE_PRIORITY`, others kept in `other_codes`; Windows-1252 fallback per CSV cell; drug units and allowed-amount counts validated (D-028, `DATA_NORMALIZATION.md`).

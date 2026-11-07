@@ -6,7 +6,7 @@ Rules for turning raw published values into canonical records without losing the
 
 - `parse_dollar` / `parse_percentage` in `procedurescout_core/money.py`.
 - Blank tokens (empty, N/A, NaN, null, -) → None. Never 0.
-- Floats rejected. Negative values rejected. More than 4 decimal places rejected (never rounded).
+- Floats rejected. Negative values rejected. Stored exactly as published, up to 15 decimal places (D-029); more is refused, never rounded.
 - A percentage sign in a dollar field is an error, not a conversion.
 
 ## Raw values are kept
@@ -29,7 +29,8 @@ Every price row keeps `payer_name_raw`, `plan_name_raw`, `description_raw`, `raw
 - **Primary code.** An item with several codes is stored under the most specific one, in this order: MS-DRG, APR-DRG, MS-LTC-DRG, other DRG families, CPT, HCPCS, CDT, NDC, HIPPS, APC, EAPG, CMG, ICD, RC, LOCAL, CDM. All other codes are kept as published in `other_codes` ("TYPE:code"). Code types are matched to the CMS list ignoring case, spaces and underscores ("ms drg" = MS-DRG); anything else (e.g. "CPT4") is refused, not guessed.
 - **Methodology** must be one of the five CMS values (case, spaces and underscores ignored); a negotiated rate without one, or without a payer and plan, is refused.
 - **Text encoding.** CSV cells that are not valid UTF-8 are decoded as Windows-1252 and the price is flagged `text_decoded_cp1252`.
-- **Drug units** are kept only when the unit is a positive number with at most 4 decimals and the type is one of the CMS units (GR, ML, ME, UN, F2, GM, EA); otherwise dropped and flagged `drug_unit_unreadable`.
+- **Drug units** are kept only when the unit is a positive number and the type is one of the CMS units (GR, ML, ME, UN, F2, GM, EA); otherwise dropped and flagged `drug_unit_amount_unreadable` or `drug_unit_type_unknown`.
+- **Column names** are compared without case or spaces around "|"; within one wide CSV, a payer/plan's columns are grouped by label ignoring case and extra spaces, and the label as first published is stored (D-029).
 - **Counts** for allowed amounts must be "0", "1 through 10" or a whole number ≥ 11; otherwise dropped and flagged `allowed_count_unreadable`.
 - Payer and plan names are stored exactly as published; `payer_id`/`plan_id` stay empty until approved aliases exist.
 

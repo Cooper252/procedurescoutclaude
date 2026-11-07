@@ -24,7 +24,7 @@ PostgreSQL 16 + PostGIS 3.4. Defined in `db/migrations/versions/0001_initial_sch
 
 ## price.price
 
-Columns: identity (`state_code`, `id`), lineage (`dataset_version_id`, `facility_id`, `raw_row_ref`), service (`code_system`, `code`, `modifiers`, `setting`, `billing_class`, `description_raw`, `drug_unit`, `drug_unit_type`), payer (`payer_name_raw`, `plan_name_raw`, `payer_id`, `plan_id`, `match_type`), value (`price_type`, `amount NUMERIC(16,4)`, `percentage NUMERIC(9,4)`, `algorithm`, `methodology`, `allowed_count_raw`), derivation (`amount_derived`, `derivation_rule`), notes and quality flags.
+Columns: identity (`state_code`, `id`), lineage (`dataset_version_id`, `facility_id`, `raw_row_ref`), service (`code_system`, `code`, `modifiers`, `setting`, `billing_class`, `description_raw`, `drug_unit`, `drug_unit_type`), payer (`payer_name_raw`, `plan_name_raw`, `payer_id`, `plan_id`, `match_type`), value (`price_type`, `amount NUMERIC`, `percentage NUMERIC` (exact, unconstrained since migration 0010), `algorithm`, `methodology`, `allowed_count_raw`), derivation (`amount_derived`, `derivation_rule`), notes and quality flags.
 
 Named CHECK constraints (all tested):
 
@@ -83,6 +83,10 @@ Partitioning: LIST (`state_code`) with `price_nv` and a DEFAULT partition. Index
 ## Migration 0009
 
 - `price.price.other_codes text[]` (and the same column in `fixture.synthetic_price`): every code of a charge item other than the one the row is stored under, as "TYPE:code". `price.published_price` recreated to include it; the API role's grant re-applied.
+
+## Migration 0010
+
+- `price.price` (and `fixture.synthetic_price`): `amount`, `percentage` and `drug_unit` are unconstrained `NUMERIC` (were NUMERIC(16,4), NUMERIC(9,4), NUMERIC(16,4)); range CHECKs unchanged; view and grant recreated (D-029).
 
 ## Deletion behaviour
 

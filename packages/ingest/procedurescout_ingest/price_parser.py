@@ -150,15 +150,20 @@ class _Item:
         self.drug_type: str | None = None
         unit, dtype = _text(drug_unit), _text(drug_type)
         if unit or dtype:
+            # kept only when both parts are usable; the flag says which part was not
             try:
-                value = Decimal(unit or "")
-                if value <= 0 or (dtype or "").upper() not in DRUG_UNIT_TYPES:
-                    raise InvalidOperation
-                if -int(value.as_tuple().exponent) > 4:
-                    raise InvalidOperation
+                value: Decimal | None = Decimal(unit or "")
+                if value is not None and (not value.is_finite() or value <= 0):
+                    value = None
+            except InvalidOperation:
+                value = None
+            dtype_ok = (dtype or "").upper() in DRUG_UNIT_TYPES
+            if value is None:
+                self.flags.append("drug_unit_amount_unreadable")
+            elif not dtype_ok:
+                self.flags.append("drug_unit_type_unknown")
+            else:
                 self.drug_unit, self.drug_type = value, (dtype or "").upper()
-            except (InvalidOperation, ValueError):
-                self.flags.append("drug_unit_unreadable")
 
     def price(self, ref: str, ptype: PriceType, **kw: Any) -> ParsedPrice:
         flags = tuple(self.flags) + tuple(kw.pop("flags", ()))
@@ -176,6 +181,33 @@ class _Item:
         )
 
 
+_CENT_HUNDREDTH = Decimal("0.0001")
+
+
+def _amount_flags(amount: Decimal | None) -> tuple[str, ...]:
+    if amount is None:
+        return ()
+    flags = []
+    if amount == 0:
+        flags.append("zero_amount")
+    if amount != amount.quantize(_CENT_HUNDREDTH, rounding="ROUND_DOWN"):
+        flags.append("more_than_4_decimals")  # stored exactly; shown rounded
+    return tuple(flags)
+
+
+def _column(name: str) -> str:
+    """Column names compared without case or spaces around '|' ('code |1' = 'code|1')."""
+    return re.sub(r"\s*\|\s*", "|", name.strip()).casefold()
+
+
+def _label(name: str) -> str:
+    """A payer or plan label inside one file's column names, compared without
+    case or extra spaces. Only used to group one file's own columns (dollar,
+    percentage, methodology...) for the same payer and plan; the name stored is
+    the label as first published."""
+    return " ".join(name.split()).casefold()
+
+
 def _amount_prices(
     item: _Item,
     ref: str,
@@ -190,7 +222,7 @@ def _amount_prices(
             continue
         if amount is None:
             continue
-        flags = ("zero_amount",) if amount == 0 else ()
+        flags = _amount_flags(amount)
         yield item.price(ref, ptype, amount=amount, flags=flags, **common)
 
 
@@ -235,7 +267,7 @@ def _payer_prices(
             rule = "missing_methodology" if method_raw is None else "unknown_methodology"
             yield RejectedRow(ref, rule, f"negotiated rate with methodology {method_raw!r}")
         else:
-            flags = ("zero_amount",) if dollar == 0 else ()
+            flags = _amount_flags(dollar)
             yield item.price(
                 ref,
                 PriceType.NEGOTIATED,
@@ -403,8 +435,10 @@ def parse_csv(stream: IO[bytes]) -> Iterator[ParsedPrice | RejectedRow]:
     except StopIteration:
         yield RejectedRow("row 3", "not_cms_csv", "fewer than three rows")
         return
-    cols = [c.strip().casefold() for c in columns]
-    idx = {c: i for i, c in enumerate(cols)}
+    cols = [_column(c) for c in columns]
+    idx: dict[str, int] = {}
+    for i, c in enumerate(cols):
+        idx.setdefault(c, i)
     code_cols = []
     n = 1
     while f"code|{n}" in idx:
@@ -412,16 +446,20 @@ def parse_csv(stream: IO[bytes]) -> Iterator[ParsedPrice | RejectedRow]:
         n += 1
     tall = "payer_name" in idx
     groups: dict[tuple[str, str], dict[str, int]] = {}
+    names: dict[tuple[str, str], tuple[str, str]] = {}
     if not tall:
         for i, col in enumerate(columns):
             parts = [p.strip() for p in col.split("|")]
             head = parts[0].casefold()
+            field = None
             if head == "standard_charge" and len(parts) == 4:
-                key = _NEGOTIATED_FIELD.get(parts[3].casefold())
-                if key and parts[1] and parts[2]:
-                    groups.setdefault((parts[1], parts[2]), {})[key] = i
-            elif head in _ALLOWED_PREFIX and len(parts) == 3 and parts[1] and parts[2]:
-                groups.setdefault((parts[1], parts[2]), {})[_ALLOWED_PREFIX[head]] = i
+                field = _NEGOTIATED_FIELD.get(parts[3].casefold())
+            elif head in _ALLOWED_PREFIX and len(parts) == 3:
+                field = _ALLOWED_PREFIX[head]
+            if field and parts[1] and parts[2]:
+                gkey = (_label(parts[1]), _label(parts[2]))
+                names.setdefault(gkey, (parts[1], parts[2]))
+                groups.setdefault(gkey, {})[field] = i
         if not groups and not any(c.startswith("standard_charge|gross") for c in cols):
             yield RejectedRow("row 3", "not_cms_csv", "no CMS price columns")
             return
@@ -497,7 +535,8 @@ def parse_csv(stream: IO[bytes]) -> Iterator[ParsedPrice | RejectedRow]:
             )
         else:
             yield from _amount_prices(item, ref, {**common, "additional_notes_raw": notes}, generic)
-            for (payer, plan), where in groups.items():
+            for gkey, where in groups.items():
+                payer, plan = names[gkey]
                 yield from _payer_prices(
                     item,
                     ref,
