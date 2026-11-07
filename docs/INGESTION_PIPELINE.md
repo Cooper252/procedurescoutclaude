@@ -21,6 +21,10 @@ How a hospital file becomes published prices.
 
 `procedurescout_ingest/price_files.py`, CLI `price-files`, workflow input `download_price_files`. For each facility with an assigned file (one link per facility; newest server date wins, D-024): stream to a temporary file with SHA-256 and a size limit; detect the format from the bytes (JSON, CSV tall/wide, ZIP; Excel reported as not machine-readable); read once in bounded memory (`ijson` events for JSON) to record the header as published and counts (charge items, payer names, code types, settings); store in `src.transparency_file` with `object_store_key` NULL; delete the file. No prices are loaded yet.
 
+## Step 2b (built 2026-11-07): read prices into a staged dataset
+
+With `PRICE_LOAD=1` (the workflow sets it when `download_price_files` is ticked), each downloaded file in JSON, CSV tall or CSV wide is also parsed (`price_parser.parse`, streaming: `ijson` items for JSON, `csv` rows for CSV) and copied into `price.price` with PostgreSQL COPY (`price_load.load_prices`) in its own savepoint. The import run moves `discovered → … → loading → quality_review` through the enforced state machine and stops there; the dataset version stays `staged`. A disk-space guard (`PRICE_LOAD_MIN_FREE_BYTES`, default 4 GiB) skips loading further files rather than filling the disk. Measured in the workspace: 848,430 rows from a 100 MB synthetic JSON in 18.3 s (≈46,000 rows/s), ≈368 bytes per row including indexes.
+
 ## TODO
 
 - Adapter list and parser_version scheme.

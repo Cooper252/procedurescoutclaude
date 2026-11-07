@@ -339,6 +339,9 @@ def cmd_price_files(args: argparse.Namespace, engine: Engine) -> None:
     from .. import price_files
 
     max_bytes = int(os.environ.get("PRICE_FILE_MAX_BYTES", price_files.DEFAULT_MAX_BYTES))
+    # PRICE_LOAD=1: also read every price into a staged (unpublished) dataset.
+    load = os.environ.get("PRICE_LOAD") == "1"
+    min_free = int(os.environ.get("PRICE_LOAD_MIN_FREE_BYTES", price_files.DEFAULT_MIN_FREE_BYTES))
     client = httpx.Client(
         headers={"User-Agent": USER_AGENT},
         timeout=httpx.Timeout(60, read=300),
@@ -354,9 +357,11 @@ def cmd_price_files(args: argparse.Namespace, engine: Engine) -> None:
         _run(
             engine,
             "price_file_check",
-            lambda c: price_files.check_price_files(c, args.state, downloader, Path(work)),
+            lambda c: price_files.check_price_files(
+                c, args.state, downloader, Path(work), load=load, min_free_bytes=min_free
+            ),
             source_file="assigned price files (downloaded, checked, deleted)",
-            parameters={"state": args.state, "max_bytes": max_bytes},
+            parameters={"state": args.state, "max_bytes": max_bytes, "load_prices": load},
         )
 
 

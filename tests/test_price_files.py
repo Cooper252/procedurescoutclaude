@@ -321,3 +321,79 @@ def test_check_records_home_download_and_deletes_it(conn: Connection, tmp_path: 
     assert not (home_dir / "price-1.bin").exists()
     assert stats.summary["download_failed"] == 1  # valley.json: GitHub refused, not at home
     assert any("downloaded on Cooper's computer" in r.message for r in stats.rejects)
+
+
+def test_load_stages_prices_and_publishes_nothing(conn: Connection, tmp_path: Path) -> None:
+    import hashlib
+
+    setup_hospitals(conn)
+    load_websites(conn, websites_csv())
+    approved = load_co_listed(
+        conn,
+        "location_name,parent_ccn,note,reviewed_by,reviewed_at\n"
+        "Synthetic Valley North Campus,SYN503,listed in its file,tester,2026-11-06\n",
+        LoadStats(),
+    )
+    discover(conn, "NV", fake_fetcher, co_listed=approved)
+    broken = JSON_FILE.read_bytes()[:-200]  # valid header, cut off inside the items
+    files = {f"{SITE}/mrf/valley.json": JSON_FILE.read_bytes(), f"{SITE}/mrf/shared.json": broken}
+
+    def downloader(url: str, dest: Path) -> Download:
+        dest.write_bytes(files[url])
+        data = files[url]
+        return Download(url, dest, hashlib.sha256(data).hexdigest(), len(data), 200, url)
+
+    stats = check_price_files(
+        conn, "NV", downloader, tmp_path / "w", today=date(2026, 11, 7), load=True, min_free_bytes=0
+    )
+    assert stats.summary["files_loaded"] == 1 and stats.summary["load_failed"] == 1
+    assert stats.summary["price_rows_loaded"] == 6
+    assert stats.summary["price_nv_total_bytes"] > 0
+    rows = conn.execute(
+        text(
+            """
+            SELECT f.ccn, count(*), min(dv.status::text), min(r.state::text)
+            FROM price.price p
+            JOIN ref.facility f ON f.id = p.facility_id
+            JOIN src.dataset_version dv ON dv.id = p.dataset_version_id
+            JOIN src.import_run r ON r.id = dv.import_run_id
+            WHERE f.ccn LIKE 'SYN%' GROUP BY f.ccn
+            """
+        )
+    ).all()
+    # the broken file's partial rows were rolled back; the good file waits for review
+    assert [tuple(r) for r in rows] == [("SYN501", 6, "staged", "quality_review")]
+    published = conn.execute(
+        text(
+            "SELECT count(*) FROM price.published_price p JOIN ref.facility f "
+            "ON f.id = p.facility_id WHERE f.ccn LIKE 'SYN%'"
+        )
+    ).scalar()
+    assert published == 0
+    load = conn.execute(
+        text(
+            "SELECT t.read_summary->'load'->>'rows_loaded' FROM src.transparency_file t "
+            "JOIN src.transparency_source s ON s.id = t.source_id WHERE s.url = :u"
+        ),
+        {"u": f"{SITE}/mrf/valley.json"},
+    ).scalar()
+    assert load == "6"
+
+
+def test_load_skipped_when_disk_is_low(conn: Connection, tmp_path: Path) -> None:
+    import hashlib
+
+    setup_hospitals(conn)
+    load_websites(conn, websites_csv())
+    discover(conn, "NV", fake_fetcher)
+
+    def downloader(url: str, dest: Path) -> Download:
+        data = JSON_FILE.read_bytes()
+        dest.write_bytes(data)
+        return Download(url, dest, hashlib.sha256(data).hexdigest(), len(data), 200, url)
+
+    stats = check_price_files(
+        conn, "NV", downloader, tmp_path / "w", load=True, min_free_bytes=10**18
+    )
+    assert stats.summary["load_skipped_low_disk"] >= 1
+    assert "files_loaded" not in stats.summary

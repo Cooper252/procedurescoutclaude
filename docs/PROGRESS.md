@@ -2,6 +2,18 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-07 — Price reader (step 2b), implemented and tested; not yet run on real files
+
+- `procedurescout_ingest/price_parser.py`: CMS JSON, CSV tall and CSV wide (v2.x and v3.x) → one `ParsedPrice` per published amount, or a `RejectedRow` with a reason. Exact Decimal amounts via `procedurescout_core.money`; negotiated rates need payer, plan and methodology; primary code by `CODE_PRIORITY`, others kept in `other_codes`; Windows-1252 fallback per CSV cell; drug units and allowed-amount counts validated (D-028, `DATA_NORMALIZATION.md`).
+- `procedurescout_ingest/price_load.py`: import run moved through the state machine to `quality_review`, staged dataset version, PostgreSQL COPY into `price.price`. Nothing published.
+- `price_files.check_price_files(load=True)`: loads each file in its own savepoint (a broken file is rolled back and reported `load_failed`), stores the load summary in `transparency_file.read_summary.load`, stops loading when free disk falls under 4 GiB, and reports the size of `price.price_nv` and of the database.
+- Migration `0009_price_other_codes.py`. `ParsedPrice` gains `drug_unit`, `drug_unit_type`, `other_codes`, `quality_flags`.
+- CLI: `PRICE_LOAD=1` turns loading on. Workflow: the same "download_price_files" tick box now also loads; a disk-cleanup step frees space on GitHub's machine first; job limit 300 minutes; new outputs `price-load.csv` (per hospital: prices staged/refused by type and rule, flags) and `price-size.txt` (rows and database size).
+- Workspace measurement: 848,430 rows from a 100 MB synthetic JSON loaded in 18.3 s (≈46,000 rows/s), ≈368 bytes per row with indexes (one row per amount; descriptions repeat per row).
+- Tests: `tests/test_price_parser.py` (6), `test_load_stages_prices_and_publishes_nothing`, `test_load_skipped_when_disk_is_low`.
+
+`make lint typecheck test`: `238 passed, 1 warning` (Python 3.13); `/tmp/v312/bin/python -m pytest -q`: `238 passed, 1 warning`.
+
 ## 2026-11-07 — Run #11: 27 Nevada price files read; Centennial Hills and Spring Valley decisions; TLS 1.3 at home
 
 Artifact `reference-nv (10).zip` (read 2026-11-07), plus `prices-home.zip` and `hpt-home (3).zip` produced by the run.

@@ -2,6 +2,9 @@
 
 Newest first. Each entry: decision, reason, consequences.
 
+## 2026-11-07 — D-028: Prices are read into staged datasets; publishing needs a person
+`price_parser.py` turns each CMS file into one row per published amount and `price_load.py` copies them into `price.price` under a new *staged* `src.dataset_version`; the import run stops in `quality_review`. Staged rows are invisible to the API (`price.published_price` shows published datasets only), so no price reaches a user before a person reviews the load. Each item is stored once under its most specific code, the other codes kept in `price.price.other_codes` (migration 0009), instead of one row per code (which would multiply the table 2–3×). Anything that cannot be read exactly is refused with a reason (see `DATA_QUALITY_RULES.md`). In the manual workflow, the price load runs in GitHub's throwaway database to measure real row counts and size before any hosting decision.
+
 ## 2026-11-07 — D-027: Centennial Hills and Spring Valley files; campus children point to the parent's file
 Cooper answered "1" (2026-11-07) to two questions whose first options were: approve Centennial Hills' two ERs as co-listed (as in D-023); and use Spring Valley's file for Spring Valley only. Spring Valley's cms-hpt.txt lists Spring Mountain Sahara (294010) and Spring Mountain Treatment Center (294011) "an Extension of Spring Valley Hospital" with the same file. Recorded as approved `campus_of` relationships (290046 parent) in `data/reference/facility_relationships_reviewed.csv`; discovery gives a file to the parent when the only other facilities it names are the parent's approved campus children, and reports each child as `listed_in_parent_file`. The children show the `in_parent_file` status, never the parent's prices. The answer "1" was read as the first option for both questions; this can be reversed by removing those rows.
 

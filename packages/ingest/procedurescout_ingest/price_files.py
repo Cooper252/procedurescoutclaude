@@ -26,10 +26,12 @@ import csv
 import hashlib
 import io
 import json
+import shutil
 import time
 import zipfile
 from collections import Counter
 from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from email.utils import parsedate_to_datetime
@@ -469,6 +471,21 @@ def read_file(path: Path) -> FileCheck:
         return check
 
 
+@contextmanager
+def open_payload(path: Path, check: FileCheck) -> Iterator[IO[bytes]]:
+    """The bytes the check read: the file itself, or the ZIP member it chose."""
+    if check.inner_name is None:
+        with path.open("rb") as f:
+            yield f
+        return
+    with zipfile.ZipFile(path) as z, z.open(check.inner_name) as inner:
+        yield inner
+
+
+LOADABLE = frozenset({FileFormat.JSON, FileFormat.CSV_TALL, FileFormat.CSV_WIDE})
+DEFAULT_MIN_FREE_BYTES = 4 * 1024 * 1024 * 1024
+
+
 def parse_published_date(raw: str | None) -> date | None:
     if not raw:
         return None
@@ -556,7 +573,11 @@ def check_price_files(
     downloader: Downloader,
     workdir: Path,
     today: date | None = None,
+    load: bool = False,
+    min_free_bytes: int = DEFAULT_MIN_FREE_BYTES,
 ) -> LoadStats:
+    """Download, check and delete each file; with `load`, also read its prices
+    into a staged dataset (price_load) before deleting it."""
     stats = LoadStats()
     today = today or datetime.now().astimezone().date()
     chosen, skipped = choose_per_facility(candidates(conn, state_code))
@@ -593,14 +614,97 @@ def check_price_files(
                 check = FileCheck(problems=[f"could not read: {type(exc).__name__}: {exc}"])
             seconds = round(time.monotonic() - started)
             total += d.nbytes
-            _record(conn, c, d, check, today, stats, seconds)
+            file_id = _record(conn, c, d, check, today, stats, seconds)
+            if load:
+                _load(conn, c, d.path, check, file_id, state_code, stats, min_free_bytes, workdir)
         finally:
             dest.unlink(missing_ok=True)
             if d.path is not None:
                 d.path.unlink(missing_ok=True)
     stats.summary["bytes_downloaded"] = total
     stats.summary["files_chosen"] = len(chosen)
+    if load:
+        sizes = conn.execute(
+            text(
+                "SELECT pg_total_relation_size('price.price_nv'), "
+                "pg_relation_size('price.price_nv'), pg_database_size(current_database())"
+            )
+        ).one()
+        stats.summary["price_nv_total_bytes"] = int(sizes[0])
+        stats.summary["price_nv_table_bytes"] = int(sizes[1])
+        stats.summary["database_bytes"] = int(sizes[2])
     return stats
+
+
+def _load(
+    conn: Connection,
+    c: Candidate,
+    path: Path,
+    check: FileCheck,
+    file_id: str,
+    state_code: str,
+    stats: LoadStats,
+    min_free_bytes: int,
+    workdir: Path,
+) -> None:
+    from . import price_load, price_parser
+
+    who = f"ccn:{c.ccn}"
+    if check.format not in LOADABLE:
+        stats.count("load_skipped_format")
+        return
+    free = shutil.disk_usage(workdir).free
+    if free < min_free_bytes:
+        stats.count("load_skipped_low_disk")
+        stats.reject(
+            who,
+            "load_skipped_low_disk",
+            f"{c.name} | only {free} bytes free; prices not loaded",
+            Severity.WARNING,
+        )
+        return
+    started = time.monotonic()
+    savepoint = conn.begin_nested()
+    try:
+        with open_payload(path, check) as payload:
+            result = price_load.load_prices(
+                conn,
+                file_id=file_id,
+                facility_id=c.facility_id,
+                state_code=state_code,
+                records=price_parser.parse(payload, check.format),
+            )
+    except Exception as exc:  # one bad file must not stop the others
+        savepoint.rollback()
+        stats.count("load_failed")
+        stats.reject(
+            who, "load_failed", f"{c.name} | {type(exc).__name__}: {exc}"[:2000], Severity.WARNING
+        )
+        return
+    savepoint.commit()
+    summary = result.summary()
+    summary["seconds"] = round(time.monotonic() - started)
+    conn.execute(
+        text(
+            "UPDATE src.transparency_file SET read_summary = read_summary || "
+            "jsonb_build_object('load', CAST(:s AS jsonb)) WHERE id = :f"
+        ),
+        {"s": json.dumps(summary), "f": file_id},
+    )
+    stats.count("files_loaded")
+    stats.count("price_rows_loaded", result.rows_loaded)
+    stats.count("price_rows_rejected", result.rows_rejected)
+    stats.reject(
+        who,
+        "prices_loaded",
+        f"{c.name} | {result.rows_loaded} prices staged | {result.rows_rejected} refused "
+        f"{dict(result.rejects_by_rule)} | {summary['seconds']}s",
+        Severity.INFO,
+    )
+    for ex in result.examples:
+        stats.reject(
+            who, f"price_{ex.rule}", f"{ex.raw_row_ref}: {ex.message}"[:500], Severity.INFO
+        )
 
 
 def _record(
@@ -611,7 +715,7 @@ def _record(
     today: date,
     stats: LoadStats,
     seconds: int,
-) -> None:
+) -> str:
     who = f"ccn:{c.ccn}"
     problems = list(check.problems)
     version = check.version
@@ -687,3 +791,4 @@ def _record(
         stats.count("files_with_problems")
     for p in problems:
         stats.reject(who, "file_problem", f"{c.name} | {p}", Severity.WARNING)
+    return str(file_id)

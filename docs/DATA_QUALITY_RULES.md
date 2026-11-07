@@ -18,6 +18,10 @@ PDC row count must equal the API's count; unknown hospital types, malformed CCNs
 
 Flagged per file (`file_problem`, stored in `src.transparency_file.read_error`): no `version`, or not a 2.x/3.x template; no `last_updated_on`, not a date, or more than a year old (CMS requires annual updates); CSV rows with a different column count than the header; bytes that are not valid UTF-8; fewer than three rows (not the CMS CSV template); invalid JSON; Excel workbooks; ZIPs with no or several JSON/CSV files. Download failures (`download_failed`) and files over the size limit are reported, never retried around.
 
+## Price rows (Phase 2 step 2b, tested)
+
+Refused (counted per file by rule, first 5 examples kept): `bad_amount` (negative, malformed, more than 4 decimals, percentage outside 0–1000), `missing_methodology`, `unknown_methodology`, `missing_payer_or_plan`, `no_code`, `unknown_code_type`, `not_cms_csv`. Flagged but kept: `zero_amount`, `text_decoded_cp1252`, `drug_unit_unreadable`, `allowed_count_unreadable`. A file that fails part-way is rolled back entirely (no partial datasets). Loaded prices are a *staged* dataset whose import run waits in `quality_review`; nothing is published automatically.
+
 ## Planned (Phase 2 quality review)
 
 - Row-count swing > 30% vs previous version → hold for review.

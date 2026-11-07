@@ -42,6 +42,10 @@ class ParsedPrice:
     modifiers: tuple[str, ...] = field(default_factory=tuple)
     allowed_count_raw: str | None = None  # "0", "1 through 10", or digits >= 11
     additional_notes_raw: str | None = None
+    drug_unit: Decimal | None = None
+    drug_unit_type: str | None = None
+    other_codes: tuple[str, ...] = field(default_factory=tuple)  # "TYPE:code", as published
+    quality_flags: tuple[str, ...] = field(default_factory=tuple)
 
 
 @dataclass(frozen=True, slots=True)

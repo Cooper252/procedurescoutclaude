@@ -23,6 +23,16 @@ Every price row keeps `payer_name_raw`, `plan_name_raw`, `description_raw`, `raw
 - County: CMS county name matched exactly (ignoring "County" suffix and case) to `ref.county` in the same state.
 - Address changes clear the stored geocode so it is redone.
 
+## Price files (Phase 2 step 2b, `price_parser.py`)
+
+- **One row per published amount.** Gross, discounted cash, de-identified min/max once per charge item and setting; negotiated (dollar, percentage and/or algorithm), v2 estimated amount and v3 median/10th/90th percentile once per payer/plan. In tall CSVs the gross/cash/min/max repeated on every payer row are stored once.
+- **Primary code.** An item with several codes is stored under the most specific one, in this order: MS-DRG, APR-DRG, MS-LTC-DRG, other DRG families, CPT, HCPCS, CDT, NDC, HIPPS, APC, EAPG, CMG, ICD, RC, LOCAL, CDM. All other codes are kept as published in `other_codes` ("TYPE:code"). Code types are matched to the CMS list ignoring case, spaces and underscores ("ms drg" = MS-DRG); anything else (e.g. "CPT4") is refused, not guessed.
+- **Methodology** must be one of the five CMS values (case, spaces and underscores ignored); a negotiated rate without one, or without a payer and plan, is refused.
+- **Text encoding.** CSV cells that are not valid UTF-8 are decoded as Windows-1252 and the price is flagged `text_decoded_cp1252`.
+- **Drug units** are kept only when the unit is a positive number with at most 4 decimals and the type is one of the CMS units (GR, ML, ME, UN, F2, GM, EA); otherwise dropped and flagged `drug_unit_unreadable`.
+- **Counts** for allowed amounts must be "0", "1 through 10" or a whole number ≥ 11; otherwise dropped and flagged `allowed_count_unreadable`.
+- Payer and plan names are stored exactly as published; `payer_id`/`plan_id` stay empty until approved aliases exist.
+
 ## Derived amounts
 
 A dollar amount computed from a percentage or algorithm must set `amount_derived = true` and `derivation_rule` (DB-enforced). Derivation is out of scope until a rule is documented and reviewed.

@@ -80,6 +80,10 @@ Partitioning: LIST (`state_code`) with `price_nv` and a DEFAULT partition. Index
 
 - `src.transparency_file.fetched_via` (`github` | `home_runner`), D-026.
 
+## Migration 0009
+
+- `price.price.other_codes text[]` (and the same column in `fixture.synthetic_price`): every code of a charge item other than the one the row is stored under, as "TYPE:code". `price.published_price` recreated to include it; the API role's grant re-applied.
+
 ## Deletion behaviour
 
 Lineage references use `ON DELETE RESTRICT` (files, runs, dataset versions, facilities cannot be deleted while prices point at them). Child detail rows (aliases, events, validation results) cascade with their parent.
