@@ -55,6 +55,11 @@ ALIASES_CSV = "data/reference/facility_aliases_reviewed.csv"
 CAPTURED_DIR = "data/reference/hpt_captured"
 MANUAL_SOURCES_CSV = "data/reference/price_file_sources_reviewed.csv"
 CO_LISTED_CSV = "data/reference/hpt_co_listed_locations_reviewed.csv"
+PROVIDER_TYPES_CSV = "data/reference/provider_types.csv"
+SERVICE_CATALOG_CSV = "data/reference/service_catalog.csv"
+BUNDLES_CSV = "data/reference/bundles.csv"
+POVERTY_CSV = "data/reference/poverty_guidelines.csv"
+ASSISTANCE_CSV = "data/reference/assistance_policies.csv"
 STEP_DATASETS = {
     "hospitals": "cms_hospital_general_information",
     "ascs": "cms_asc_facility",
@@ -71,6 +76,7 @@ STEP_DATASETS = {
     "manual_sources": "cms_hpt_txt_discovery",
     "probe": "cms_hpt_txt_discovery",
     "price_files": "price_file_check",
+    "catalog": "service_catalog",
 }
 
 
@@ -388,6 +394,16 @@ def _store() -> Any:
     return LocalStore(Path(os.environ.get("PRICE_STORE_DIR", "price-store")))
 
 
+def cmd_auto_publish(args: argparse.Namespace, engine: Engine) -> None:
+    """Publish refreshes of already-approved facilities that pass every check (D-035)."""
+    from .. import publish
+
+    with engine.begin() as conn:
+        for d in publish.auto_publish_pending(conn, _store()):
+            verdict = "published" if d.published else "waits for a person: " + "; ".join(d.reasons)
+            print(f"{d.facility_name}: {verdict}")
+
+
 def cmd_review_list(args: argparse.Namespace, engine: Engine) -> None:
     from .. import publish
 
@@ -418,6 +434,36 @@ def cmd_reject(args: argparse.Namespace, engine: Engine) -> None:
     with engine.begin() as conn:
         publish.reject(conn, uuid.UUID(args.dataset), args.reviewer, args.reason)
     print(f"rejected {args.dataset}")
+
+
+def cmd_catalog(args: argparse.Namespace, engine: Engine) -> None:
+    """Provider types, CMS-based facility types and the service catalog (D-032)."""
+    from pathlib import Path
+
+    from . import catalog
+
+    def work(c: Connection) -> LoadStats:
+        stats = catalog.load_provider_types(c, Path(PROVIDER_TYPES_CSV).read_text())
+        stats.summary["facility_types_assigned"] = catalog.assign_cms_provider_types(c)
+        services = catalog.load_services(c, Path(SERVICE_CATALOG_CSV).read_text())
+        stats.rows_in += services.rows_in
+        stats.rows_loaded += services.rows_loaded
+        stats.rejects.extend(services.rejects)
+        stats.summary.update({f"services_{k}": v for k, v in services.summary.items()})
+        for name, loader, path in (
+            ("bundles", catalog.load_bundles, BUNDLES_CSV),
+            ("poverty_guidelines", catalog.load_poverty_guidelines, POVERTY_CSV),
+            ("assistance_policies", catalog.load_assistance_policies, ASSISTANCE_CSV),
+        ):
+            part = loader(c, Path(path).read_text())
+            stats.rows_in += part.rows_in
+            stats.rows_loaded += part.rows_loaded
+            stats.rejects.extend(part.rejects)
+            stats.summary[f"{name}_loaded"] = part.rows_loaded
+            stats.summary.update({f"{name}_{k}": v for k, v in part.summary.items()})
+        return stats
+
+    _run(engine, "service_catalog", work, source_file="data/reference catalog CSVs")
 
 
 def cmd_hcpcs(args: argparse.Namespace, engine: Engine) -> None:
@@ -573,6 +619,7 @@ def cmd_nv_all(args: argparse.Namespace, engine: Engine) -> None:
     )
     if os.path.exists(ALIASES_CSV):
         step("aliases", lambda: cmd_aliases(ns(file=ALIASES_CSV), engine))
+    step("catalog", lambda: cmd_catalog(ns(), engine))
     if os.path.exists(WEBSITES_CSV):
         step("websites", lambda: cmd_websites(ns(file=WEBSITES_CSV), engine))
         step("discover", lambda: cmd_discover(ns(state=st), engine))
@@ -643,6 +690,10 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("probe", help="size/date check of known price files (no download)")
     sub.add_parser("storage-experiment", help="measure storage layouts for loaded prices")
 
+    sub.add_parser(
+        "catalog", help="provider types, services, bundles, poverty guidelines, policies"
+    )
+    sub.add_parser("auto-publish", help="publish clean refreshes of approved facilities (D-035)")
     sub.add_parser("review-list", help="staged price datasets waiting for a person's review")
     sp = sub.add_parser("approve", help="publish a reviewed dataset (writes its Parquet file)")
     sp.add_argument("--dataset", required=True, help="dataset version id from review-list")
@@ -700,6 +751,8 @@ def main(argv: list[str] | None = None) -> None:
             "price-files": lambda: cmd_price_files(args, engine),
             "storage-experiment": lambda: cmd_storage_experiment(args, engine),
             "review-list": lambda: cmd_review_list(args, engine),
+            "catalog": lambda: cmd_catalog(args, engine),
+            "auto-publish": lambda: cmd_auto_publish(args, engine),
             "approve": lambda: cmd_approve(args, engine),
             "reject": lambda: cmd_reject(args, engine),
             "msdrg": lambda: cmd_msdrg(args, engine),

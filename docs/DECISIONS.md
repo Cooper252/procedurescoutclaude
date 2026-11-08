@@ -2,6 +2,26 @@
 
 Newest first. Each entry: decision, reason, consequences.
 
+## 2026-11-08 — D-038: Assistance limits shown in dollars; first policies proposed
+Cooper (2026-11-08): say "You may qualify for this procedure for free if you make under $X single or $Y household", not poverty-level percentages, which people don't know. Messages now state dollar limits for 1 person and a family of 4, computed exactly from each hospital's reviewed percentage and the HHS guideline, shown rounded down to whole dollars (`assistance.plain_message`, `site_message`). Policies for 13 Nevada hospitals were found on the hospitals' and systems' own pages and recorded as proposals (`data/reference/assistance_policies.csv`, unreviewed) with evidence and notes on what is uncertain; they appear on the review page. The Valley Health System (UHS) Las Vegas hospitals' policy was not found yet (a same-named Virginia system's policy was rejected as the wrong organization).
+
+## 2026-11-08 — D-037: Financial assistance is on every page and prominent on the home page
+Cooper (2026-11-08): telling people they may qualify for free or reduced procedures under each hospital's guidelines was one of the biggest parts of the previous site and must be on every page, especially prominent on the home page. Built: HHS 2026 poverty guidelines (exact), reviewed per-hospital policy tables, a site-wide message and a "you may qualify" check that never says "eligible" and never stores the person's income (`FINANCIAL_ASSISTANCE_SPEC.md`). The hospitals' policies still have to be collected and reviewed (Q20).
+
+## 2026-11-08 — D-036: Bundles: everything a procedure needs, with optional pieces as checkboxes
+Cooper (2026-11-08): a procedure such as an endoscopy must show everything needed (facility, doctor, anesthesia, ...), with optional pieces (e.g. an epidural with a vaginal birth) as checkboxes. Built as `ref.bundle_component` (required/optional, default on/off, billing code) and `bundles.estimate`, which never counts a missing piece as $0 and says whether the total is complete (`BUNDLED_PRICING_SPEC.md`). Bundle contents are clinical decisions: the three starting bundles stay proposed until a clinical reviewer approves them (Q4).
+
+## 2026-11-08 — D-035: Clean refreshes publish automatically; everything else waits for a person
+Cooper (2026-11-08, answering Q19 "yes"): a new file for a hospital that already has approved prices publishes without a person when nothing got worse: refused rows not more than in the approved file, price count within ±30%, no new file problems, and the file's own date not older. First files and anything else wait for a person. Built as `publish.auto_check` / `auto_publish_pending` (CLI `auto-publish`); the reviewer recorded is "automatic checks (D-035)" with the reasons in the audit log.
+
+Cooper also approved all 18 proposed services and the 6 proposed provider types (Q18, 2026-11-08); the catalog files now record him as reviewer.
+
+## 2026-11-08 — D-034: Service catalog, provider types, search and the review page
+- **Catalog:** `ref.procedure` is the service catalog (slug, unit, review state; migration 0012). Services and their code links come from `data/reference/service_catalog.csv`; the 18 starting entries are AI suggestions and stay `proposed` until Cooper approves them (rule 10). Code links point to code numbers only; no CPT or CDT descriptor text.
+- **Provider types:** `data/reference/provider_types.csv`; the five Cooper named (hospital, surgery center, dental office, medical spa, weight-loss clinic) are approved, six suggestions are proposed. CMS facility types map hospitals and ASCs automatically.
+- **Search:** `procedurescout_core/search.py` and `GET /v1/search` find published prices for one approved service near a point, optionally for one provider type; facilities nearby without published prices are listed with that status.
+- **Review:** one decision per hospital file, not per price; the reviewer sees totals, refusals, flags, the file's own date and problems (`/admin/reviews`). Whether clean refreshes of an already-approved hospital may publish without a person is open (Q19).
+
 ## 2026-11-08 — D-033 (approved by Cooper 2026-11-08): Published prices stored as compressed Parquet files; PostgreSQL keeps the small, changing data
 Run #13 measured the same 48,972,607 Nevada prices three ways (`storage-experiment.json`):
 - current PostgreSQL table: 18,899,951,616 bytes with indexes;

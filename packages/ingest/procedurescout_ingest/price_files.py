@@ -522,7 +522,7 @@ class Candidate:
     source_id: str
     url: str
     facility_id: str
-    ccn: str
+    ccn: str | None  # providers outside the CMS lists may have none
     name: str
     reported_bytes: int | None
     last_modified: str | None
@@ -572,7 +572,7 @@ def choose_per_facility(
         chosen.append(winner)
         skipped.extend((c, winner) for c in group if c is not winner)
     # small files first, unknown sizes last, so one slow giant cannot starve the rest
-    chosen.sort(key=lambda c: (c.reported_bytes is None, c.reported_bytes or 0, c.ccn))
+    chosen.sort(key=lambda c: (c.reported_bytes is None, c.reported_bytes or 0, c.ccn or ""))
     return chosen, skipped
 
 

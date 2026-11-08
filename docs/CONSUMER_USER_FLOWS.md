@@ -23,6 +23,10 @@ One card per facility; inside, one row per distinct payer/plan/price type with a
 
 ## Facilities without usable prices (D-022)
 
+**Financial assistance on every page (D-037):** a site-wide "You may qualify for free or reduced-cost care" message on every page, a large panel on the home page next to the search, and a link on every facility and price to the "may qualify" check and the hospital's policy (`FINANCIAL_ASSISTANCE_SPEC.md`).
+
+**Bundles (D-036):** searching a procedure that has a bundle shows the whole bundle by default, with optional pieces as checkboxes and missing pieces marked "not published" (`BUNDLED_PRICING_SPEC.md`).
+
 A facility is always listed (name, address, distance) even when no prices can be shown, with one plain status instead of prices:
 
 | Status | Shown when | Text (draft) |

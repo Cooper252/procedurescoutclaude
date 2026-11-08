@@ -173,6 +173,9 @@ def test_cli_parser_defaults() -> None:
     assert json.dumps(vars(cli.build_parser().parse_args(["hospitals", "--state", "nv"])))
 
 
+OFFLINE_STEPS = ("catalog", "aliases", "websites", "discover", "manual_sources", "probe")
+
+
 def test_nv_all_continues_after_a_failed_step(
     engine: Engine, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -190,6 +193,9 @@ def test_nv_all_continues_after_a_failed_step(
     monkeypatch.setattr(cli, "cmd_census", fake("census", fail=True))
     for name in ("nppes", "geocode", "relationships", "hcpcs", "msdrg", "report"):
         monkeypatch.setattr(cli, f"cmd_{name}", fake(name))
+    # steps that read committed files or the network must not run against the test database
+    for name in OFFLINE_STEPS:
+        monkeypatch.setattr(cli, f"cmd_{name}", fake(name))
     args = cli.build_parser().parse_args(["nv-all"])
     try:
         with pytest.raises(SystemExit, match="1 step\\(s\\) failed: census"):
@@ -206,6 +212,12 @@ def test_nv_all_continues_after_a_failed_step(
         "relationships",
         "hcpcs",
         "msdrg",
+        "aliases",
+        "catalog",
+        "websites",
+        "discover",
+        "manual_sources",
+        "probe",
         "report",
     ]
 
@@ -219,7 +231,16 @@ def test_nv_all_records_failures_that_happen_before_loading(
     def download_fails(*_a: object, **_k: object) -> None:
         raise SourceError("synthetic download failure")
 
-    for name in ("pdc", "census", "nppes", "geocode", "relationships", "msdrg", "report"):
+    for name in (
+        "pdc",
+        "census",
+        "nppes",
+        "geocode",
+        "relationships",
+        "msdrg",
+        "report",
+        *OFFLINE_STEPS,
+    ):
         monkeypatch.setattr(cli, f"cmd_{name}", ok)
     monkeypatch.setattr(cli, "cmd_hcpcs", download_fails)
     args = cli.build_parser().parse_args(["nv-all"])

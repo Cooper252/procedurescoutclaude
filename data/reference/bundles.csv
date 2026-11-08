@@ -1,0 +1,12 @@
+bundle_slug,bundle_name,category,setting,position,label,role,requirement,included_by_default,code,notes,source,reviewed_by,reviewed_at
+upper-endoscopy-complete,"Upper endoscopy (EGD), everything included",Procedures,outpatient,0,Upper endoscopy (the procedure and facility),procedure,required,true,CPT:43235@2026,"facility and doctor both bill this code; hospital files usually hold the facility part",ai_suggested,,
+upper-endoscopy-complete,"Upper endoscopy (EGD), everything included",Procedures,outpatient,1,Anesthesia,anesthesia,optional,true,CPT:00731@2026,"anesthesia for upper GI endoscopy; often billed by a separate anesthesia group",ai_suggested,,
+upper-endoscopy-complete,"Upper endoscopy (EGD), everything included",Procedures,outpatient,2,Biopsy lab review (if a sample is taken),pathology,optional,false,CPT:88305@2026,"pathology of a tissue sample",ai_suggested,,
+colonoscopy-complete,"Colonoscopy, everything included",Procedures,outpatient,0,Colonoscopy (the procedure and facility),procedure,required,true,CPT:45378@2026,"facility and doctor both bill this code",ai_suggested,,
+colonoscopy-complete,"Colonoscopy, everything included",Procedures,outpatient,1,Anesthesia,anesthesia,optional,true,CPT:00811@2026,"anesthesia for lower intestinal endoscopy",ai_suggested,,
+colonoscopy-complete,"Colonoscopy, everything included",Procedures,outpatient,2,Biopsy lab review (if a sample is taken),pathology,optional,false,CPT:88305@2026,"pathology of a tissue sample",ai_suggested,,
+vaginal-birth-complete,"Vaginal birth, everything included",Maternity,inpatient,0,Hospital stay for the birth,facility,required,true,MS-DRG:807@v44,"vaginal delivery without major complications",ai_suggested,,
+vaginal-birth-complete,"Vaginal birth, everything included",Maternity,inpatient,1,"Doctor's care (prenatal visits, delivery and follow-up)",physician,required,true,CPT:59400@2026,"global obstetric care; usually billed by the doctor's practice",ai_suggested,,
+vaginal-birth-complete,"Vaginal birth, everything included",Maternity,inpatient,2,Epidural,anesthesia,optional,false,CPT:01967@2026,"labor epidural",ai_suggested,,
+vaginal-birth-complete,"Vaginal birth, everything included",Maternity,inpatient,3,Newborn hospital care,newborn,optional,true,MS-DRG:795@v44,"normal newborn stay",ai_suggested,,
+vaginal-birth-complete,"Vaginal birth, everything included",Maternity,inpatient,4,Newborn exam by a doctor,newborn,optional,true,CPT:99460@2026,"first newborn exam",ai_suggested,,

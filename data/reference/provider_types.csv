@@ -1,0 +1,12 @@
+code,name,source,reviewed_by,reviewed_at
+hospital,Hospital,human,Cooper,2026-11-07
+surgery_center,Surgery center,human,Cooper,2026-11-07
+dental_office,Dental office,human,Cooper,2026-11-07
+medical_spa,Medical spa,human,Cooper,2026-11-07
+weight_loss_clinic,Weight-loss clinic,human,Cooper,2026-11-07
+imaging_center,Imaging center,ai_suggested,Cooper,2026-11-08
+laboratory,Laboratory,ai_suggested,Cooper,2026-11-08
+urgent_care,Urgent care,ai_suggested,Cooper,2026-11-08
+physician_office,Doctor's office,ai_suggested,Cooper,2026-11-08
+chiropractic_office,Chiropractor,ai_suggested,Cooper,2026-11-08
+physical_therapy,Physical therapy,ai_suggested,Cooper,2026-11-08

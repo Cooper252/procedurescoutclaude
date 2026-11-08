@@ -2,6 +2,41 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-08 — Assistance limits in dollars (D-038), 13 hospital policies proposed, product review
+
+- `assistance.plain_message`, `facility_policy`, `site_message`: "You may qualify for free care at X if your household makes under $31,920 (1 person) or $66,000 (family of 4)…", exact from the reviewed percentage × HHS guideline, shown rounded down. API: `GET /v1/assistance/message?state=`, `GET /v1/facilities/{id}/assistance`, and `message` in the check result.
+- `data/reference/assistance_policies.csv`: 13 proposed policies with evidence from the hospitals' or systems' own pages (UMC, Sunrise/MountainView/Southern Hills via HCA's company page, the 3 St. Rose campuses, Renown ×2, Carson Tahoe, North Vista, Saint Mary's, Banner Churchill); unreviewed. A Virginia "Valley Health System" policy and a California "St. Rose Hospital" policy turned up in searches and were rejected as the wrong organizations.
+- Review page lists proposed assistance policies and bundles.
+- `docs/PRODUCT_REVIEW.md`: what is missing and suggested order (Q21).
+
+`make lint typecheck test`: `265 passed, 1 warning` (Python 3.13); `/tmp/v312/bin/python -m pytest -q`: `265 passed, 1 warning`.
+
+## 2026-11-08 — Auto-publish (D-035), approved catalog, bundles (D-036), financial assistance (D-037), implemented and tested
+
+Cooper: yes to automatic publishing of clean refreshes and to approving all proposed services and provider types; bundles with optional pieces; financial assistance on every page.
+- `publish.auto_check` / `auto_publish_pending`, CLI `auto-publish`.
+- `data/reference/service_catalog.csv` and `provider_types.csv`: all rows reviewed by Cooper (2026-11-08).
+- Migration `0013_bundles_assistance.py`; loaders in `reference/catalog.py` (bundles, poverty guidelines, assistance policies; run by `catalog`).
+- `procedurescout_core/bundles.py` (estimate by cash/list/one published plan; missing pieces never $0; complete flag), `data/reference/bundles.csv` (upper endoscopy, colonoscopy, vaginal birth; proposed, need clinical review).
+- `procedurescout_core/assistance.py` (site message, guideline lookup, may-qualify check), `data/reference/poverty_guidelines.csv` (HHS 2026, checked against the ASPE detailed-guidelines PDF), `data/reference/assistance_policies.csv` (header only, to be collected).
+- API `care_routes.py`: assistance message and check, bundles, facility plans, bundle estimate. `/v1/services` now lists services only (bundles separately).
+- Found and fixed: `choose_per_facility` failed when a facility had no CCN (providers outside CMS lists); the nv-all tests now keep the catalog, alias, website, discovery and probe steps offline instead of writing to the test database.
+- New docs: `BUNDLED_PRICING_SPEC.md`, `FINANCIAL_ASSISTANCE_SPEC.md`.
+- Tests: `tests/test_bundles_assistance.py` (5); catalog tests updated for the approvals.
+
+`make lint typecheck test`: `265 passed, 1 warning` (Python 3.13); `/tmp/v312/bin/python -m pytest -q`: `265 passed, 1 warning`.
+
+## 2026-11-08 — Service catalog, provider types, search API and review page, implemented and tested
+
+Cooper: yes to all three next steps. Recorded as D-034.
+- Migration `0012_service_catalog.py`; `reference/catalog.py` (CLI `catalog`, also in `nv-all`): provider types from `data/reference/provider_types.csv` (5 approved by Cooper's list, 6 proposed), CMS facility types mapped to hospital / surgery center, services from `data/reference/service_catalog.csv` (18 AI-suggested entries, all `proposed`; code numbers only).
+- `procedurescout_core/search.py` + `apps/api/procedurescout_api/search_routes.py`: `GET /v1/services`, `GET /v1/provider-types`, `GET /v1/search` (approved service or known code, near a point, optional provider type; exact amounts as strings; nearby facilities without published prices listed as such). `docs/API_CONTRACTS.md` created.
+- `apps/api/procedurescout_api/admin_routes.py`: `/admin/reviews` page with approve/reject per hospital, interim name + password sign-in, forged-form protection; proposed services and provider types listed. Off unless configured.
+- Tests: `tests/test_search_and_review.py` (12).
+- Not yet: hosting (so nothing is live), multi-factor sign-in, the website itself.
+
+`make lint typecheck test`: `260 passed, 1 warning` (Python 3.13); `/tmp/v312/bin/python -m pytest -q`: `260 passed, 1 warning`.
+
 ## 2026-11-08 — D-033 approved; review step and published Parquet files, implemented and tested
 
 Cooper approved D-033 ("Yes").

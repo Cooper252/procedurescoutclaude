@@ -114,3 +114,31 @@ def find_prices(
         )
         for r in rows
     ]
+
+
+def facility_payer_plans(
+    conn: Connection, store: ObjectStore, facility_id: uuid.UUID | str
+) -> list[tuple[str, str]]:
+    """Payer and plan names exactly as this facility publishes them (for the
+    insurance picker and to validate a choice before pricing)."""
+    import duckdb
+
+    fid = str(uuid.UUID(str(facility_id)))
+    keys = [
+        str(k)
+        for k in conn.execute(
+            text(
+                "SELECT object_key FROM price.published_file WHERE facility_id = CAST(:f AS uuid)"
+            ),
+            {"f": fid},
+        ).scalars()
+    ]
+    if not keys:
+        return []
+    with duckdb.connect() as duck:
+        rows = duck.execute(
+            "SELECT DISTINCT payer_name_raw, plan_name_raw FROM read_parquet(?) "
+            "WHERE payer_name_raw IS NOT NULL AND plan_name_raw IS NOT NULL ORDER BY 1, 2",
+            [[store.local_path(k) for k in keys]],
+        ).fetchall()
+    return [(str(r[0]), str(r[1])) for r in rows]

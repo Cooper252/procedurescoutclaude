@@ -1,0 +1,218 @@
+"""Search published prices by service (or code) near a place (SRCH-06, D-032).
+
+Every filter is checked against lookup tables before any price file is read
+(CLAUDE.md rule 12): the service must be approved and only its approved code
+links are used; a direct code must exist in ref.code; the provider type must
+be approved; the place and radius must be in range. Nothing is substituted:
+each price says which code it was published under, and facilities nearby
+without published prices are listed with that status instead of a guess.
+"""
+
+from __future__ import annotations
+
+import re
+import uuid
+from dataclasses import dataclass, field
+from decimal import Decimal
+
+from sqlalchemy import Connection, text
+
+from .enums import CodeSystem
+from .object_store import ObjectStore
+from .price_store import PublishedPrice, find_prices
+
+MAX_RADIUS_MILES = 100
+MAX_FACILITIES = 50
+METERS_PER_MILE = Decimal("1609.344")
+_SLUG = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
+_CODE = re.compile(r"^[A-Za-z0-9.\-]{1,20}$")
+_PTYPE = re.compile(r"^[a-z][a-z_]*$")
+
+
+class SearchError(ValueError):
+    """A filter failed validation; no price was read."""
+
+
+@dataclass(frozen=True, slots=True)
+class FacilityResult:
+    facility_id: str
+    name: str
+    city: str | None
+    state_code: str
+    distance_miles: Decimal
+    provider_types: tuple[str, ...]
+    status: str  # "prices" or "no_published_prices"
+    published_at: str | None
+    prices: tuple[PublishedPrice, ...] = field(default_factory=tuple)
+
+
+@dataclass(frozen=True, slots=True)
+class SearchResult:
+    service_slug: str | None
+    service_name: str | None
+    unit: str | None
+    codes: tuple[str, ...]
+    facilities: tuple[FacilityResult, ...]
+    note: str | None = None
+
+
+def _codes_for_service(
+    conn: Connection, slug: str
+) -> tuple[str, str | None, list[tuple[str, str]]]:
+    if not _SLUG.match(slug):
+        raise SearchError(f"not a service: {slug!r}")
+    row = conn.execute(
+        text(
+            "SELECT id, consumer_name, unit FROM ref.procedure "
+            "WHERE slug = :s AND review_state = 'approved'"
+        ),
+        {"s": slug},
+    ).first()
+    if row is None:
+        raise SearchError(f"unknown service: {slug!r}")
+    codes = conn.execute(
+        text(
+            "SELECT DISTINCT code_system::text, code FROM ref.procedure_code "
+            "WHERE procedure_id = :p AND review_state = 'approved' ORDER BY 1, 2"
+        ),
+        {"p": row[0]},
+    ).all()
+    return str(row[1]), str(row[2]), [(str(c[0]), str(c[1])) for c in codes]
+
+
+def _check_code(conn: Connection, code_system: str, code: str) -> tuple[str, str]:
+    try:
+        system = CodeSystem(code_system)
+    except ValueError as exc:
+        raise SearchError(f"not a code type: {code_system!r}") from exc
+    if not _CODE.match(code):
+        raise SearchError(f"not a code: {code!r}")
+    known = conn.execute(
+        text("SELECT 1 FROM ref.code WHERE system = CAST(:s AS ref.code_system) AND code = :c"),
+        {"s": system.value, "c": code},
+    ).first()
+    if known is None:
+        raise SearchError(f"unknown {system.value} code: {code!r}")
+    return system.value, code
+
+
+def search(
+    conn: Connection,
+    store: ObjectStore,
+    *,
+    latitude: Decimal,
+    longitude: Decimal,
+    radius_miles: Decimal,
+    service_slug: str | None = None,
+    code_system: str | None = None,
+    code: str | None = None,
+    provider_type: str | None = None,
+    max_facilities: int = MAX_FACILITIES,
+) -> SearchResult:
+    if (service_slug is None) == (code is None):
+        raise SearchError("give either a service or a code, not both")
+    if not (Decimal(-90) <= latitude <= Decimal(90)) or not (
+        Decimal(-180) <= longitude <= Decimal(180)
+    ):
+        raise SearchError("latitude/longitude out of range")
+    if not (Decimal(1) <= radius_miles <= Decimal(MAX_RADIUS_MILES)):
+        raise SearchError(f"radius must be 1 to {MAX_RADIUS_MILES} miles")
+    if not 1 <= max_facilities <= MAX_FACILITIES:
+        raise SearchError(f"max_facilities must be 1 to {MAX_FACILITIES}")
+    if provider_type is not None:
+        ok = (
+            _PTYPE.match(provider_type)
+            and conn.execute(
+                text(
+                    "SELECT 1 FROM ref.provider_type WHERE code = :c AND review_state = 'approved'"
+                ),
+                {"c": provider_type},
+            ).first()
+        )
+        if not ok:
+            raise SearchError(f"unknown provider type: {provider_type!r}")
+
+    name: str | None = None
+    unit: str | None = None
+    if service_slug is not None:
+        name, unit, codes = _codes_for_service(conn, service_slug)
+    else:
+        codes = [_check_code(conn, code_system or "", code or "")]
+
+    facilities = conn.execute(
+        text(
+            """
+            SELECT f.id, f.name, f.city, f.state_code,
+                   round(CAST(ST_Distance(f.geom, p.pt) AS numeric) / :mpm, 1) AS miles,
+                   coalesce(array_agg(fpt.provider_type ORDER BY fpt.provider_type)
+                            FILTER (WHERE fpt.provider_type IS NOT NULL), '{}') AS types
+            FROM ref.facility f
+            CROSS JOIN (
+                SELECT CAST(ST_SetSRID(ST_MakePoint(:lng, :lat), 4326) AS geography) AS pt
+            ) p
+            LEFT JOIN ref.facility_provider_type fpt ON fpt.facility_id = f.id
+            WHERE f.geom IS NOT NULL AND f.status = 'active'
+              AND ST_DWithin(f.geom, p.pt, :meters)
+              AND (CAST(:ptype AS text) IS NULL OR EXISTS (
+                    SELECT 1 FROM ref.facility_provider_type x
+                    WHERE x.facility_id = f.id AND x.provider_type = :ptype))
+            GROUP BY f.id, f.name, f.city, f.state_code, p.pt, f.geom
+            ORDER BY miles, f.name
+            LIMIT :n
+            """
+        ),
+        {
+            "lat": latitude,
+            "lng": longitude,
+            "meters": radius_miles * METERS_PER_MILE,
+            "mpm": METERS_PER_MILE,
+            "ptype": provider_type,
+            "n": max_facilities,
+        },
+    ).all()
+    ids = [str(f[0]) for f in facilities]
+    published = (
+        {
+            str(r[0]): r[1].isoformat()
+            for r in conn.execute(
+                text(
+                    "SELECT facility_id, published_at FROM price.published_file "
+                    "WHERE facility_id = ANY(CAST(:ids AS uuid[]))"
+                ),
+                {"ids": ids},
+            ).all()
+        }
+        if ids
+        else {}
+    )
+    by_facility: dict[str, list[PublishedPrice]] = {}
+    with_files = [i for i in ids if i in published]
+    if with_files:
+        for system, value in codes:
+            for p in find_prices(conn, store, [uuid.UUID(i) for i in with_files], system, value):
+                by_facility.setdefault(p.facility_id, []).append(p)
+    results = tuple(
+        FacilityResult(
+            facility_id=str(f[0]),
+            name=str(f[1]),
+            city=f[2],
+            state_code=str(f[3]),
+            distance_miles=Decimal(f[4]),
+            provider_types=tuple(f[5]),
+            status="prices" if by_facility.get(str(f[0])) else "no_published_prices",
+            published_at=published.get(str(f[0])),
+            prices=tuple(by_facility.get(str(f[0]), ())),
+        )
+        for f in facilities
+    )
+    note = None
+    if not codes:
+        note = "This service has no billing code; only provider-entered prices can match it."
+    return SearchResult(
+        service_slug=service_slug,
+        service_name=name,
+        unit=unit,
+        codes=tuple(f"{s} {c}" for s, c in codes),
+        facilities=results,
+        note=note,
+    )

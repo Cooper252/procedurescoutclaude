@@ -1,4 +1,5 @@
-"""FastAPI application. Phase 0 exposes only health and version endpoints."""
+"""FastAPI application: health/version, public search (search_routes) and the
+review page (admin_routes, off unless configured)."""
 
 from __future__ import annotations
 
@@ -6,6 +7,10 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 
 from procedurescout_core import __version__ as core_version
+
+from .admin_routes import router as admin_router
+from .care_routes import router as care_router
+from .search_routes import router as search_router
 
 API_VERSION = "v1"
 
@@ -15,6 +20,10 @@ app = FastAPI(
     docs_url="/docs",
     openapi_url="/openapi.json",
 )
+
+app.include_router(search_router)
+app.include_router(care_router)
+app.include_router(admin_router)
 
 
 class Health(BaseModel):

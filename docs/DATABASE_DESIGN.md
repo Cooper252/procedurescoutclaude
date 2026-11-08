@@ -94,6 +94,17 @@ Partitioning: LIST (`state_code`) with `price_nv` and a DEFAULT partition. Index
 - `src.published_file`: one row per published Parquet file — dataset version (unique), facility, state, `price_source` (`hospital_file` | `provider_submitted` | `provider_correction`), object key (unique), bytes, SHA-256, rows, exact amount and percentage sums, published/retired times. At most one current file per facility and source.
 - `price.published_file` view: current files only; the API role can read it (not the table).
 
+## Migration 0012
+
+- `ref.procedure` (the service catalog): `slug`, `unit`, `source`, `review_state`, `reviewed_by`, `reviewed_at`; approved services need a slug and a reviewer.
+- `ref.provider_type` (reviewed list) and `ref.facility_provider_type` (facility, type, source: `cms_facility_type` | `provider` | `reviewer`). API role can read both. Dataset `service_catalog`.
+
+## Migration 0013
+
+- `ref.procedure.kind` (`service` | `bundle`); `ref.bundle_component` (bundle, position, label, role, required/optional, default, billing code, review state).
+- `ref.poverty_guideline` (year, region, household size, amount, per additional person, source URL).
+- `ref.assistance_policy` (facility, policy/application/summary URLs, phone, guideline year, dates, evidence, review state; one approved per facility) and `ref.assistance_tier` (max percent of guideline, free/discount, discount percent or description). API role can read all four.
+
 ## Deletion behaviour
 
 Lineage references use `ON DELETE RESTRICT` (files, runs, dataset versions, facilities cannot be deleted while prices point at them). Child detail rows (aliases, events, validation results) cascade with their parent.

@@ -10,6 +10,11 @@ class Settings(BaseSettings):
 
     api_database_url: str = "postgresql+psycopg://ps_api:ps_api_dev@localhost:5432/procedurescout"
     environment: str = "development"
+    # Folder holding published Parquet files (D-033); an S3-compatible store later.
+    price_store_dir: str = "price-store"
+    # Review page (ADM-01): off unless both are set. Interim sign-in, MFA later (ADM-02).
+    admin_token: str = ""
+    admin_database_url: str = ""
 
 
 @lru_cache

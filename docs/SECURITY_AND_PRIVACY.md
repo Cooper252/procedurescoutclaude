@@ -19,6 +19,10 @@ Protecting users and the platform.
 
 - Threat model; retention schedule; privacy notice.
 
+## Review page (interim sign-in)
+
+`/admin/reviews` is disabled unless `ADMIN_TOKEN` and `ADMIN_DATABASE_URL` are set. Sign-in is a name plus the admin password over HTTP Basic (HTTPS required when hosted); the name is recorded as the reviewer. Each form carries an HMAC token tied to the dataset so another site cannot submit decisions. Multi-factor sign-in and per-person accounts replace this before launch (ADM-02).
+
 ## Published price files (D-033)
 
 The API may read only published Parquet files listed in `price.published_file`. When an S3-compatible store is set up, the API's credentials will be read-only and limited to the `published/` prefix; ingestion credentials are separate. Keys are validated (`object_store.published_key`) and the local store refuses paths outside its folder and refuses to overwrite a published file.

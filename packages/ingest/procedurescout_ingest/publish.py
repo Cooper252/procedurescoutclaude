@@ -9,6 +9,10 @@
   database transaction.
 - `reject` needs a reviewer and a reason; the dataset is retired unpublished.
 
+- `auto_publish_pending` publishes a refresh of an already-approved facility
+  without a person only when every automatic check passes (Cooper, Q19,
+  D-035); everything else waits for a person.
+
 Nothing is published any other way.
 """
 
@@ -19,6 +23,7 @@ import json
 import tempfile
 import uuid
 from dataclasses import dataclass
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
@@ -227,3 +232,78 @@ def reject(conn: Connection, dataset_version_id: uuid.UUID, reviewer: str, reaso
     )
     _move(conn, run_id, ImportState.FAILED)
     _audit(conn, who, "reject", str(dv), {"reason": reason.strip()})
+
+
+# ------------------------------------------------------------------ automatic refreshes
+AUTO_REVIEWER = "automatic checks (D-035)"
+MAX_COUNT_CHANGE = Decimal("0.30")
+
+
+@dataclass(frozen=True, slots=True)
+class AutoDecision:
+    dataset_version_id: str
+    facility_name: str
+    published: bool
+    reasons: tuple[str, ...]
+
+
+def auto_check(conn: Connection, dataset_version_id: uuid.UUID) -> tuple[bool, list[str]]:
+    """A staged refresh may publish without a person only when the facility
+    already has an approved dataset and nothing got worse (Cooper, Q19):
+    refused rows not more than last time, price count within 30%, no new
+    file problems, and the file's own date not older."""
+    row = conn.execute(
+        text(
+            """
+            SELECT dv.facility_id, r.rows_out, r.rows_rejected, t.read_error,
+                   t.reported_last_updated
+            FROM src.dataset_version dv
+            JOIN src.import_run r ON r.id = dv.import_run_id
+            JOIN src.transparency_file t ON t.id = r.file_id
+            WHERE dv.id = :d AND dv.status = 'staged' AND r.state = 'quality_review'
+            """
+        ),
+        {"d": dataset_version_id},
+    ).first()
+    if row is None:
+        return False, ["not waiting for review"]
+    prev = conn.execute(
+        text(
+            """
+            SELECT r.rows_out, r.rows_rejected, t.read_error, t.reported_last_updated
+            FROM src.dataset_version dv
+            JOIN src.import_run r ON r.id = dv.import_run_id
+            JOIN src.transparency_file t ON t.id = r.file_id
+            WHERE dv.facility_id = :f AND dv.status = 'published'
+            """
+        ),
+        {"f": row[0]},
+    ).first()
+    if prev is None:
+        return False, ["first file for this facility: a person reviews it"]
+    reasons = []
+    new_rows, new_rej = int(row[1] or 0), int(row[2] or 0)
+    old_rows, old_rej = int(prev[0] or 0), int(prev[1] or 0)
+    if new_rej > old_rej:
+        reasons.append(f"refused rows rose from {old_rej} to {new_rej}")
+    if old_rows == 0 or abs(Decimal(new_rows - old_rows)) > MAX_COUNT_CHANGE * old_rows:
+        reasons.append(f"price count changed from {old_rows} to {new_rows} (more than 30%)")
+    new_problems = {p for p in (row[3] or "").split("; ") if p}
+    old_problems = {p for p in (prev[2] or "").split("; ") if p}
+    if new_problems - old_problems:
+        reasons.append("new file problems: " + "; ".join(sorted(new_problems - old_problems)))
+    new_date, old_date = row[4], prev[3]
+    if old_date is not None and (new_date is None or new_date < old_date):
+        reasons.append(f"file date {new_date} is older than the approved file's {old_date}")
+    return not reasons, reasons
+
+
+def auto_publish_pending(conn: Connection, store: ObjectStore) -> list[AutoDecision]:
+    decisions = []
+    for p in pending_reviews(conn):
+        dv = uuid.UUID(p.dataset_version_id)
+        ok, reasons = auto_check(conn, dv)
+        if ok:
+            approve(conn, dv, AUTO_REVIEWER, store, note="all automatic checks passed")
+        decisions.append(AutoDecision(p.dataset_version_id, p.facility_name, ok, tuple(reasons)))
+    return decisions
