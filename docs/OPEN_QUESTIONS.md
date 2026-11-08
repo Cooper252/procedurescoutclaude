@@ -17,10 +17,12 @@
 | Q16 | CDT (dental) descriptor licence from the ADA, or code numbers with our own names only? | Cooper (counsel) | Before dental launch |
 | Q17 | Paid listings (D-031, rules confirmed 2026-11-07): length of the free period and the prices; counsel review of the advertising terms. | Cooper (counsel) | Before Phase 9 |
 | Q20 | Review the 13 proposed hospital financial assistance policies on the review page (UMC, 3 HCA, 3 St. Rose, 2 Renown, Carson Tahoe, North Vista, Saint Mary's, Banner Churchill); still to find: the Valley Health System (UHS) Las Vegas hospitals, Northern Nevada Medical Center, rural hospitals. | Cooper | Before launch |
-| Q21 | Pick from `PRODUCT_REVIEW.md`: which before-launch items to keep or reorder; list community health centers and free clinics at launch; show Medicare reference prices; how strict provider verification is per provider type. | Cooper | Next |
+| Q22 | Confirm NRS 439B.260 (30% off billed charges for uninsured patients at certain Nevada hospitals) applies as North Vista's policy says, before it is shown (SITE_DESIGN §4.9). | Engineering + counsel | Before launch |
 | Q10 | NUBC revenue code descriptions: licence or code-only display? | Cooper (counsel) | Phase 3 |
 
 ## Resolved
+
+- Q21: everything in `PRODUCT_REVIEW.md` approved (D-039, 2026-11-08); verification strictness per provider type to be set when the portal is built.
 
 - Q18: Cooper approved all proposed services and provider types (2026-11-08).
 - Q19: clean refreshes publish automatically (D-035, 2026-11-08).

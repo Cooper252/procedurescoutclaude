@@ -39,4 +39,7 @@ Status levels are separate on purpose. A cell is filled only with evidence. Depl
 | PRV-07 / SRCH-06 | All provider types; search by service or provider type | 3/9 | Partly (provider types, search library and `GET /v1/search`, `/v1/services`, `/v1/provider-types`; no website yet) | Yes (synthetic) | — | — | `procedurescout_core/search.py`, `apps/api/procedurescout_api/search_routes.py`, `data/reference/provider_types.csv`; `test_search_by_service_near_a_place`, `test_search_refuses_unknown_or_unapproved_filters`, `test_api_search_returns_amounts_as_strings` |
 | PRV-06 | Paid provider listings | 9 | — | — | — | — | Approved; rules confirmed (D-031, D-032) |
 | PRV-01..05 | Provider accounts, self-entered prices, hospital corrections, audit, review | 9 | — | — | — | — | Requirements and design rules recorded (D-030) |
+| UX-01..02 | Site layout and ease of use | 3 | — | — | — | — | Designed: `docs/SITE_DESIGN.md` (D-039) |
+| PRC-01..02 | Better pricing (your price, typical range, confidence, outliers, history, Medicare reference) | 3 | — | — | — | — | Designed: `docs/SITE_DESIGN.md` §4 |
+| HELP-01 | Help paying beyond hospitals; bill tools | 3–4 | — | — | — | — | Designed: `docs/PRODUCT_REVIEW.md` §2, `SITE_DESIGN.md` §2 |
 | EXP-01 | Exports | 8 | — | — | — | — | |

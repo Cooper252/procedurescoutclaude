@@ -2,6 +2,9 @@
 
 Newest first. Each entry: decision, reason, consequences.
 
+## 2026-11-08 — D-039: Everything in the product review is in scope; site design written
+Cooper (2026-11-08): "I like all of that so let's do all of it", and asked for a look at every aspect (ease of use, layout, better pricing). All of `PRODUCT_REVIEW.md` is approved, including community health centers and free clinics at launch, Medicare reference prices (labeled), and the full provider verification. `SITE_DESIGN.md` adds the site map, page layouts, ease-of-use rules, pricing features (headline "your price", typical local range, confidence, outlier holds, price history, Nevada uninsured discount if verified) and the build order. Paid hosting and billing still need Cooper's approval before they are set up.
+
 ## 2026-11-08 — D-038: Assistance limits shown in dollars; first policies proposed
 Cooper (2026-11-08): say "You may qualify for this procedure for free if you make under $X single or $Y household", not poverty-level percentages, which people don't know. Messages now state dollar limits for 1 person and a family of 4, computed exactly from each hospital's reviewed percentage and the HHS guideline, shown rounded down to whole dollars (`assistance.plain_message`, `site_message`). Policies for 13 Nevada hospitals were found on the hospitals' and systems' own pages and recorded as proposals (`data/reference/assistance_policies.csv`, unreviewed) with evidence and notes on what is uncertain; they appear on the review page. The Valley Health System (UHS) Las Vegas hospitals' policy was not found yet (a same-named Virginia system's policy was rejected as the wrong organization).
 

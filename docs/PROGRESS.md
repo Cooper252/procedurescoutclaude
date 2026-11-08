@@ -2,6 +2,10 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-08 — Product review approved (D-039); site design written
+
+Cooper approved everything in `PRODUCT_REVIEW.md` and asked for a look at every aspect. Wrote `docs/SITE_DESIGN.md` (site map, page-by-page layouts, ease of use, better pricing, trust, providers, growth, operations, measurement, build order). New requirements UX-01/02, PRC-01/02, HELP-01; Q21 resolved; Q22 added (Nevada uninsured-discount law to confirm). No code changed.
+
 ## 2026-11-08 — Assistance limits in dollars (D-038), 13 hospital policies proposed, product review
 
 - `assistance.plain_message`, `facility_policy`, `site_message`: "You may qualify for free care at X if your household makes under $31,920 (1 person) or $66,000 (family of 4)…", exact from the reviewed percentage × HHS guideline, shown rounded down. API: `GET /v1/assistance/message?state=`, `GET /v1/facilities/{id}/assistance`, and `message` in the check result.
