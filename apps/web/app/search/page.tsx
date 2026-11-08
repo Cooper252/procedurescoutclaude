@@ -27,6 +27,8 @@ function Results() {
   const router = useRouter();
   const sp = useSearchParams();
   const service = sp.get("service") ?? "";
+  const codeSystem = sp.get("code_system");
+  const code = sp.get("code");
   const zip = sp.get("zip");
   const latParam = sp.get("lat");
   const lngParam = sp.get("lng");
@@ -78,7 +80,7 @@ function Results() {
   }, [zip, latParam, lngParam]);
 
   useEffect(() => {
-    if (!coords || !service) return;
+    if (!coords || (!service && !code)) return;
     if (mode === "plan" && !planId) {
       setResult(null);
       return;
@@ -87,17 +89,21 @@ function Results() {
     setLoading(true);
     setError(null);
     api
-      .search({ lat: coords.lat, lng: coords.lng, service, mode, planId, providerType: ptype, radius })
+      .search({ lat: coords.lat, lng: coords.lng, service, codeSystem, code, mode, planId, providerType: ptype, radius })
       .then((r) => live && setResult(r))
       .catch((e: Error) => live && setError(e.message))
       .finally(() => live && setLoading(false));
     return () => {
       live = false;
     };
-  }, [coords, service, mode, planId, ptype, radius, attempt]);
+  }, [coords, service, codeSystem, code, mode, planId, ptype, radius, attempt]);
 
   const svc = services.find((s) => s.slug === service) ?? null;
-  const name = svc ? (lang === "es" ? SERVICE_ES[svc.slug] ?? svc.name : svc.name) : result?.service_name ?? "";
+  const name = code
+    ? `${codeSystem ?? ""} ${code}`
+    : svc
+      ? (lang === "es" ? SERVICE_ES[svc.slug] ?? svc.name : svc.name)
+      : result?.service_name ?? "";
   const unit = result?.unit ?? svc?.unit ?? null;
 
   function setParam(changes: Record<string, string | null>) {
@@ -119,7 +125,7 @@ function Results() {
   const unpriced = useMemo(() => result?.facilities.filter((f) => f.status !== "prices") ?? [], [result]);
   const where = zip ?? (coords ? t.useLocation.toLowerCase() : "");
 
-  if (!coords || editing || !service) {
+  if (!coords || editing || (!service && !code)) {
     return (
       <div className="wrap page narrow">
         <h1 className="page-title">{name || t.navSearch}</h1>
@@ -153,6 +159,11 @@ function Results() {
               {t.change}
             </button>
           </div>
+          {code && result?.code_description && (
+            <p className="code-wording">
+              {t.codeWording}: “{result.code_description}”
+            </p>
+          )}
           <p className="results-where">
             {t.near} <strong>{where}</strong> · {radius} mi
           </p>

@@ -2117,3 +2117,9 @@ td.code {
     min-width: 360px;
   }
 }
+
+.code-wording {
+  color: var(--ink-2);
+  font-size: 15px;
+  margin-top: 4px;
+}

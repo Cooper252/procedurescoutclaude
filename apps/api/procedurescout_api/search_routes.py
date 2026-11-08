@@ -114,6 +114,7 @@ class SearchOut(BaseModel):
     codes: list[str]
     note: str | None
     mode: str
+    code_description: str | None = None
     typical: TypicalOut | None
     facilities: list[FacilityOut]
 
@@ -123,6 +124,9 @@ class SuggestionOut(BaseModel):
     name: str
     unit: str
     matched: str
+    kind: str = "service"
+    code_system: str | None = None
+    code: str | None = None
 
 
 @router.get("/services/suggest", response_model=list[SuggestionOut])
@@ -131,7 +135,15 @@ def services_suggest(
 ) -> list[SuggestionOut]:
     """Search-box suggestions from service names and approved everyday words."""
     return [
-        SuggestionOut(slug=s.slug, name=s.name, unit=s.unit, matched=s.matched)
+        SuggestionOut(
+            slug=s.slug,
+            name=s.name,
+            unit=s.unit,
+            matched=s.matched,
+            kind=s.kind,
+            code_system=s.code_system,
+            code=s.code,
+        )
         for s in suggest(conn, q)
     ]
 
@@ -345,6 +357,7 @@ def search_endpoint(
         codes=list(result.codes),
         note=result.note,
         mode=result.mode,
+        code_description=result.code_description,
         typical=None
         if result.typical is None
         else TypicalOut(

@@ -2,6 +2,12 @@
 
 Newest first. Each entry: decision, reason, consequences.
 
+## 2026-11-08 — D-045: Three layers so the list never has to hold every procedure
+Cooper pointed out that 202 services cannot cover millions of published prices without endless approvals.
+1. **Every billing code is searchable automatically.** After each publish, `ref.code_index` lists every code in published prices with how many places publish it and the description hospitals most often use, shown labeled "As hospitals describe it" (D-002). People can type a code number or words from that wording; codes join `ref.code` by number only, so searches stay validated (rule 12) and no CPT descriptor is stored (rule 11). No approval is needed: the codes and wording are the hospitals' own published data.
+2. **The standard service list is the friendly layer** for what people commonly shop for and for services with no billing code (massage, med spa). It grows over time; additions are approved in batches.
+3. **Providers build on official pieces without new approvals:** they can price any approved standard service or any official billing code in `ref.code` (dentists by CDT number, doctors by CPT number), sell several sessions for one price (`quantity`), and create their own packages from those pieces (`prov.package`, `prov.package_item`). Package names are theirs; the pieces are standard, so packages stay searchable and comparable piece by piece. The usual listing review still applies.
+
 ## 2026-11-08 — D-044: The full (chargemaster) price is not a search choice
 Almost nobody pays a hospital's full price, so showing it as a third way of paying confused people (Cooper). Searches offer only "Paying cash" and "My insurance"; the bundle builder shows cash prices. The full price stays in each place's Details table and on the "Already got a bill?" page, where it helps people check a bill. A place with no published cash price says so instead of showing the full price as a headline. The API keeps `mode=list` for tools that need it.
 

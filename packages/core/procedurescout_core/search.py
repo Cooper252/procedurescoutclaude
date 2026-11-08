@@ -72,6 +72,7 @@ class SearchResult:
     mode: str = "cash"
     typical: Typical | None = None
     all_plans_spellings: frozenset[tuple[str, str]] = frozenset()
+    code_description: str | None = None  # hospitals' own wording for a searched code
 
 
 def _codes_for_service(
@@ -170,6 +171,15 @@ def search(
         name, unit, codes = _codes_for_service(conn, service_slug)
     else:
         codes = [_check_code(conn, code_system or "", code or "")]
+    code_description = None
+    if service_slug is None:
+        code_description = conn.execute(
+            text(
+                "SELECT hospital_description FROM ref.code_index "
+                "WHERE system = CAST(:s AS ref.code_system) AND code = :c"
+            ),
+            {"s": codes[0][0], "c": codes[0][1]},
+        ).scalar()
 
     facilities = conn.execute(
         text(
@@ -295,6 +305,7 @@ def search(
         mode=mode,
         typical=typ,
         all_plans_spellings=frozenset(fallback),
+        code_description=code_description,
     )
 
 
@@ -373,6 +384,9 @@ class Suggestion:
     name: str
     unit: str
     matched: str  # the word that matched (the service name or an approved synonym)
+    kind: str = "service"  # or "code": a billing code from published prices (D-045)
+    code_system: str | None = None
+    code: str | None = None
 
 
 def suggest(conn: Connection, query: str, limit: int = 8) -> list[Suggestion]:
@@ -415,4 +429,49 @@ def suggest(conn: Connection, query: str, limit: int = 8) -> list[Suggestion]:
             continue
         seen.add(str(r[0]))
         out.append(Suggestion(str(r[0]), str(r[1]), str(r[2]), str(r[3])))
+    room = max(0, max(1, min(limit, 20)) - len(out))
+    if room:
+        out.extend(_code_suggestions(conn, query.strip(), q, room))
     return out
+
+
+_CODE_QUERY = re.compile(r"^[A-Za-z]?\d[A-Za-z0-9.]{2,7}$")
+
+
+def _code_suggestions(conn: Connection, raw: str, normalized: str, n: int) -> list[Suggestion]:
+    """Billing codes from published prices: by number ("70551", "J3420") or by
+    the hospitals' own wording, most widely published first."""
+    if _CODE_QUERY.match(raw):
+        rows = conn.execute(
+            text(
+                "SELECT system::text, code, hospital_description FROM ref.code_index "
+                "WHERE upper(code) LIKE :p ORDER BY facilities DESC, code LIMIT :n"
+            ),
+            {"p": raw.upper().replace("%", "").replace("_", "") + "%", "n": n},
+        ).all()
+    elif len(normalized) >= 3:
+        rows = conn.execute(
+            text(
+                """
+                SELECT system::text, code, hospital_description FROM ref.code_index
+                WHERE to_tsvector('english', coalesce(hospital_description, ''))
+                      @@ plainto_tsquery('english', :q)
+                ORDER BY facilities DESC, prices DESC, code LIMIT :n
+                """
+            ),
+            {"q": normalized, "n": n},
+        ).all()
+    else:
+        return []
+    return [
+        Suggestion(
+            slug=f"code:{r[0]}:{r[1]}",
+            name=str(r[2] or f"{r[0]} {r[1]}"),
+            unit="per_service",
+            matched=f"{r[0]} {r[1]}",
+            kind="code",
+            code_system=str(r[0]),
+            code=str(r[1]),
+        )
+        for r in rows
+    ]

@@ -2,7 +2,16 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
-## 2026-11-08 — Approvals and full price removed from search (D-044)
+## 2026-11-08 — Every published code searchable; providers price by code, sessions and own packages (D-045)
+
+- Migration `0017_code_index_provider_packages.py`: `ref.code_index` (API read), provider prices by approved service or official code with `quantity`, `prov.package` and `prov.package_item` (trigger: pieces must be approved services or official codes).
+- `procedurescout_ingest/code_index.py` + CLI `code-index` (also run after `approve` and `auto-publish`).
+- `search.suggest` adds billing codes (by number or by hospital wording); `search()` returns `code_description` for code searches. API: suggestion `kind`, `code_system`, `code`; search `code_description`.
+- Website: code suggestions ("CPT 70551 · …", tagged "billing code"); results by code show "As hospitals describe it".
+- Tests: `tests/test_code_index.py` (2).
+
+`make lint typecheck test`: `292 passed, 1 warning` (3.13); `/tmp/v312/bin/python -m pytest -q`: `292 passed, 1 warning in 8.67s`. Website `tsc` clean, build succeeded; typing "7055" suggested CPT 70551 and the code search showed results with the hospital wording (preview data).
+
 
 Cooper approved: the standard service list (184 new services, 131 synonyms, 5 provider types; all now reviewed_by Cooper), the two dental packages (the 3 medical bundles still wait for a clinician), and the 4 Nevada coverage limits. Website: the "Full price" choice is gone from search and the bundle builder; it stays in Details and the bill steps; "No cash price published" is shown where there is none. Tests updated to the approved files.
 

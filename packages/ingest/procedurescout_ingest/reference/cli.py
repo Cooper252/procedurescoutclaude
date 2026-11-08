@@ -407,6 +407,7 @@ def cmd_auto_publish(args: argparse.Namespace, engine: Engine) -> None:
         for d in publish.auto_publish_pending(conn, _store()):
             verdict = "published" if d.published else "waits for a person: " + "; ".join(d.reasons)
             print(f"{d.facility_name}: {verdict}")
+    cmd_code_index(args, engine)  # newly published codes become searchable
 
 
 def cmd_review_list(args: argparse.Namespace, engine: Engine) -> None:
@@ -431,6 +432,7 @@ def cmd_approve(args: argparse.Namespace, engine: Engine) -> None:
             conn, uuid.UUID(args.dataset), args.reviewer, _store(), note=args.note
         )
     print(f"published {args.dataset} as {key}")
+    cmd_code_index(args, engine)
 
 
 def cmd_reject(args: argparse.Namespace, engine: Engine) -> None:
@@ -488,6 +490,15 @@ def cmd_health_centers(args: argparse.Namespace, engine: Engine) -> None:
         blob=blob,
         parameters={"state": args.state},
     )
+
+
+def cmd_code_index(args: argparse.Namespace, engine: Engine) -> None:
+    """Rebuild the index of billing codes in published prices (D-045)."""
+    from procedurescout_ingest.code_index import rebuild_code_index
+
+    with engine.begin() as conn:
+        stats = rebuild_code_index(conn)
+    print(json.dumps({"dataset": "code_index", "codes": stats.rows_loaded, **stats.summary}))
 
 
 def cmd_hcpcs(args: argparse.Namespace, engine: Engine) -> None:
@@ -734,6 +745,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     state(sp)
 
+    sub.add_parser("code-index", help="rebuild the index of codes in published prices")
     sp = sub.add_parser("health-centers", help="HRSA health center sites for a state")
     state(sp)
     sp.add_argument("--file", default=None, help="CSV path or URL (default: HRSA download)")
@@ -781,6 +793,7 @@ def main(argv: list[str] | None = None) -> None:
             "review-list": lambda: cmd_review_list(args, engine),
             "catalog": lambda: cmd_catalog(args, engine),
             "health-centers": lambda: cmd_health_centers(args, engine),
+            "code-index": lambda: cmd_code_index(args, engine),
             "auto-publish": lambda: cmd_auto_publish(args, engine),
             "approve": lambda: cmd_approve(args, engine),
             "reject": lambda: cmd_reject(args, engine),

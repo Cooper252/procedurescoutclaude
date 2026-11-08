@@ -15,6 +15,9 @@ export interface Suggestion {
   name: string;
   unit: string;
   matched: string;
+  kind?: "service" | "code";
+  code_system?: string | null;
+  code?: string | null;
 }
 
 export interface ProviderType {
@@ -82,6 +85,7 @@ export interface SearchResult {
   codes: string[];
   note: string | null;
   mode: Mode;
+  code_description?: string | null;
   typical: { low: string; middle: string; high: string; count: number } | null;
   facilities: Facility[];
 }

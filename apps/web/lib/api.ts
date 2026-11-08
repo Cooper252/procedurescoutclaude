@@ -79,17 +79,21 @@ export const api = {
     lat: string;
     lng: string;
     service: string;
+    codeSystem?: string | null;
+    code?: string | null;
     mode: Mode;
     planId?: string | null;
     providerType?: string | null;
     radius?: string;
   }): Promise<SearchResult> =>
     DEMO
-      ? later(demo.demoSearch(p.service, p.mode, p.planId ?? null, p.providerType ?? null, p.radius ?? "25"))
+      ? later({ ...demo.demoSearch(p.code ? demo.demoServiceForCode(p.code) : p.service, p.mode, p.planId ?? null, p.providerType ?? null, p.radius ?? "25"), code_description: p.code ? "Sample hospital wording for this code" : null })
       : get("/v1/search", {
           lat: p.lat,
           lng: p.lng,
-          service: p.service,
+          service: p.code ? null : p.service,
+          code_system: p.code ? p.codeSystem : null,
+          code: p.code,
           mode: p.mode,
           plan_id: p.mode === "plan" ? p.planId : null,
           provider_type: p.providerType,

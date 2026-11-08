@@ -6,7 +6,7 @@ Public endpoints are read-only, need no account, and validate every filter befor
 Approved services for the home search box: `[{slug, name, category, unit}]`. `unit` is one of `per_service`, `per_unit`, `per_area`, `per_syringe`, `per_session`, `per_visit`, `per_day`, `per_month`; prices with different units are never compared as equal.
 
 ## GET /v1/services/suggest?q=
-Search-box suggestions: approved services whose name, or an approved everyday word for them, contains the text (`[{slug, name, unit, matched}]`).
+Search-box suggestions: approved services whose name, or an approved everyday word for them, contains the text, then billing codes from published prices by number or by the hospitals' wording (`[{slug, name, unit, matched, kind, code_system, code}]`; `kind` is `service` or `code`, D-045). A code suggestion is searched with `code_system` + `code`, and the search response then carries `code_description` (the hospitals' wording, to be labeled as theirs).
 
 ## GET /v1/plans
 Plans by the names on people's cards that have at least one approved hospital spelling: `[{plan_id, payer, plan, product_type, segment}]`.

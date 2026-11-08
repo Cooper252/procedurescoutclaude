@@ -154,6 +154,13 @@ export function demoSuggest(q: string): Suggestion[] {
   const n = q.trim().toLowerCase();
   if (n.length < 2) return [];
   const out: Suggestion[] = [];
+  for (const [slug, [, code]] of Object.entries(BASE)) {
+    const [system, num] = code.split(" ");
+    if (num && /\d/.test(n) && num.toLowerCase().startsWith(n)) {
+      const svc = DEMO_SERVICES.find((s) => s.slug === slug)!;
+      out.push({ slug: `code:${system}:${num}`, name: `${svc.name} (sample hospital wording)`, unit: "per_service", matched: code, kind: "code", code_system: system!, code: num });
+    }
+  }
   for (const svc of DEMO_SERVICES) {
     const syn = SYNONYMS.find(([slug, term]) => slug === svc.slug && term.includes(n));
     if (svc.name.toLowerCase().includes(n)) out.push({ ...svc, matched: svc.name });
@@ -450,4 +457,10 @@ export function demoHealthCenters() {
     { name: "Sample Community Health Center", organization: "Sample Health Org", address: "200 Sample Ave", city: "Las Vegas", state: "NV", zip: "89101", phone: "(000) 555-0123", website: null, distance_miles: "1.8" },
     { name: "Sample Family Health Clinic", organization: "Sample Health Org", address: "45 Example Blvd", city: "North Las Vegas", state: "NV", zip: "89030", phone: "(000) 555-0124", website: null, distance_miles: "5.2" },
   ];
+}
+
+// Preview only: a code search maps back to the sample service with that code.
+export function demoServiceForCode(code: string): string {
+  const hit = Object.entries(BASE).find(([, [, c]]) => c.endsWith(" " + code));
+  return hit ? hit[0] : DEMO_SERVICES[0]!.slug;
 }

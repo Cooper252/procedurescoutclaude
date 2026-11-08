@@ -20,7 +20,7 @@ export function SearchForm({ initialService = null, initialZip = "", initialType
   const router = useRouter();
   const listId = useId();
   const [text, setText] = useState(initialService?.name ?? "");
-  const [picked, setPicked] = useState<{ slug: string; name: string } | null>(initialService);
+  const [picked, setPicked] = useState<{ slug: string; name: string; code_system?: string | null; code?: string | null } | null>(initialService);
   const [options, setOptions] = useState<Suggestion[]>([]);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
@@ -58,7 +58,7 @@ export function SearchForm({ initialService = null, initialZip = "", initialType
   const label = (s: { slug: string; name: string }) => (lang === "es" ? SERVICE_ES[s.slug] ?? s.name : s.name);
 
   function choose(s: Suggestion) {
-    setPicked({ slug: s.slug, name: s.name });
+    setPicked({ slug: s.slug, name: s.name, code_system: s.code_system, code: s.code });
     setText(s.name);
     setOpen(false);
     setError(null);
@@ -105,12 +105,14 @@ export function SearchForm({ initialService = null, initialZip = "", initialType
   async function submit(e: FormEvent) {
     e.preventDefault();
     let service = picked && text === picked.name ? picked : null;
-    if (!service && options.length === 1) service = { slug: options[0]!.slug, name: options[0]!.name };
+    if (!service && options.length === 1) service = { ...options[0]! };
     if (!service) {
       setError(t.pickService);
       return;
     }
-    const params = new URLSearchParams({ service: service.slug });
+    const params = new URLSearchParams(
+      service.code && service.code_system ? { code_system: service.code_system, code: service.code } : { service: service.slug },
+    );
     if (ptype) params.set("type", ptype);
     if (coords.current && !zip) {
       params.set("lat", coords.current.lat);
@@ -174,8 +176,12 @@ export function SearchForm({ initialService = null, initialZip = "", initialType
                   choose(o);
                 }}
               >
-                <span>{label(o)}</span>
-                {o.matched !== o.name && <span className="suggest-why">“{o.matched}”</span>}
+                <span>{o.kind === "code" ? `${o.matched} · ${o.name}` : label(o)}</span>
+                {o.kind === "code" ? (
+                  <span className="suggest-why">{t.codeTag}</span>
+                ) : (
+                  o.matched !== o.name && <span className="suggest-why">“{o.matched}”</span>
+                )}
               </li>
             ))}
           </ul>
