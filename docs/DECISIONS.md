@@ -2,6 +2,16 @@
 
 Newest first. Each entry: decision, reason, consequences.
 
+## 2026-11-08 — D-040: How headline prices, typical ranges, badges and history are computed
+Build step 1 of `SITE_DESIGN.md` (`procedurescout_core/pricing.py`, `plans.py`):
+- **Headline:** per facility, the lowest published dollar amount of one price type only (cash, list, or the chosen plan's negotiated rate); several amounts are shown as a range.
+- **Typical range:** one headline per facility, then the 25th/50th/75th percentiles by nearest rank, so every number shown is a price someone actually published; only with 5 or more facilities.
+- **Likely file errors:** amounts under $1 or $10,000,000 and over are flagged at load (`under_one_dollar`, `over_ten_million`), kept and shown with a warning, but never used as a headline when another price exists, never "lowest", never in a typical range.
+- **Badges:** lowest near you (with at least two prices), below typical (under the 25th percentile), cash cheaper than your plan.
+- **History:** the headline compared with the facility's most recently retired published file (`price.published_file_history`, migration 0014; retired files were once public).
+- **Plans by card name:** `data/reference/payers.csv` (plans as on cards) and `payer_aliases.csv` (a hospital's exact payer + plan spelling → that plan, approved by a person); plan searches use only approved spellings and never show another plan's rate in its place. The real Nevada spellings come from the next run (`payer-plan-names.csv`).
+- **Search box:** suggestions from service names and approved everyday words (`service_synonyms.csv`; the 30 starting words are proposals).
+
 ## 2026-11-08 — D-039: Everything in the product review is in scope; site design written
 Cooper (2026-11-08): "I like all of that so let's do all of it", and asked for a look at every aspect (ease of use, layout, better pricing). All of `PRODUCT_REVIEW.md` is approved, including community health centers and free clinics at launch, Medicare reference prices (labeled), and the full provider verification. `SITE_DESIGN.md` adds the site map, page layouts, ease-of-use rules, pricing features (headline "your price", typical local range, confidence, outlier holds, price history, Nevada uninsured discount if verified) and the build order. Paid hosting and billing still need Cooper's approval before they are set up.
 

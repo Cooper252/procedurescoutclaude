@@ -44,6 +44,7 @@ class PublishedPrice:
     algorithm: str | None
     methodology: str | None
     dataset_version_id: str
+    quality_flags: tuple[str, ...] = ()
 
 
 def find_prices(
@@ -53,7 +54,10 @@ def find_prices(
     code_system: str,
     code: str,
     limit: int = MAX_ROWS,
+    previous: bool = False,
 ) -> list[PublishedPrice]:
+    """Current published prices; with previous=True, the prices in each
+    facility's most recently retired file (for price history)."""
     import duckdb
 
     if not facility_ids:
@@ -69,16 +73,15 @@ def find_prices(
         raise PriceQueryError(f"not a code: {code!r}")
     if not 1 <= limit <= MAX_ROWS:
         raise PriceQueryError(f"limit must be between 1 and {MAX_ROWS}")
-    keys = [
-        str(k)
-        for k in conn.execute(
-            text(
-                "SELECT object_key FROM price.published_file "
-                "WHERE facility_id = ANY(CAST(:ids AS uuid[])) ORDER BY object_key"
-            ),
-            {"ids": ids},
-        ).scalars()
-    ]
+    sql = (
+        "SELECT DISTINCT ON (facility_id) object_key FROM price.published_file_history "
+        "WHERE facility_id = ANY(CAST(:ids AS uuid[])) AND retired_at IS NOT NULL "
+        "ORDER BY facility_id, retired_at DESC"
+        if previous
+        else "SELECT object_key FROM price.published_file "
+        "WHERE facility_id = ANY(CAST(:ids AS uuid[])) ORDER BY object_key"
+    )
+    keys = [str(k) for k in conn.execute(text(sql), {"ids": ids}).scalars()]
     if not keys:
         return []
     paths = [store.local_path(k) for k in keys]
@@ -87,7 +90,7 @@ def find_prices(
             """
             SELECT facility_id, price_source, code_system, code, description_raw, setting,
                    price_type, payer_name_raw, plan_name_raw, amount, percentage, algorithm,
-                   methodology, dataset_version_id
+                   methodology, dataset_version_id, quality_flags
             FROM read_parquet(?)
             WHERE code_system = ? AND code = ?
             ORDER BY facility_id, price_type, payer_name_raw, plan_name_raw
@@ -111,6 +114,7 @@ def find_prices(
             algorithm=r[11],
             methodology=r[12],
             dataset_version_id=r[13],
+            quality_flags=tuple(f for f in (r[14] or "").split("|") if f),
         )
         for r in rows
     ]

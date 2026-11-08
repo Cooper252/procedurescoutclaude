@@ -105,6 +105,10 @@ Partitioning: LIST (`state_code`) with `price_nv` and a DEFAULT partition. Index
 - `ref.poverty_guideline` (year, region, household size, amount, per additional person, source URL).
 - `ref.assistance_policy` (facility, policy/application/summary URLs, phone, guideline year, dates, evidence, review state; one approved per facility) and `ref.assistance_tier` (max percent of guideline, free/discount, discount percent or description). API role can read all four.
 
+## Migration 0014
+
+- `price.published_file_history` view: current and retired published files (no staged or rejected data); the API role can read it for price history.
+
 ## Deletion behaviour
 
 Lineage references use `ON DELETE RESTRICT` (files, runs, dataset versions, facilities cannot be deleted while prices point at them). Child detail rows (aliases, events, validation results) cascade with their parent.

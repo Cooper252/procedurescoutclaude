@@ -60,6 +60,9 @@ SERVICE_CATALOG_CSV = "data/reference/service_catalog.csv"
 BUNDLES_CSV = "data/reference/bundles.csv"
 POVERTY_CSV = "data/reference/poverty_guidelines.csv"
 ASSISTANCE_CSV = "data/reference/assistance_policies.csv"
+PAYERS_CSV = "data/reference/payers.csv"
+PAYER_ALIASES_CSV = "data/reference/payer_aliases.csv"
+SYNONYMS_CSV = "data/reference/service_synonyms.csv"
 STEP_DATASETS = {
     "hospitals": "cms_hospital_general_information",
     "ascs": "cms_asc_facility",
@@ -454,6 +457,9 @@ def cmd_catalog(args: argparse.Namespace, engine: Engine) -> None:
             ("bundles", catalog.load_bundles, BUNDLES_CSV),
             ("poverty_guidelines", catalog.load_poverty_guidelines, POVERTY_CSV),
             ("assistance_policies", catalog.load_assistance_policies, ASSISTANCE_CSV),
+            ("payers", catalog.load_payers, PAYERS_CSV),
+            ("payer_aliases", catalog.load_payer_aliases, PAYER_ALIASES_CSV),
+            ("synonyms", catalog.load_synonyms, SYNONYMS_CSV),
         ):
             part = loader(c, Path(path).read_text())
             stats.rows_in += part.rows_in

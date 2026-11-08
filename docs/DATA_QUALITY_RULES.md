@@ -20,7 +20,7 @@ Flagged per file (`file_problem`, stored in `src.transparency_file.read_error`):
 
 ## Price rows (Phase 2 step 2b, tested)
 
-Refused (counted per file by rule, first 5 examples kept): `bad_amount` (negative, malformed, more than 15 decimal places, percentage outside 0–1000), `missing_methodology`, `unknown_methodology`, `missing_payer_or_plan`, `no_code`, `unknown_code_type`, `not_cms_csv`. Flagged but kept: `zero_amount`, `more_than_4_decimals`, `text_decoded_cp1252`, `drug_unit_amount_unreadable`, `drug_unit_type_unknown`, `allowed_count_unreadable`. A file that fails part-way is rolled back entirely (no partial datasets). Loaded prices are a *staged* dataset whose import run waits in `quality_review`; nothing is published automatically.
+Refused (counted per file by rule, first 5 examples kept): `bad_amount` (negative, malformed, more than 15 decimal places, percentage outside 0–1000), `missing_methodology`, `unknown_methodology`, `missing_payer_or_plan`, `no_code`, `unknown_code_type`, `not_cms_csv`. Flagged but kept: `zero_amount`, `more_than_4_decimals`, `under_one_dollar` and `over_ten_million` (likely file errors: never a headline when another price exists, never "lowest", never in a typical range), `text_decoded_cp1252`, `drug_unit_amount_unreadable`, `drug_unit_type_unknown`, `allowed_count_unreadable`. A file that fails part-way is rolled back entirely (no partial datasets). Loaded prices are a *staged* dataset whose import run waits in `quality_review`; nothing is published automatically.
 
 ## Planned (Phase 2 quality review)
 

@@ -225,3 +225,28 @@ def test_api_role_can_read_catalog_tables(api_engine: Engine) -> None:
         c.execute(text("SELECT count(*) FROM ref.provider_type"))
         c.execute(text("SELECT count(*) FROM ref.facility_provider_type"))
         c.execute(text("SELECT count(*) FROM ref.procedure_code"))
+
+
+def test_search_box_suggestions_use_names_and_approved_words(
+    conn: Connection, world: LocalStore
+) -> None:
+    from procedurescout_core.search import suggest
+
+    stats = catalog.load_synonyms(
+        conn,
+        "slug,term,source,reviewed_by,reviewed_at\n"
+        "synthetic-service,synthetic scope,human,tester,2026-11-08\n"
+        "synthetic-service,synthtic typo,ai_suggested,,\n",
+    )
+    assert stats.summary == {"approved": 1, "proposed": 1}
+    assert [s.slug for s in suggest(conn, "SCOPE")] == ["synthetic-service"]
+    assert suggest(conn, "synthtic typo") == []  # proposed words are not used
+    assert [s.slug for s in suggest(conn, "synthetic s")] == ["synthetic-service"]
+    assert suggest(conn, "x") == []  # too short
+    assert "synthetic-proposed" not in [s.slug for s in suggest(conn, "synthetic")]
+
+
+def test_committed_synonyms_load_as_proposals(conn: Connection) -> None:
+    catalog.load_services(conn, (ROOT / "data/reference/service_catalog.csv").read_text())
+    stats = catalog.load_synonyms(conn, (ROOT / "data/reference/service_synonyms.csv").read_text())
+    assert stats.rejects == [] and stats.summary == {"proposed": stats.rows_in}

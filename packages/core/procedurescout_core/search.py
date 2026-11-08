@@ -19,7 +19,18 @@ from sqlalchemy import Connection, text
 
 from .enums import CodeSystem
 from .object_store import ObjectStore
+from .plans import PlanError, approved_spellings, matches
 from .price_store import PublishedPrice, find_prices
+from .pricing import (
+    MODE_PRICE_TYPE,
+    Badges,
+    Headline,
+    Typical,
+    badges,
+    headline,
+    percent_change,
+    typical,
+)
 
 MAX_RADIUS_MILES = 100
 MAX_FACILITIES = 50
@@ -44,6 +55,9 @@ class FacilityResult:
     status: str  # "prices" or "no_published_prices"
     published_at: str | None
     prices: tuple[PublishedPrice, ...] = field(default_factory=tuple)
+    headline: Headline | None = None
+    badges: Badges = field(default_factory=Badges)
+    change_percent: Decimal | None = None  # headline vs the previous published file
 
 
 @dataclass(frozen=True, slots=True)
@@ -54,6 +68,8 @@ class SearchResult:
     codes: tuple[str, ...]
     facilities: tuple[FacilityResult, ...]
     note: str | None = None
+    mode: str = "cash"
+    typical: Typical | None = None
 
 
 def _codes_for_service(
@@ -108,6 +124,8 @@ def search(
     code: str | None = None,
     provider_type: str | None = None,
     max_facilities: int = MAX_FACILITIES,
+    mode: str = "cash",
+    plan_id: str | None = None,
 ) -> SearchResult:
     if (service_slug is None) == (code is None):
         raise SearchError("give either a service or a code, not both")
@@ -117,6 +135,16 @@ def search(
         raise SearchError("latitude/longitude out of range")
     if not (Decimal(1) <= radius_miles <= Decimal(MAX_RADIUS_MILES)):
         raise SearchError(f"radius must be 1 to {MAX_RADIUS_MILES} miles")
+    if mode not in MODE_PRICE_TYPE:
+        raise SearchError("mode must be cash, list or plan")
+    if (mode == "plan") != (plan_id is not None):
+        raise SearchError("a plan is needed for plan prices (and only for them)")
+    spellings: set[tuple[str, str]] = set()
+    if plan_id is not None:
+        try:
+            spellings = approved_spellings(conn, plan_id)
+        except PlanError as exc:
+            raise SearchError(str(exc)) from exc
     if not 1 <= max_facilities <= MAX_FACILITIES:
         raise SearchError(f"max_facilities must be 1 to {MAX_FACILITIES}")
     if provider_type is not None:
@@ -191,6 +219,37 @@ def search(
         for system, value in codes:
             for p in find_prices(conn, store, [uuid.UUID(i) for i in with_files], system, value):
                 by_facility.setdefault(p.facility_id, []).append(p)
+    if plan_id is not None:
+        # only this plan's negotiated rates (by approved spellings) plus cash and
+        # list prices for comparison; other plans are never shown in its place
+        by_facility = {
+            fid: [p for p in rows if p.price_type != "negotiated" or matches(p, spellings)]
+            for fid, rows in by_facility.items()
+        }
+    heads = {fid: headline(rows, mode) for fid, rows in by_facility.items()}
+    cash_heads = {fid: headline(rows, "cash") for fid, rows in by_facility.items()}
+    present = [h for h in heads.values() if h is not None]
+    typ = typical(present)
+    previous: dict[str, list[PublishedPrice]] = {}
+    if with_files:
+        for system, value in codes:
+            for p in find_prices(
+                conn, store, [uuid.UUID(i) for i in with_files], system, value, previous=True
+            ):
+                previous.setdefault(p.facility_id, []).append(p)
+
+    def change(fid: str) -> Decimal | None:
+        now = heads.get(fid)
+        rows = previous.get(fid, [])
+        if plan_id is not None:
+            rows = [p for p in rows if p.price_type != "negotiated" or matches(p, spellings)]
+        before = headline(rows, mode) if rows else None
+        if now is None or before is None or now.possible_error or before.possible_error:
+            return None
+        if before.amount == 0 or before.amount == now.amount:
+            return None
+        return percent_change(before.amount, now.amount)
+
     results = tuple(
         FacilityResult(
             facility_id=str(f[0]),
@@ -202,6 +261,9 @@ def search(
             status="prices" if by_facility.get(str(f[0])) else "no_published_prices",
             published_at=published.get(str(f[0])),
             prices=tuple(by_facility.get(str(f[0]), ())),
+            headline=heads.get(str(f[0])),
+            badges=badges(heads.get(str(f[0])), present, typ, cash_heads.get(str(f[0]))),
+            change_percent=change(str(f[0])),
         )
         for f in facilities
     )
@@ -215,4 +277,57 @@ def search(
         codes=tuple(f"{s} {c}" for s, c in codes),
         facilities=results,
         note=note,
+        mode=mode,
+        typical=typ,
     )
+
+
+@dataclass(frozen=True, slots=True)
+class Suggestion:
+    slug: str
+    name: str
+    unit: str
+    matched: str  # the word that matched (the service name or an approved synonym)
+
+
+def suggest(conn: Connection, query: str, limit: int = 8) -> list[Suggestion]:
+    """Services for the search box as the person types: approved services whose
+    name, or an approved everyday word for them, contains what was typed. The
+    person picks one; nothing is substituted behind their back."""
+    from .matching import normalize_name
+
+    q = normalize_name(query)
+    if len(q) < 2 or len(q) > 60:
+        return []
+    like = "%" + q.replace("%", "").replace("_", "") + "%"
+    rows = conn.execute(
+        text(
+            """
+            SELECT p.slug, p.consumer_name, p.unit, m.matched, min(m.rank) AS r
+            FROM ref.procedure p
+            JOIN (
+                SELECT id AS pid, consumer_name AS matched,
+                       CASE WHEN lower(consumer_name) LIKE :prefix THEN 0 ELSE 1 END AS rank
+                FROM ref.procedure WHERE lower(consumer_name) LIKE :like
+                UNION ALL
+                SELECT procedure_id, term,
+                       CASE WHEN term_normalized LIKE :prefix THEN 0 ELSE 2 END
+                FROM ref.procedure_synonym
+                WHERE review_state = 'approved' AND term_normalized LIKE :like
+            ) m ON m.pid = p.id
+            WHERE p.review_state = 'approved' AND p.slug IS NOT NULL
+            GROUP BY p.slug, p.consumer_name, p.unit, m.matched
+            ORDER BY r, p.consumer_name
+            LIMIT :n
+            """
+        ),
+        {"like": like, "prefix": q + "%", "n": max(1, min(limit, 20))},
+    ).all()
+    seen: set[str] = set()
+    out = []
+    for r in rows:
+        if r[0] in seen:
+            continue
+        seen.add(str(r[0]))
+        out.append(Suggestion(str(r[0]), str(r[1]), str(r[2]), str(r[3])))
+    return out

@@ -192,6 +192,11 @@ def _amount_flags(amount: Decimal | None) -> tuple[str, ...]:
         flags.append("zero_amount")
     if amount != amount.quantize(_CENT_HUNDREDTH, rounding="ROUND_DOWN"):
         flags.append("more_than_4_decimals")  # stored exactly; shown rounded
+    # likely file errors: shown with a warning, never as "lowest" or in typical ranges
+    if Decimal(0) < amount < Decimal(1):
+        flags.append("under_one_dollar")
+    if amount >= Decimal(10_000_000):
+        flags.append("over_ten_million")
     return tuple(flags)
 
 

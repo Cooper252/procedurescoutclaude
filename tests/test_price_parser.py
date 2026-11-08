@@ -187,3 +187,14 @@ def test_sub_cent_amounts_kept_and_flagged() -> None:
     assert by[PriceType.GROSS].amount == Decimal("2669.73225")
     assert "more_than_4_decimals" in by[PriceType.GROSS].quality_flags
     assert "more_than_4_decimals" not in by[PriceType.DISCOUNTED_CASH].quality_flags
+
+
+def test_likely_file_errors_are_flagged_not_dropped() -> None:
+    body = (
+        b"PENNY SURGERY,11118,CPT,,,outpatient,,,0.01,,,,,,,,,,\n"
+        b"HUGE,11119,CPT,,,outpatient,,,12000000,,,,,,,,,,\n"
+    )
+    prices, rejects = run(HEAD + body, FileFormat.CSV_TALL)
+    assert rejects == []
+    flags = {p.code: p.quality_flags for p in prices}
+    assert "under_one_dollar" in flags["11118"] and "over_ten_million" in flags["11119"]

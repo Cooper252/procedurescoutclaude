@@ -22,7 +22,8 @@ from sqlalchemy import Connection, create_engine, text
 from sqlalchemy.engine import Engine
 
 from procedurescout_core.object_store import LocalStore, ObjectStore
-from procedurescout_core.search import SearchError, search
+from procedurescout_core.plans import list_plans
+from procedurescout_core.search import SearchError, search, suggest
 
 from .settings import get_settings
 
@@ -81,7 +82,23 @@ class FacilityOut(BaseModel):
     provider_types: list[str]
     status: str
     prices_published_at: str | None
+    headline: str | None
+    headline_highest: str | None
+    headline_price_type: str | None
+    headline_possible_error: bool
+    lowest_near_you: bool
+    below_typical: bool
+    cash_cheaper_than_plan: bool
+    badge_notes: list[str]
+    change_percent_since_last_file: str | None
     prices: list[Price]
+
+
+class TypicalOut(BaseModel):
+    low: str
+    middle: str
+    high: str
+    count: int
 
 
 class SearchOut(BaseModel):
@@ -90,7 +107,50 @@ class SearchOut(BaseModel):
     unit: str | None
     codes: list[str]
     note: str | None
+    mode: str
+    typical: TypicalOut | None
     facilities: list[FacilityOut]
+
+
+class SuggestionOut(BaseModel):
+    slug: str
+    name: str
+    unit: str
+    matched: str
+
+
+@router.get("/services/suggest", response_model=list[SuggestionOut])
+def services_suggest(
+    conn: Conn, q: Annotated[str, Query(min_length=1, max_length=60)]
+) -> list[SuggestionOut]:
+    """Search-box suggestions from service names and approved everyday words."""
+    return [
+        SuggestionOut(slug=s.slug, name=s.name, unit=s.unit, matched=s.matched)
+        for s in suggest(conn, q)
+    ]
+
+
+class PlanOut(BaseModel):
+    plan_id: str
+    payer: str
+    plan: str
+    product_type: str
+    segment: str
+
+
+@router.get("/plans", response_model=list[PlanOut])
+def plans(conn: Conn) -> list[PlanOut]:
+    """Plans by the names on people's cards that have approved hospital spellings."""
+    return [
+        PlanOut(
+            plan_id=p.plan_id,
+            payer=p.payer,
+            plan=p.plan,
+            product_type=p.product_type,
+            segment=p.segment,
+        )
+        for p in list_plans(conn)
+    ]
 
 
 def _s(value: Decimal | None) -> str | None:
@@ -130,6 +190,8 @@ def search_endpoint(
     code_system: Annotated[str | None, Query(max_length=20)] = None,
     code: Annotated[str | None, Query(max_length=20)] = None,
     provider_type: Annotated[str | None, Query(max_length=40)] = None,
+    mode: Annotated[str, Query(pattern="^(cash|list|plan)$")] = "cash",
+    plan_id: Annotated[str | None, Query(max_length=36)] = None,
 ) -> SearchOut:
     try:
         result = search(
@@ -142,6 +204,8 @@ def search_endpoint(
             code_system=code_system,
             code=code,
             provider_type=provider_type,
+            mode=mode,
+            plan_id=plan_id,
         )
     except SearchError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
@@ -151,6 +215,15 @@ def search_endpoint(
         unit=result.unit,
         codes=list(result.codes),
         note=result.note,
+        mode=result.mode,
+        typical=None
+        if result.typical is None
+        else TypicalOut(
+            low=_s(result.typical.low) or "",
+            middle=_s(result.typical.middle) or "",
+            high=_s(result.typical.high) or "",
+            count=result.typical.count,
+        ),
         facilities=[
             FacilityOut(
                 facility_id=f.facility_id,
@@ -161,6 +234,17 @@ def search_endpoint(
                 provider_types=list(f.provider_types),
                 status=f.status,
                 prices_published_at=f.published_at,
+                headline=_s(f.headline.amount) if f.headline else None,
+                headline_highest=_s(f.headline.highest) if f.headline else None,
+                headline_price_type=f.headline.price_type if f.headline else None,
+                headline_possible_error=bool(f.headline and f.headline.possible_error),
+                lowest_near_you=f.badges.lowest_near_you,
+                below_typical=f.badges.below_typical,
+                cash_cheaper_than_plan=f.badges.cash_cheaper_than_plan,
+                badge_notes=list(f.badges.notes),
+                change_percent_since_last_file=None
+                if f.change_percent is None
+                else format(f.change_percent, "f"),
                 prices=[
                     Price(
                         price_source=p.price_source,

@@ -18,6 +18,8 @@
 | Q17 | Paid listings (D-031, rules confirmed 2026-11-07): length of the free period and the prices; counsel review of the advertising terms. | Cooper (counsel) | Before Phase 9 |
 | Q20 | Review the 13 proposed hospital financial assistance policies on the review page (UMC, 3 HCA, 3 St. Rose, 2 Renown, Carson Tahoe, North Vista, Saint Mary's, Banner Churchill); still to find: the Valley Health System (UHS) Las Vegas hospitals, Northern Nevada Medical Center, rural hospitals. | Cooper | Before launch |
 | Q22 | Confirm NRS 439B.260 (30% off billed charges for uninsured patients at certain Nevada hospitals) applies as North Vista's policy says, before it is shown (SITE_DESIGN §4.9). | Engineering + counsel | Before launch |
+| Q23 | Approve the 30 proposed everyday search words (`data/reference/service_synonyms.csv`, e.g. "knee scope" → knee arthroscopy). | Cooper | Before launch |
+| Q24 | After the next run: approve the list of Nevada plans as printed on cards and which hospital spellings belong to each (from `payer-plan-names.csv`). | Cooper | Before launch |
 | Q10 | NUBC revenue code descriptions: licence or code-only display? | Cooper (counsel) | Phase 3 |
 
 ## Resolved

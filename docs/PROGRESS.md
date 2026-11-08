@@ -2,6 +2,19 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-08 — Build step 1: headline prices, typical ranges, badges, likely-error flags, price history, plans by card name, search suggestions
+
+Implemented and tested (synthetic) per D-040:
+- `procedurescout_core/pricing.py`, `plans.py`; `search()` gains `mode` (cash/list/plan) and `plan_id`, per-facility headline, badges and change since the last file, and a typical range.
+- `price_parser`: `under_one_dollar`, `over_ten_million` flags. `PublishedPrice.quality_flags` read from Parquet.
+- Migration `0014_published_history.py`; `find_prices(previous=True)`.
+- `reference/catalog.py`: `load_payers`, `load_payer_aliases`, `collect_unmapped_plans`, `load_synonyms` (run by `catalog`); data files `payers.csv`, `payer_aliases.csv` (headers only until the real spellings are reviewed), `service_synonyms.csv` (30 proposals).
+- API: `GET /v1/plans`, `GET /v1/services/suggest`, search `mode`/`plan_id`, headline/badge/typical fields.
+- Workflow export `payer-plan-names.csv` (every Nevada payer/plan spelling with price and facility counts) for the plan review.
+- Tests: `tests/test_pricing.py` (6), parser flag test, suggestion and synonym tests.
+
+`make lint typecheck test`: `274 passed, 1 warning` (Python 3.13); `/tmp/v312/bin/python -m pytest -q`: `274 passed, 1 warning`.
+
 ## 2026-11-08 — Product review approved (D-039); site design written
 
 Cooper approved everything in `PRODUCT_REVIEW.md` and asked for a look at every aspect. Wrote `docs/SITE_DESIGN.md` (site map, page-by-page layouts, ease of use, better pricing, trust, providers, growth, operations, measurement, build order). New requirements UX-01/02, PRC-01/02, HELP-01; Q21 resolved; Q22 added (Nevada uninsured-discount law to confirm). No code changed.

@@ -459,3 +459,212 @@ def load_assistance_policies(conn: Connection, csv_text: str) -> LoadStats:
         stats.rows_loaded += 1
         stats.count(state)
     return stats
+
+
+# ------------------------------------------------------------------ payers and plans
+PAYER_COLUMNS = ("payer", "plan", "product_type", "segment", "reviewed_by", "reviewed_at")
+ALIAS_COLUMNS = ("raw_payer", "raw_plan", "payer", "plan", "reviewed_by", "reviewed_at", "notes")
+
+
+def load_payers(conn: Connection, csv_text: str) -> LoadStats:
+    """Insurers and plans by the names on people's cards (data/reference/payers.csv)."""
+    stats = LoadStats()
+    rows = read_delimited(csv_text, ",")
+    if not rows:
+        return stats
+    require_columns(rows, PAYER_COLUMNS, "payers CSV")
+    for i, row in enumerate(rows, start=2):
+        stats.rows_in += 1
+        if not row["reviewed_by"] or not row["reviewed_at"]:
+            stats.count("unreviewed")
+            continue
+        pid = conn.execute(
+            text(
+                "INSERT INTO ref.payer (canonical_name) VALUES (:n) "
+                "ON CONFLICT (canonical_name) "
+                "DO UPDATE SET canonical_name = EXCLUDED.canonical_name "
+                "RETURNING id"
+            ),
+            {"n": row["payer"].strip()},
+        ).scalar_one()
+        try:
+            conn.execute(
+                text(
+                    """
+                    INSERT INTO ref.plan (payer_id, canonical_name, product_type, segment)
+                    VALUES (:p, :n, CAST(:pt AS ref.product_type), CAST(:sg AS ref.plan_segment))
+                    ON CONFLICT (payer_id, canonical_name) DO UPDATE SET
+                        product_type = EXCLUDED.product_type, segment = EXCLUDED.segment
+                    """
+                ),
+                {
+                    "p": pid,
+                    "n": row["plan"].strip(),
+                    "pt": row["product_type"].strip() or "unknown",
+                    "sg": row["segment"].strip() or "unknown",
+                },
+            )
+        except Exception as exc:  # bad enum value: report the line
+            raise ValueError(f"payers.csv line {i}: {exc}") from exc
+        stats.rows_loaded += 1
+    return stats
+
+
+def load_payer_aliases(conn: Connection, csv_text: str) -> LoadStats:
+    """Reviewed links from a hospital file's exact payer + plan spelling to a plan
+    on people's cards. Only rows with a reviewer are approved; the rest wait."""
+    from procedurescout_core.matching import normalize_name
+
+    stats = LoadStats()
+    rows = read_delimited(csv_text, ",")
+    if not rows:
+        return stats
+    require_columns(rows, ALIAS_COLUMNS, "payer aliases CSV")
+    for i, row in enumerate(rows, start=2):
+        stats.rows_in += 1
+        ref = f"line:{i}"
+        state, who, when = _review(row, ref, stats)
+        plan = conn.execute(
+            text(
+                "SELECT pl.id, py.id FROM ref.plan pl JOIN ref.payer py ON py.id = pl.payer_id "
+                "WHERE py.canonical_name = :py AND pl.canonical_name = :pl"
+            ),
+            {"py": row["payer"].strip(), "pl": row["plan"].strip()},
+        ).first()
+        if plan is None:
+            stats.reject(ref, "plan_not_found", f"{row['payer']} / {row['plan']} not in payers.csv")
+            continue
+        raw_payer, raw_plan = row["raw_payer"], row["raw_plan"]
+        conn.execute(
+            text(
+                """
+                INSERT INTO ref.payer_alias (raw_text, raw_normalized, payer_id, match_type,
+                    review_state, reviewed_by, reviewed_at)
+                VALUES (:r, :k, :p, 'manual', CAST(:st AS ref.review_state), :rb,
+                        CAST(:ra AS timestamptz))
+                ON CONFLICT (raw_normalized) DO UPDATE SET payer_id = EXCLUDED.payer_id,
+                    match_type = 'manual', review_state = EXCLUDED.review_state,
+                    reviewed_by = EXCLUDED.reviewed_by, reviewed_at = EXCLUDED.reviewed_at
+                """
+            ),
+            {
+                "r": raw_payer,
+                "k": normalize_name(raw_payer),
+                "p": plan[1],
+                "st": state,
+                "rb": who,
+                "ra": when,
+            },
+        )
+        conn.execute(
+            text(
+                """
+                INSERT INTO ref.plan_alias (raw_payer_normalized, raw_plan_text,
+                    raw_plan_normalized, plan_id, match_type, review_state, reviewed_by,
+                    reviewed_at)
+                VALUES (:rp, :t, :k, :pl, 'manual', CAST(:st AS ref.review_state), :rb,
+                        CAST(:ra AS timestamptz))
+                ON CONFLICT (raw_payer_normalized, raw_plan_normalized) DO UPDATE SET
+                    plan_id = EXCLUDED.plan_id, match_type = 'manual',
+                    review_state = EXCLUDED.review_state, reviewed_by = EXCLUDED.reviewed_by,
+                    reviewed_at = EXCLUDED.reviewed_at
+                """
+            ),
+            {
+                "rp": normalize_name(raw_payer),
+                "t": raw_plan,
+                "k": normalize_name(raw_plan),
+                "pl": plan[0],
+                "st": state,
+                "rb": who,
+                "ra": when,
+            },
+        )
+        stats.rows_loaded += 1
+        stats.count(state)
+    return stats
+
+
+def collect_unmapped_plans(conn: Connection) -> int:
+    """Put every payer/plan spelling in staged or published prices into the
+    review queue as unmapped (existing rows are left alone)."""
+    from procedurescout_core.matching import normalize_name
+
+    pairs = conn.execute(
+        text(
+            "SELECT DISTINCT payer_name_raw, plan_name_raw FROM price.price "
+            "WHERE payer_name_raw IS NOT NULL AND plan_name_raw IS NOT NULL"
+        )
+    ).all()
+    added = 0
+    for payer, plan in pairs:
+        conn.execute(
+            text(
+                "INSERT INTO ref.payer_alias (raw_text, raw_normalized, match_type, review_state) "
+                "VALUES (:r, :k, 'unmapped', 'proposed') ON CONFLICT (raw_normalized) DO NOTHING"
+            ),
+            {"r": payer, "k": normalize_name(payer)},
+        )
+        result = conn.execute(
+            text(
+                """
+                INSERT INTO ref.plan_alias (raw_payer_normalized, raw_plan_text,
+                    raw_plan_normalized, match_type, review_state)
+                VALUES (:rp, :t, :k, 'unmapped', 'proposed')
+                ON CONFLICT (raw_payer_normalized, raw_plan_normalized) DO NOTHING
+                """
+            ),
+            {"rp": normalize_name(payer), "t": plan, "k": normalize_name(plan)},
+        )
+        added += result.rowcount or 0
+    return added
+
+
+SYNONYM_COLUMNS = ("slug", "term", "source", "reviewed_by", "reviewed_at")
+
+
+def load_synonyms(conn: Connection, csv_text: str) -> LoadStats:
+    """Everyday words and misspellings people type ("knee scope"), each tied to
+    one service. Unreviewed rows stay proposed and are not used (rule 10)."""
+    from procedurescout_core.matching import normalize_name
+
+    stats = LoadStats()
+    rows = read_delimited(csv_text, ",")
+    if not rows:
+        return stats
+    require_columns(rows, SYNONYM_COLUMNS, "service synonyms CSV")
+    for i, row in enumerate(rows, start=2):
+        stats.rows_in += 1
+        ref = f"line:{i}"
+        pid = conn.execute(
+            text("SELECT id FROM ref.procedure WHERE slug = :s"), {"s": row["slug"].strip()}
+        ).scalar()
+        if pid is None:
+            stats.reject(ref, "service_not_found", f"no service {row['slug']!r}")
+            continue
+        state, who, when = _review(row, ref, stats)
+        conn.execute(
+            text(
+                """
+                INSERT INTO ref.procedure_synonym (procedure_id, term, term_normalized, source,
+                    review_state, reviewed_by, reviewed_at)
+                VALUES (:p, :t, :k, CAST(:s AS ref.suggestion_source),
+                        CAST(:st AS ref.review_state), :rb, CAST(:ra AS timestamptz))
+                ON CONFLICT (procedure_id, term_normalized) DO UPDATE SET
+                    review_state = EXCLUDED.review_state, reviewed_by = EXCLUDED.reviewed_by,
+                    reviewed_at = EXCLUDED.reviewed_at
+                """
+            ),
+            {
+                "p": pid,
+                "t": row["term"].strip(),
+                "k": normalize_name(row["term"]),
+                "s": row["source"],
+                "st": state,
+                "rb": who,
+                "ra": when,
+            },
+        )
+        stats.rows_loaded += 1
+        stats.count(state)
+    return stats
