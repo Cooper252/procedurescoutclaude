@@ -88,6 +88,12 @@ Partitioning: LIST (`state_code`) with `price_nv` and a DEFAULT partition. Index
 
 - `price.price` (and `fixture.synthetic_price`): `amount`, `percentage` and `drug_unit` are unconstrained `NUMERIC` (were NUMERIC(16,4), NUMERIC(9,4), NUMERIC(16,4)); range CHECKs unchanged; view and grant recreated (D-029).
 
+## Migration 0011
+
+- `src.dataset_version.reviewed_by`, `reviewed_at`, `review_note` (both or neither of who/when).
+- `src.published_file`: one row per published Parquet file — dataset version (unique), facility, state, `price_source` (`hospital_file` | `provider_submitted` | `provider_correction`), object key (unique), bytes, SHA-256, rows, exact amount and percentage sums, published/retired times. At most one current file per facility and source.
+- `price.published_file` view: current files only; the API role can read it (not the table).
+
 ## Deletion behaviour
 
 Lineage references use `ON DELETE RESTRICT` (files, runs, dataset versions, facilities cannot be deleted while prices point at them). Child detail rows (aliases, events, validation results) cascade with their parent.

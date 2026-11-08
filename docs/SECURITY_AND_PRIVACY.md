@@ -19,6 +19,10 @@ Protecting users and the platform.
 
 - Threat model; retention schedule; privacy notice.
 
+## Published price files (D-033)
+
+The API may read only published Parquet files listed in `price.published_file`. When an S3-compatible store is set up, the API's credentials will be read-only and limited to the `published/` prefix; ingestion credentials are separate. Keys are validated (`object_store.published_key`) and the local store refuses paths outside its folder and refuses to overwrite a published file.
+
 ## Self-hosted runner (2026-11-06)
 
 Cooper's computer runs a GitHub self-hosted runner for the manual Nevada workflow (D-021). Rules: the repository must be private; the runner is used only by the `home-fetch` job of `reference-nv.yml` (label `procedurescout-home`); that job only reads `data/reference/facility_websites.csv` and `data/reference/home_runner_price_sites.csv` and writes `hpt-home/` and (when price downloads are ticked) `prices-home/`, which holds public hospital price files for at most 500 MB each and is kept as a GitHub artifact for 1 day; no credentials are kept in the checkout (`persist-credentials: false`). Remove the runner in GitHub Settings → Actions → Runners if it is no longer needed.

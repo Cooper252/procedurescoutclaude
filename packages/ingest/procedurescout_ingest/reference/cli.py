@@ -380,6 +380,46 @@ def cmd_storage_experiment(args: argparse.Namespace, engine: Engine) -> None:
     print(out)
 
 
+def _store() -> Any:
+    from pathlib import Path
+
+    from procedurescout_core.object_store import LocalStore
+
+    return LocalStore(Path(os.environ.get("PRICE_STORE_DIR", "price-store")))
+
+
+def cmd_review_list(args: argparse.Namespace, engine: Engine) -> None:
+    from .. import publish
+
+    with engine.connect() as conn:
+        for p in publish.pending_reviews(conn):
+            load = p.summary
+            print(
+                f"{p.dataset_version_id}  {p.ccn or '-'}  {p.facility_name}  "
+                f"{p.rows} prices  refused {load.get('rows_rejected', 0)}  "
+                f"file date {p.last_updated_raw}  flags {load.get('quality_flags', {})}  "
+                f"problems: {p.file_problems or 'none'}"
+            )
+
+
+def cmd_approve(args: argparse.Namespace, engine: Engine) -> None:
+    from .. import publish
+
+    with engine.begin() as conn:
+        key = publish.approve(
+            conn, uuid.UUID(args.dataset), args.reviewer, _store(), note=args.note
+        )
+    print(f"published {args.dataset} as {key}")
+
+
+def cmd_reject(args: argparse.Namespace, engine: Engine) -> None:
+    from .. import publish
+
+    with engine.begin() as conn:
+        publish.reject(conn, uuid.UUID(args.dataset), args.reviewer, args.reason)
+    print(f"rejected {args.dataset}")
+
+
 def cmd_hcpcs(args: argparse.Namespace, engine: Engine) -> None:
     with new_client() as client:
         blob = acquire(args.file, client)
@@ -603,6 +643,16 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("probe", help="size/date check of known price files (no download)")
     sub.add_parser("storage-experiment", help="measure storage layouts for loaded prices")
 
+    sub.add_parser("review-list", help="staged price datasets waiting for a person's review")
+    sp = sub.add_parser("approve", help="publish a reviewed dataset (writes its Parquet file)")
+    sp.add_argument("--dataset", required=True, help="dataset version id from review-list")
+    sp.add_argument("--reviewer", required=True, help="your name")
+    sp.add_argument("--note", help="what you checked")
+    sp = sub.add_parser("reject", help="reject a staged dataset with a reason")
+    sp.add_argument("--dataset", required=True)
+    sp.add_argument("--reviewer", required=True)
+    sp.add_argument("--reason", required=True)
+
     sp = sub.add_parser(
         "price-files", help="download, check and delete each assigned price file (large)"
     )
@@ -649,6 +699,9 @@ def main(argv: list[str] | None = None) -> None:
             "probe": lambda: cmd_probe(args, engine),
             "price-files": lambda: cmd_price_files(args, engine),
             "storage-experiment": lambda: cmd_storage_experiment(args, engine),
+            "review-list": lambda: cmd_review_list(args, engine),
+            "approve": lambda: cmd_approve(args, engine),
+            "reject": lambda: cmd_reject(args, engine),
             "msdrg": lambda: cmd_msdrg(args, engine),
             "report": lambda: cmd_report(args, engine),
             "nv-all": lambda: cmd_nv_all(args, engine),

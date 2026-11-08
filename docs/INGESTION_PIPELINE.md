@@ -25,6 +25,10 @@ How a hospital file becomes published prices.
 
 With `PRICE_LOAD=1` (the workflow sets it when `download_price_files` is ticked), each downloaded file in JSON, CSV tall or CSV wide is also parsed (`price_parser.parse`, streaming: `ijson` items for JSON, `csv` rows for CSV) and copied into `price.price` with PostgreSQL COPY (`price_load.load_prices`) in its own savepoint. The import run moves `discovered → … → loading → quality_review` through the enforced state machine and stops there; the dataset version stays `staged`. A disk-space guard (`PRICE_LOAD_MIN_FREE_BYTES`, default 4 GiB) skips loading further files rather than filling the disk. Measured in the workspace: 848,430 rows from a 100 MB synthetic JSON in 18.3 s (≈46,000 rows/s), ≈368 bytes per row including indexes.
 
+## Steps 7–8 (built 2026-11-08): review and publish
+
+`publish.pending_reviews` lists staged datasets waiting in `quality_review` with their counts, refusals, flags, file date and problems (CLI `review-list`). A person runs `approve --dataset ID --reviewer NAME [--note]` or `reject --dataset ID --reviewer NAME --reason ...`. Approval writes the dataset to one zstd Parquet file (`parquet_io.write_dataset`), re-reads it and compares row count and exact sums with the database (any difference stops the publish), stores it under `published/<state>/<facility>/<dataset>.parquet` without ever overwriting, retires the facility's previous dataset and file, marks the new one published and writes an audit event — one transaction. If the transaction fails after the file was stored, the file is left unreferenced (never served). Reads go through `price_store.find_prices`, which validates every filter first and opens only current published files.
+
 ## TODO
 
 - Adapter list and parser_version scheme.

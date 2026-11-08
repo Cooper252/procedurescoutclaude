@@ -38,6 +38,7 @@ ignore = ["S101"]  # assert is fine in tests
 "db/migrations/*" = ["S608", "E501"]
 # SQL built only from fixed column lists, checked UUIDs and own temp paths (see module docstring)
 "packages/ingest/procedurescout_ingest/storage_experiment.py" = ["S608"]
+"packages/ingest/procedurescout_ingest/parquet_io.py" = ["S608"]
 
 [tool.mypy]
 python_version = "3.12"

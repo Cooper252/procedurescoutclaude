@@ -2,6 +2,30 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-08 — D-033 approved; review step and published Parquet files, implemented and tested
+
+Cooper approved D-033 ("Yes").
+- Migration `0011_published_files.py`: review fields on `src.dataset_version`; `src.published_file` manifest (exact sums, SHA-256, one current file per facility and price source); `price.published_file` view for the API role.
+- `procedurescout_ingest/publish.py`: `pending_reviews`, `approve` (exact Parquet via `parquet_io.write_dataset`, verified against the database, stored without overwrite, previous dataset and file retired, audit event, one transaction), `reject` (reason required).
+- `procedurescout_core/object_store.py` (local store; S3-compatible store waits for the hosting decision) and `procedurescout_core/price_store.py` (`find_prices`: validates facilities, code type and code before reading; only current published files; Decimal amounts).
+- CLI: `review-list`, `approve --dataset --reviewer [--note]`, `reject --dataset --reviewer --reason`; store folder from `PRICE_STORE_DIR`.
+- CLAUDE.md rule 7 updated for published Parquet files.
+- Not yet: a persistent database or store (nothing is reviewed or published for real until hosting is chosen and approved); an admin console page for the review; an API endpoint.
+- Tests: `tests/test_publish.py` (6).
+
+`make lint typecheck test`: `248 passed, 1 warning` (Python 3.13); `/tmp/v312/bin/python -m pytest -q`: `248 passed, 1 warning`.
+
+## 2026-11-08 — Run #13: 29 Nevada hospitals, 48,972,607 prices staged, 16 refused; storage comparison
+
+Artifact `reference-nv (12).zip` (read 2026-11-08), plus `prices-home (1).zip` (Carson Valley downloaded on Cooper's computer).
+
+- Price load: 31 files chosen, 30 downloaded (5,880,788,068 bytes), **29 loaded, 48,972,607 prices staged, 16 refused** (run #12: 156,776 refused). The 16 are Banner Churchill's trailing rows without a code. Nothing published.
+- Fixes confirmed: Seven Hills 14,069 prices (was 0); Pershing 28,743 (was 15,678 with 13,065 refused); UHS sub-cent rates kept and flagged `more_than_4_decimals` (e.g. Summerlin 24,328); Banner, Mesa View, Mt. Grant recovered; the HCA drug-unit flags are gone (their units had more than 4 decimals).
+- New: Spring Valley loaded (3,384,551 prices; its cms-hpt.txt answered this time) and Carson Valley via Cooper's computer (268,097 prices).
+- Still without a file: Renown ×2 (429), Incline Village (403), William Bee Ririe, St. Rose North Las Vegas, Reno Behavioral, 2 state hospitals, Harmon, Thrive, 3 federal; Grover C. Dils (dead link); South Lyon (not the CMS template).
+- `price.price_nv` 18,899,877,888 bytes with indexes; database 18,922,320,355 bytes.
+- **Storage comparison** (`storage-experiment.json`): current 18,899,951,616 bytes; normalized ≈6.8 GB estimated (3,131,046 distinct items, 639 payer/plan pairs); **Parquet per facility 281,912,696 bytes**, `round_trip_exact: true`, lookup of HCPCS C1713 (22 facilities, 7,660,778 rows) 76 ms in Parquet vs 805 ms in PostgreSQL. Parquet export took 1,429 s. Proposal recorded as D-033 (awaiting Cooper).
+
 ## 2026-11-07 — Storage experiment for national scale (NAT-02), implemented and tested
 
 - `procedurescout_ingest/storage_experiment.py`: for the loaded prices, measures (A) the current PostgreSQL table, (B) a normalized PostgreSQL layout, estimated from exact distinct item and payer/plan counts and sampled column sizes, and (C) compressed Parquet files per facility written with DuckDB (sorted by code, zstd), with an exact round-trip check of all amounts and percentages and a timed lookup of the most widely listed CPT/HCPCS code in Parquet vs PostgreSQL. Intermediate CSVs are gzip-compressed and deleted; Parquet files live in a temporary folder.

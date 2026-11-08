@@ -2,6 +2,14 @@
 
 Newest first. Each entry: decision, reason, consequences.
 
+## 2026-11-08 — D-033 (approved by Cooper 2026-11-08): Published prices stored as compressed Parquet files; PostgreSQL keeps the small, changing data
+Run #13 measured the same 48,972,607 Nevada prices three ways (`storage-experiment.json`):
+- current PostgreSQL table: 18,899,951,616 bytes with indexes;
+- normalized PostgreSQL (estimate): ≈6.8 GB before indexes (3,131,046 distinct items, 639 distinct payer/plan pairs);
+- **Parquet, one zstd file per facility: 281,912,696 bytes (≈67× smaller)**, every amount and percentage identical after the round trip, and the lookup of one common code across all 22 facilities listing it took 76 ms vs 805 ms in PostgreSQL (same 7,660,778 rows found).
+
+Proposal: each published dataset version becomes one Parquet file per facility in object storage, read by the API with DuckDB only for the facilities a search needs; PostgreSQL keeps facilities, the service catalog, payer/plan aliases, provider accounts, provider-submitted prices and corrections, review state and lineage. Staging and quality review stay in PostgreSQL during ingestion. The API's "published only" guarantee (D-004) moves from a database view to storage permissions: the API can read only the published prefix. Rough national figure (≈10 billion rows extrapolated by hospital count): about 60 GB of Parquet, i.e. under $1/month of storage at Cloudflare R2's $0.015/GB-month (no egress fees), checked 2026-11-08; compute for the API is separate. Cooper approved on 2026-11-08 ("Yes"). Built first: the review step (`publish.py`), the exact Parquet writer (`parquet_io.py`), a local object store (`object_store.py`; the S3-compatible store waits for the hosting decision) and the validated read path (`price_store.py`). Amounts are stored in Parquet as DECIMAL(38,15): every value is numerically identical (checked on every publish), though trailing zeros are not preserved as text.
+
 ## 2026-11-07 — D-032: Any medical or wellness provider can list; search by service and by provider type
 Cooper (2026-11-07): listings are open to any medical or wellness provider, not only surgery centers and dental offices (e.g. medical spas, weight-loss clinics). The home search lets a person pick what they are looking for (e.g. Botox) and search every provider near them that offers it, or narrow to one provider type (e.g. medical spas).
 
