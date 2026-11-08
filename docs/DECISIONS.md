@@ -2,6 +2,27 @@
 
 Newest first. Each entry: decision, reason, consequences.
 
+## 2026-11-08 — D-044: The full (chargemaster) price is not a search choice
+Almost nobody pays a hospital's full price, so showing it as a third way of paying confused people (Cooper). Searches offer only "Paying cash" and "My insurance"; the bundle builder shows cash prices. The full price stays in each place's Details table and on the "Already got a bill?" page, where it helps people check a bill. A place with no published cash price says so instead of showing the full price as a headline. The API keeps `mode=list` for tools that need it.
+
+## 2026-11-08 — D-043: Public coverage limits and health centers on "Help paying"
+- Medicaid, CHIP (Nevada Check Up) and marketplace-savings income limits are stored as a percent of the poverty guideline with the official source and shown in dollars for the person's household ("up to about $29,863 a year for 2 people"), always as "may qualify". Limits are policy text read by Claude, so they stay proposed until Cooper approves them (rule 10). Dollar amounts use the latest HHS guideline; agencies count monthly income with their own rules, so the page says the program decides.
+- Community health centers come from HRSA's public site list (federally funded and look-alike centers charge on a sliding fee scale). Free clinics have no public national dataset; the page links to the state's 211 list (Nevada 211) instead of guessing.
+
+## 2026-11-08 — D-042: One standard service list; providers pick from it; specials never replace regular prices
+Cooper asked that providers choose services from a complete list instead of typing names, so the same thing is never listed three ways.
+- **Standard list** (`ref.procedure`, `data/reference/service_catalog.csv`): one entry per thing a patient would compare. Different things get different entries (filling on 1 vs 2 surfaces; massage 60 vs 90 minutes; spine vs full-spine adjustment); the same thing in other words is one entry plus reviewed synonyms ("back adjustment", "back alignment"). Each entry says what it includes, which kinds of provider offer it (`ref.procedure_provider_type`) and its unit; new units per tooth, quarter of the mouth, arch, eye, vial and shot. Combinations ("cleaning with X-rays") are packages (bundles), not new services. Code numbers only (rules 11, Q16).
+- **Providers can only price approved standard services** (database trigger on `prov.listing_price`). A missing service is requested and reviewed before anyone can use it.
+- **Specials** (`prov.offer`): special price, percent off or dollars off, for new patients or everyone, with dates and short terms. The database refuses a special that is not lower than the regular price. Specials are shown as labeled specials next to the regular price; sorting, "lowest near you" and the typical range use regular prices only (`procedurescout_core/offers.py`).
+- **"List price" renamed "Full price"** on the site (the hospital's starting, chargemaster price before discounts), with a plain explanation, because "list price" confused Cooper and would confuse patients.
+
+## 2026-11-08 — D-041: Insurance plans by card name, from the real Nevada spellings
+Cooper's answers (first "1" answered only question 1 because the other two were not shown to him; he then answered all three in writing: "1- 1, 2- 1, 3- 1"):
+1. **One-for-all rates.** When a hospital published one rate for all of an insurer's plans ("Aetna | MANAGED_CARE", "All Plans") and no rate for the person's own plan, that rate is shown for regular employer or individual plans (HMO, PPO, EPO, POS, HDHP; commercial) and labeled "All <insurer> plans" with a note. Never for Medicare, Medicaid, marketplace or employer/union plans, and never mixed with the plan's own rate where one exists (`plans.all_plans_spellings`, `search.py`).
+2. **Employer and union plans** (Culinary Health Fund, Teamsters, MGM Resorts, Clark County, ...) are choices in the picker under their own names.
+3. **Approved:** the high- and medium-confidence proposals (159 card names, 431 hospital spellings) in `data/reference/payers.csv` and `payer_aliases.csv`, reviewed_by Cooper. Low-confidence rows (insurer unclear, e.g. plain "Sierra") and everything not meant for the picker (networks, doctor groups, workers' comp, jails, hospice, specialty-only contracts, out-of-state Blue plans, test rows) stay unapproved in `data/reference/proposed/plan_names_proposed.csv`.
+A hospital payer spelling that holds plans of several companies (UMC's "Sierra Health and Life" also lists HPN Medicaid and employer plans) keeps one payer alias; matching uses only the plan alias rows.
+
 ## 2026-11-08 — D-040: How headline prices, typical ranges, badges and history are computed
 Build step 1 of `SITE_DESIGN.md` (`procedurescout_core/pricing.py`, `plans.py`):
 - **Headline:** per facility, the lowest published dollar amount of one price type only (cash, list, or the chosen plan's negotiated rate); several amounts are shown as a range.

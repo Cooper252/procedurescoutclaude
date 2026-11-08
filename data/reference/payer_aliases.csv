@@ -1,1 +1,432 @@
 raw_payer,raw_plan,payer,plan,reviewed_by,reviewed_at,notes
+HUMANA,HMO,Humana,HMO,Cooper,2026-11-08,high
+HUMANA,PPO,Humana,PPO,Cooper,2026-11-08,high
+SIERRA_HEALTH_OPTIONS,MANAGED_CARE,Sierra Health Options,All plans (one rate published for all),Cooper,2026-11-08,medium
+SIERRA_HEALTH_PLAN_OF_NEVADA,MANAGED_CARE,Health Plan of Nevada (HPN),All plans (one rate published for all),Cooper,2026-11-08,medium
+PROMINENCE,PPO,Prominence Health Plan,PPO,Cooper,2026-11-08,high
+PROMINENCE,HMO,Prominence Health Plan,HMO,Cooper,2026-11-08,high
+CIGNA,HMO,Cigna,HMO,Cooper,2026-11-08,high
+CIGNA,PPO,Cigna,PPO,Cooper,2026-11-08,high
+AETNA,MANAGED_CARE,Aetna,All plans (one rate published for all),Cooper,2026-11-08,medium
+AETNA,FIRST_HEALTH,Aetna,All plans (one rate published for all),Cooper,2026-11-08,medium
+UNITED_HEALTH_CARE,MANAGED_CARE,UnitedHealthcare,All plans (one rate published for all),Cooper,2026-11-08,medium
+Aetna,PPO,Aetna,PPO,Cooper,2026-11-08,high
+Aetna,HMO,Aetna,HMO,Cooper,2026-11-08,high
+Select Health,COMM,Select Health (Intermountain),All plans (one rate published for all),Cooper,2026-11-08,medium
+Centene,HIX,SilverSummit Healthplan (Centene),Marketplace (exchange) plan,Cooper,2026-11-08,high: Ambetter and Allwell are SilverSummit products
+Anthem,PPO,Anthem Blue Cross Blue Shield (Nevada),PPO,Cooper,2026-11-08,high
+Anthem,Pathway,Anthem Blue Cross Blue Shield (Nevada),Marketplace (exchange) plan,Cooper,2026-11-08,high
+Anthem,HIX,Anthem Blue Cross Blue Shield (Nevada),Marketplace (exchange) plan,Cooper,2026-11-08,high
+Anthem,HMO,Anthem Blue Cross Blue Shield (Nevada),HMO,Cooper,2026-11-08,high
+United,AllPayerAppendix,UnitedHealthcare,All plans (one rate published for all),Cooper,2026-11-08,medium
+CIGNA,OAP,Cigna,Open Access Plus (OAP),Cooper,2026-11-08,high
+Select Health,HIX,Select Health (Intermountain),Marketplace (exchange) plan,Cooper,2026-11-08,high
+Hometown Health Providers,HMO/PPO/POS,Hometown Health,All plans (one rate published for all),Cooper,2026-11-08,medium
+Hometown Health Providers,ThirdPartyAdministratior(TPA),Hometown Health,All plans (one rate published for all),Cooper,2026-11-08,medium
+One Health Plan,All Plans,One Health Plan,All plans (one rate published for all),Cooper,2026-11-08,medium
+NEVADA_SIERRA_HEALTH_&_LIFE,COMMERCIAL,Sierra Health and Life,All plans (one rate published for all),Cooper,2026-11-08,medium
+Molina Healthcare,MCD,Molina Healthcare,Medicaid plan,Cooper,2026-11-08,high
+Hometown Health Plan of Nevada,All Plans,Hometown Health,All plans (one rate published for all),Cooper,2026-11-08,medium
+Cement Masons & Plasters H&W,All Plans,Cement Masons & Plasters H&W,Employee / member plan,Cooper,2026-11-08,high: union health trust; card usually shows the trust
+Kaiser,POSPPO,Kaiser Permanente,POS,Cooper,2026-11-08,high
+Great West Healthcare,All Plans,Cigna,All plans (one rate published for all),Cooper,2026-11-08,medium
+Cigna,HealthPartners,Cigna,HealthPartners members,Cooper,2026-11-08,high: plan name points to this company or product
+National Security Technologies,All Plans,National Security Technologies,Employee / member plan,Cooper,2026-11-08,high: employer's own plan; card usually shows the employer
+Cirque De Soleil,All Plans,Cirque De Soleil,Employee / member plan,Cooper,2026-11-08,high: employer's own plan; card usually shows the employer
+Cigna,Generic,Cigna,All plans (one rate published for all),Cooper,2026-11-08,medium
+Boyd Group,All Plans,Boyd Group,Employee / member plan,Cooper,2026-11-08,high: employer's own plan; card usually shows the employer
+UFCW Local 711 Retail Clerks,All Plans,Ufcw Local 711 Retail Clerks,Employee / member plan,Cooper,2026-11-08,high: union health trust; card usually shows the trust
+Laborers Health and Welfare,All Plans,Laborers Health & Welfare Trust (Nevada),Employee / member plan,Cooper,2026-11-08,high: union health trust; card usually shows the trust
+Bricklayers Local 13,All Plans,Bricklayers Local 13,Employee / member plan,Cooper,2026-11-08,high: union health trust; card usually shows the trust
+Plumbers & Pipefitters Loc 525,All Plans,Plumbers & Pipefitters Local 525,Employee / member plan,Cooper,2026-11-08,high: union health trust; card usually shows the trust
+Teamsters Local 631,All Plans,Teamsters Local 631,Employee / member plan,Cooper,2026-11-08,high: union health trust; card usually shows the trust
+Electrical Workers,IBEW 357,IBEW Local 357,Employee / member plan,Cooper,2026-11-08,high: union health trust; card usually shows the trust
+Teamsters Local 14,All Plans,Teamsters Local 14,Employee / member plan,Cooper,2026-11-08,high: union health trust; card usually shows the trust
+Caesar's Entertainment,Anthem,Caesars Entertainment,Employee / member plan (Anthem),Cooper,2026-11-08,high: employer's own plan; card usually shows the employer
+Teamsters Local 986,All Plans,Teamsters Local 986,Employee / member plan,Cooper,2026-11-08,high: union health trust; card usually shows the trust
+Las Vegas Sand Corps,All Plans,Las Vegas Sands,Employee / member plan,Cooper,2026-11-08,high: employer's own plan; card usually shows the employer
+Culinary Health Fund,COMM,Culinary Health Fund,Employee / member plan,Cooper,2026-11-08,high
+City of North Las Vegas,All Plans,City Of North Las Vegas,Employee / member plan,Cooper,2026-11-08,high: employer's own plan; card usually shows the employer
+United Healthcare,All Plans,UnitedHealthcare,All plans (one rate published for all),Cooper,2026-11-08,medium
+GEHA-UHC,All Plans,GEHA (UnitedHealthcare network),All plans (one rate published for all),Cooper,2026-11-08,medium
+SUREST,All Plans,Surest (UnitedHealthcare),All plans (one rate published for all),Cooper,2026-11-08,medium
+United Healthcare,Oxford Health,UnitedHealthcare,Oxford Health,Cooper,2026-11-08,high: plan name points to this company or product
+United Healthcare,Golden Rule,Golden Rule (UnitedHealthcare),All plans (one rate published for all),Cooper,2026-11-08,medium: plan name points to this company or product
+United Healthcare,UMR,UMR (UnitedHealthcare),All plans (one rate published for all),Cooper,2026-11-08,medium: plan name points to this company or product
+United Healthcare,Generic,UnitedHealthcare,All plans (one rate published for all),Cooper,2026-11-08,medium
+American Postal Workers Health Plan,APWU,APWU Health Plan,All plans (one rate published for all),Cooper,2026-11-08,medium
+Wynn Resorts,All Plans,Wynn Resorts,Employee / member plan,Cooper,2026-11-08,high: employer's own plan; card usually shows the employer
+Resorts World Las Vegas,All Plans,Resorts World Las Vegas,Employee / member plan,Cooper,2026-11-08,high: employer's own plan; card usually shows the employer
+Clark County Self Funded,All Plans,Clark County (employee plan),Employee / member plan,Cooper,2026-11-08,high: employer's own plan; card usually shows the employer
+Aetna,International Passport to Health,Aetna,International members,Cooper,2026-11-08,high: plan name points to this company or product
+Clark County EPO,All Plans,Clark County (employee plan),Employee / member plan,Cooper,2026-11-08,high: employer's own plan; card usually shows the employer
+MGM Grand,MGM Properties,MGM Resorts,Employee / member plan,Cooper,2026-11-08,high: employer's own plan; card usually shows the employer
+Las Vegas Metro Police Dept,All Plans,Las Vegas Metro Police Dept,Employee / member plan,Cooper,2026-11-08,high: employer's own plan; card usually shows the employer
+Caesar's Entertainment,SHO,Caesars Entertainment,Employee / member plan (Sierra Health Options),Cooper,2026-11-08,high: employer's own plan; card usually shows the employer
+Culinary Workers HWF,All Plans,Culinary Health Fund,Employee / member plan,Cooper,2026-11-08,high
+Elevance (Anthem BCBS),MCR,Anthem Blue Cross Blue Shield (Nevada),Medicare Advantage,Cooper,2026-11-08,high
+Clark County Firefighters 1908,All Plans,Clark County Firefighters Local 1908,Employee / member plan,Cooper,2026-11-08,high: union health trust; card usually shows the trust
+Employee Painters Trust,All Plans,Employee Painters Trust,Employee / member plan,Cooper,2026-11-08,high: union health trust; card usually shows the trust
+City Of Henderson,All Plans,City Of Henderson,Employee / member plan,Cooper,2026-11-08,high: employer's own plan; card usually shows the employer
+Mirage Las Vegas,All Plans,MGM Resorts,Employee / member plan,Cooper,2026-11-08,high: employer's own plan; card usually shows the employer
+Operating Engineers,Local 501,Operating Engineers,Employee / member plan (Local 501),Cooper,2026-11-08,high: union health trust; card usually shows the trust
+Caesar's Entertainment,Aetna,Caesars Entertainment,Employee / member plan (Aetna),Cooper,2026-11-08,high: employer's own plan; card usually shows the employer
+United,OptionsPPO,UnitedHealthcare,Options PPO,Cooper,2026-11-08,high
+NV Health & Welfare Trust,COMM,Nv Health & Welfare Trust,Employee / member plan,Cooper,2026-11-08,high: union health trust; card usually shows the trust
+United,GlobalBenefitPlan,UnitedHealthcare,Global (international members),Cooper,2026-11-08,high: plan name points to this company or product
+Switch,All Plans,Switch,Employee / member plan,Cooper,2026-11-08,high: employer's own plan; card usually shows the employer
+Las Vegas Firefighters 1285,UHC,Las Vegas Firefighters 1285,Employee / member plan (UnitedHealthcare),Cooper,2026-11-08,high: union health trust; card usually shows the trust
+Las Vegas Firefighters 1285,All Plans,Las Vegas Firefighters 1285,Employee / member plan,Cooper,2026-11-08,high: union health trust; card usually shows the trust
+Blue Cross Blue Shield of Nevada,Anthem Medicaid,Anthem Blue Cross Blue Shield (Nevada),Medicaid plan,Cooper,2026-11-08,high
+Nevada Hand,All Plans,Nevada Hand,Employee / member plan,Cooper,2026-11-08,high: employer's own plan; card usually shows the employer
+MGM Grand,Resorts International Direct,MGM Resorts,Employee / member plan (Resorts International Direct),Cooper,2026-11-08,high: employer's own plan; card usually shows the employer
+State of Nevada,All Plans,State of Nevada PEBP,Employee / member plan,Cooper,2026-11-08,high: employer's own plan; card usually shows the employer
+Teacher's Health Trust,All Plans,Teachers Health Trust,Employee / member plan,Cooper,2026-11-08,high: union health trust; card usually shows the trust
+Stations Casinos,All Plans,Station Casinos,Employee / member plan,Cooper,2026-11-08,high: employer's own plan; card usually shows the employer
+Venetian/Palazzo,All Plans,The Venetian Resort,Employee / member plan,Cooper,2026-11-08,high: employer's own plan; card usually shows the employer
+Golden Entertainment,All Plans,Golden Entertainment,Employee / member plan,Cooper,2026-11-08,high: employer's own plan; card usually shows the employer
+Golden Nugget Hotel & Casino,All Plans,Golden Nugget Hotel & Casino,Employee / member plan,Cooper,2026-11-08,high: employer's own plan; card usually shows the employer
+PLI Las Vegas,All Plans,Pli Las Vegas,Employee / member plan,Cooper,2026-11-08,high: employer's own plan; card usually shows the employer
+Arroweye Solutions,All Plans,Arroweye Solutions,Employee / member plan,Cooper,2026-11-08,high: employer's own plan; card usually shows the employer
+Marshall Retail Group,All Plans,Marshall Retail Group,Employee / member plan,Cooper,2026-11-08,high: employer's own plan; card usually shows the employer
+Truline Corporation,All Plans,Truline Corporation,Employee / member plan,Cooper,2026-11-08,high: employer's own plan; card usually shows the employer
+Sierra Health and Life,Options,Sierra Health and Life,All plans (one rate published for all),Cooper,2026-11-08,medium
+Rebel Oil Company,All Plans,Rebel Oil Company,Employee / member plan,Cooper,2026-11-08,high: employer's own plan; card usually shows the employer
+Sierra Health and Life,Sierra Health Life Insurance,Sierra Health and Life,All plans (one rate published for all),Cooper,2026-11-08,medium
+Sierra Health and Life,WynnEncore,Wynn Resorts,Employee / member plan,Cooper,2026-11-08,high: plan name points to this company or product
+Sierra Health and Life,HPN HMO Bronze Plan,Health Plan of Nevada (HPN),HMO,Cooper,2026-11-08,high: plan name points to this company or product
+Sierra Health and Life,HPN Health Plan of Nevada,Health Plan of Nevada (HPN),All plans (one rate published for all),Cooper,2026-11-08,medium: plan name points to this company or product
+Sierra Health and Life,City of Las Vegas PPO,City of Las Vegas,Employee / member plan (PPO),Cooper,2026-11-08,high: plan name points to this company or product
+Sierra Health and Life,Sierra Choice,Sierra Health and Life,All plans (one rate published for all),Cooper,2026-11-08,medium
+Sierra Health and Life,City of Las Vegas HMO,City of Las Vegas,Employee / member plan (HMO),Cooper,2026-11-08,high: plan name points to this company or product
+Sierra Health and Life,HPN Open Access POS,Health Plan of Nevada (HPN),POS,Cooper,2026-11-08,high: plan name points to this company or product
+Molina,Medicaid,Molina Healthcare,Medicaid plan,Cooper,2026-11-08,high
+UNITED_HEALTH_CARE,HMO,UnitedHealthcare,HMO,Cooper,2026-11-08,high
+Blue Cross Blue Shield of Nevada,Anthem PPO,Anthem Blue Cross Blue Shield (Nevada),PPO,Cooper,2026-11-08,high
+Blue Cross Blue Shield of Nevada,Generic,Anthem Blue Cross Blue Shield (Nevada),All plans (one rate published for all),Cooper,2026-11-08,medium
+Blue Cross Blue Shield of Nevada,Anthem Federal,Anthem Blue Cross Blue Shield (Nevada),Federal Employee Program,Cooper,2026-11-08,high
+Southwest Carpenters H&W,All Plans,Southwest Carpenters H&W,Employee / member plan,Cooper,2026-11-08,high: union health trust; card usually shows the trust
+Blue Cross Blue Shield of Nevada,Anthem HMO,Anthem Blue Cross Blue Shield (Nevada),HMO,Cooper,2026-11-08,high
+Operating Engineers,Local 12,Operating Engineers,Employee / member plan (Local 12),Cooper,2026-11-08,high: union health trust; card usually shows the trust
+California Ironwork Field Welfare,All Plans,California Ironwork Field Welfare,Employee / member plan,Cooper,2026-11-08,high: union health trust; card usually shows the trust
+Sheet Metal Workers,All Plans,Sheet Metal Workers,Employee / member plan,Cooper,2026-11-08,high: union health trust; card usually shows the trust
+SO CA Pipe Trades H&W,All Plans,So Ca Pipe Trades H&W,Employee / member plan,Cooper,2026-11-08,high: union health trust; card usually shows the trust
+Centene,MCD,SilverSummit Healthplan (Centene),Medicaid plan,Cooper,2026-11-08,high: Ambetter and Allwell are SilverSummit products
+PROMINENCE,MANAGED_CARE,Prominence Health Plan,All plans (one rate published for all),Cooper,2026-11-08,medium
+CIGNA,Commercial,Cigna,All plans (one rate published for all),Cooper,2026-11-08,medium
+Molina,Marketplace,Molina Healthcare,Marketplace (exchange) plan,Cooper,2026-11-08,high
+Hometown Health Providers,Commercial,Hometown Health,All plans (one rate published for all),Cooper,2026-11-08,medium
+Silver Summit Health Plan (Centene),All Plans,SilverSummit Healthplan (Centene),All plans (one rate published for all),Cooper,2026-11-08,medium: Ambetter and Allwell are SilverSummit products
+Sierra Health and Life,HPN Nevada Checkup,Health Plan of Nevada (HPN),Nevada Check Up (children),Cooper,2026-11-08,high: plan name points to this company or product
+Sierra Health and Life,HPN Medicaid fka Smart Choice,Health Plan of Nevada (HPN),Medicaid plan,Cooper,2026-11-08,high: plan name points to this company or product
+ANTHEM_BLUE_CROSS_BLUE_SHIELD,MEDICAID,Anthem Blue Cross Blue Shield (Nevada),Medicaid plan,Cooper,2026-11-08,high
+Anthem,Commercial,Anthem Blue Cross Blue Shield (Nevada),All plans (one rate published for all),Cooper,2026-11-08,medium
+SMART_CHOICE,MEDICAID,Health Plan of Nevada (HPN),Medicaid plan,Cooper,2026-11-08,high
+SILVER_SUMMIT,MEDICAID,SilverSummit Healthplan (Centene),Medicaid plan,Cooper,2026-11-08,high: Ambetter and Allwell are SilverSummit products
+Aetna,Commercial,Aetna,All plans (one rate published for all),Cooper,2026-11-08,medium
+AETNA,FIRSTHEALTH,Aetna,All plans (one rate published for all),Cooper,2026-11-08,medium
+Health Net,Tricare West Region,TRICARE,TRICARE,Cooper,2026-11-08,high
+Aetna,Medicare Managed Care,Aetna,Medicare Advantage,Cooper,2026-11-08,high
+SelectHealth,Med Network,Select Health (Intermountain),All plans (one rate published for all),Cooper,2026-11-08,medium
+Advantra Freedom,All Plans,Advantra (Coventry Medicare),All plans (one rate published for all),Cooper,2026-11-08,medium
+SelectHealth,Value Network HMOPOS,Select Health (Intermountain),POS,Cooper,2026-11-08,high
+VA PC3 (VA Choice),Community Care,VA Community Care,VA Community Care,Cooper,2026-11-08,high
+Prominence Health Plan,PPO and Exchange,Prominence Health Plan,Marketplace (exchange) plan,Cooper,2026-11-08,high
+JW Marriott,All Plans,Jw Marriott,Employee / member plan,Cooper,2026-11-08,high: employer's own plan; card usually shows the employer
+Alignment Health,All Plans,Alignment Health,All plans (one rate published for all),Cooper,2026-11-08,medium
+Prominence Health Plan,HMO,Prominence Health Plan,HMO,Cooper,2026-11-08,high
+Zuffa,All Plans,Zuffa,Employee / member plan,Cooper,2026-11-08,high: employer's own plan; card usually shows the employer
+Molina,Medicare Advantage,Molina Healthcare,Medicare Advantage,Cooper,2026-11-08,high
+Aetna,Generic,Aetna,All plans (one rate published for all),Cooper,2026-11-08,medium
+Mail Handlers Benefit Plan,MHBP,Mail Handlers Benefit Plan,All plans (one rate published for all),Cooper,2026-11-08,medium
+Strategic Resource Company (SRC)/Aetna Student Health,SRC Student,Aetna Student Health,All plans (one rate published for all),Cooper,2026-11-08,medium
+Aetna,Meritain,Aetna,All plans (one rate published for all),Cooper,2026-11-08,medium
+Health Net,Generic,Health Net,All plans (one rate published for all),Cooper,2026-11-08,medium
+ANTHEM_BLUE_CROSS_BLUE_SHIELD,PPO,Anthem Blue Cross Blue Shield (Nevada),PPO,Cooper,2026-11-08,high
+Aetna,QHP GateKeeper,Aetna,Marketplace (exchange) plan,Cooper,2026-11-08,high
+ANTHEM_BLUE_CROSS_BLUE_SHIELD,HMO,Anthem Blue Cross Blue Shield (Nevada),HMO,Cooper,2026-11-08,high
+ANTHEM_BLUE_CROSS_BLUE_SHIELD,QHP,Anthem Blue Cross Blue Shield (Nevada),Marketplace (exchange) plan,Cooper,2026-11-08,high
+United,Commercial|Options,UnitedHealthcare,All plans (one rate published for all),Cooper,2026-11-08,medium
+Oscar,Commercial|All Plans,Oscar Health,All plans (one rate published for all),Cooper,2026-11-08,medium
+Nevada Energy,All Plans,NV Energy,Employee / member plan,Cooper,2026-11-08,high: employer's own plan; card usually shows the employer
+Ambetter,Centene All Plans,SilverSummit Healthplan (Centene),Marketplace (exchange) plan,Cooper,2026-11-08,high: Ambetter and Allwell are SilverSummit products
+SCAN,Medicare,SCAN Health Plan,Medicare Advantage,Cooper,2026-11-08,high
+United,MGMCD,UnitedHealthcare,Medicaid plan,Cooper,2026-11-08,high
+CareMore,MCR,CareMore Health,Medicare Advantage,Cooper,2026-11-08,high
+Alignment Health Plan,MCR,Alignment Health,Medicare Advantage,Cooper,2026-11-08,high
+Aetna,MCR,Aetna,Medicare Advantage,Cooper,2026-11-08,high
+Cigna,Commercial|PPO,Cigna,PPO,Cooper,2026-11-08,high
+Cigna,Commercial|All Other Plans,Cigna,All plans (one rate published for all),Cooper,2026-11-08,medium
+Evernorth,COMM,Cigna,All plans (one rate published for all),Cooper,2026-11-08,medium
+Aetna,Commercial|HMO,Aetna,HMO,Cooper,2026-11-08,high
+United,MGMCR,UnitedHealthcare,Medicare Advantage,Cooper,2026-11-08,high
+United,Commercial,UnitedHealthcare,All plans (one rate published for all),Cooper,2026-11-08,medium
+Aetna,Commercial|All Other Plans,Aetna,All plans (one rate published for all),Cooper,2026-11-08,medium
+Aetna,Commercial|PPO,Aetna,PPO,Cooper,2026-11-08,high
+BCBS - Anthem,Commercial|PPO,Anthem Blue Cross Blue Shield (Nevada),PPO,Cooper,2026-11-08,high
+United,Commercial|All Other Plans,UnitedHealthcare,All plans (one rate published for all),Cooper,2026-11-08,medium
+Anthem,MGMCD,Anthem Blue Cross Blue Shield (Nevada),Medicaid plan,Cooper,2026-11-08,high
+Molina,MCD,Molina Healthcare,Medicaid plan,Cooper,2026-11-08,high
+Silver Summit,MGMCD,SilverSummit Healthplan (Centene),Medicaid plan,Cooper,2026-11-08,high: Ambetter and Allwell are SilverSummit products
+Health Plan of NV,Commercial|All Plans,Health Plan of Nevada (HPN),All plans (one rate published for all),Cooper,2026-11-08,medium
+Sierra Health Options,Commercial|Prime,Sierra Health Options,All plans (one rate published for all),Cooper,2026-11-08,medium
+Sierra Health Options,Commercial|State of NV,Sierra Health Options,All plans (one rate published for all),Cooper,2026-11-08,medium
+SelectHealth,Medicare HMO,Select Health (Intermountain),Medicare Advantage,Cooper,2026-11-08,high
+Sierra Health and Life,SHL Medicare Advantage,Sierra Health and Life,Medicare Advantage,Cooper,2026-11-08,high
+BCBS - Anthem,Commercial|HMO,Anthem Blue Cross Blue Shield (Nevada),HMO,Cooper,2026-11-08,high
+Hometown Health,All Products (Fully Insured and Self-Funded),Hometown Health,All plans (one rate published for all),Cooper,2026-11-08,medium
+Intermountain,Medicare|All Plans,Select Health (Intermountain),Medicare Advantage,Cooper,2026-11-08,high
+CareSource,MGMCD,CareSource,Medicaid plan,Cooper,2026-11-08,high
+Anthem,Medicaid|All Plans,Anthem Blue Cross Blue Shield (Nevada),Medicaid plan,Cooper,2026-11-08,high
+Humana,Medicare|All Plans,Humana,Medicare Advantage,Cooper,2026-11-08,high
+United,Medicare|All Plans,UnitedHealthcare,Medicare Advantage,Cooper,2026-11-08,high
+CareMore,Medicare|All Plans,CareMore Health,Medicare Advantage,Cooper,2026-11-08,high
+Alignment,Commercial|All Plans,Alignment Health,All plans (one rate published for all),Cooper,2026-11-08,medium
+SilverSummitHealthPlan,Medicaid|All Plans,SilverSummit Healthplan (Centene),Medicaid plan,Cooper,2026-11-08,high: Ambetter and Allwell are SilverSummit products
+Sierra Health Plan NV,Medicaid|All Plans,Health Plan of Nevada (HPN),Medicaid plan,Cooper,2026-11-08,high
+Aetna,Medicare|All Plans,Aetna,Medicare Advantage,Cooper,2026-11-08,high
+BCBS - Anthem,Medicare|All Plans,Anthem Blue Cross Blue Shield (Nevada),Medicare Advantage,Cooper,2026-11-08,high
+Humana,MCRHMO,Humana,Medicare Advantage,Cooper,2026-11-08,high
+Humana,MCRPPO,Humana,Medicare Advantage,Cooper,2026-11-08,high
+Hometown Health MCR,MCR,Hometown Health,Medicare Advantage,Cooper,2026-11-08,high
+Sierra HPN,MCD,Health Plan of Nevada (HPN),Medicaid plan,Cooper,2026-11-08,high
+Select Health,MCRPPO,Select Health (Intermountain),Medicare Advantage,Cooper,2026-11-08,high
+United Healthcare,Medicare Advantage PPO,UnitedHealthcare,Medicare Advantage,Cooper,2026-11-08,high
+United Healthcare,Medicare Solutions HMO,UnitedHealthcare,Medicare Advantage,Cooper,2026-11-08,high
+Allwell,Wellcare,SilverSummit Healthplan (Centene),All plans (one rate published for all),Cooper,2026-11-08,medium: Ambetter and Allwell are SilverSummit products
+Health Plan Nevada,MCD,Health Plan of Nevada (HPN),Medicaid plan,Cooper,2026-11-08,high
+Anthem Blue Cross Blue Shield,Medicaid,Anthem Blue Cross Blue Shield (Nevada),Medicaid plan,Cooper,2026-11-08,high
+Silver Summit,HIX,SilverSummit Healthplan (Centene),Marketplace (exchange) plan,Cooper,2026-11-08,high: Ambetter and Allwell are SilverSummit products
+Anthem,MCR,Anthem Blue Cross Blue Shield (Nevada),Medicare Advantage,Cooper,2026-11-08,high
+SilverSummit,Medicaid,SilverSummit Healthplan (Centene),Medicaid plan,Cooper,2026-11-08,high: Ambetter and Allwell are SilverSummit products
+Blue Cross Blue Shield of Nevada,Medicare Advantage HMO,Anthem Blue Cross Blue Shield (Nevada),Medicare Advantage,Cooper,2026-11-08,high
+Blue Cross Blue Shield of Nevada,Medicare Advantage PPO,Anthem Blue Cross Blue Shield (Nevada),Medicare Advantage,Cooper,2026-11-08,high
+Sierra Health and Life,Senior Dimension,Sierra Health and Life,Medicare Advantage,Cooper,2026-11-08,high
+Scan,All Plans,SCAN Health Plan,All plans (one rate published for all),Cooper,2026-11-08,medium
+NV Laborers Health & Welfare Trust Fund,Commercial,Laborers Health & Welfare Trust (Nevada),Employee / member plan,Cooper,2026-11-08,high: union health trust; card usually shows the trust
+Hometown Health Plan,Commercial,Hometown Health,All plans (one rate published for all),Cooper,2026-11-08,medium
+CareSource Medicaid,CareSource Medicaid,CareSource,Medicaid plan,Cooper,2026-11-08,high
+Centene,MCR,SilverSummit Healthplan (Centene),Medicare Advantage,Cooper,2026-11-08,high: Ambetter and Allwell are SilverSummit products
+SilverSummit,Commercial Exchange,SilverSummit Healthplan (Centene),Marketplace (exchange) plan,Cooper,2026-11-08,high: Ambetter and Allwell are SilverSummit products
+Molina,Commercial,Molina Healthcare,All plans (one rate published for all),Cooper,2026-11-08,medium
+PacifiCare of Nevada Inc,Medicare Advantage,UnitedHealthcare,Medicare Advantage,Cooper,2026-11-08,high
+PacifiCare of Nevada Inc,Commercial,UnitedHealthcare,All plans (one rate published for all),Cooper,2026-11-08,medium
+Health Net,Tricare,TRICARE,TRICARE,Cooper,2026-11-08,high
+Geha,ASA,GEHA,All plans (one rate published for all),Cooper,2026-11-08,medium
+United,Medicare,UnitedHealthcare,Medicare Advantage,Cooper,2026-11-08,high
+Kaiser,Northern CA,Kaiser Permanente,Visiting members (Northern California),Cooper,2026-11-08,high: plan name points to this company or product
+Kaiser,Hawaii,Kaiser Permanente,Visiting members (Hawaii),Cooper,2026-11-08,high: plan name points to this company or product
+Kaiser,Southern CA,Kaiser Permanente,Visiting members (Southern California),Cooper,2026-11-08,high: plan name points to this company or product
+Cigna,All Plans,Cigna,All plans (one rate published for all),Cooper,2026-11-08,medium
+Aetna,Aetna,Aetna,All plans (one rate published for all),Cooper,2026-11-08,medium
+Hometown Health,Hometown Health,Hometown Health,All plans (one rate published for all),Cooper,2026-11-08,medium
+TriWest Healthcare Alliance,Veterans,TRICARE,TRICARE,Cooper,2026-11-08,high: TriWest runs TRICARE West
+Anthem,Managed Medicaid,Anthem Blue Cross Blue Shield (Nevada),Medicaid plan,Cooper,2026-11-08,high
+Silver Summit,Managed Medicaid,SilverSummit Healthplan (Centene),Medicaid plan,Cooper,2026-11-08,high: Ambetter and Allwell are SilverSummit products
+United Healthcare,Medicare Solutions PPO,UnitedHealthcare,Medicare Advantage,Cooper,2026-11-08,high
+Blue Cross Blue Shield of Nevada,Anthem Medicare Advantage PPO,Anthem Blue Cross Blue Shield (Nevada),Medicare Advantage,Cooper,2026-11-08,high
+Blue Cross Blue Shield of Nevada,Anthem Medicare Advantage HMO,Anthem Blue Cross Blue Shield (Nevada),Medicare Advantage,Cooper,2026-11-08,high
+Anthem Blue Cross Blue Shield,Commercial,Anthem Blue Cross Blue Shield (Nevada),All plans (one rate published for all),Cooper,2026-11-08,medium
+Silver Summit,Silver Summit,SilverSummit Healthplan (Centene),All plans (one rate published for all),Cooper,2026-11-08,medium: Ambetter and Allwell are SilverSummit products
+CIGNA,CIGNA,Cigna,All plans (one rate published for all),Cooper,2026-11-08,medium
+Prominence,Prominence,Prominence Health Plan,All plans (one rate published for all),Cooper,2026-11-08,medium
+United Healthcare,United Healthcare,UnitedHealthcare,All plans (one rate published for all),Cooper,2026-11-08,medium
+Care Source,Care Source,CareSource,All plans (one rate published for all),Cooper,2026-11-08,medium
+Healthplan Nevada,Healthplan Nevada,Health Plan of Nevada (HPN),All plans (one rate published for all),Cooper,2026-11-08,medium
+Anthem,Anthem,Anthem Blue Cross Blue Shield (Nevada),All plans (one rate published for all),Cooper,2026-11-08,medium
+Sierra Health and Life,Sierra Health and Life,Sierra Health and Life,All plans (one rate published for all),Cooper,2026-11-08,medium
+Humana,Medicare Advantage,Humana,Medicare Advantage,Cooper,2026-11-08,high
+ANTHEM_BLUE_CROSS_BLUE_SHIELD,MEDICARE,Anthem Blue Cross Blue Shield (Nevada),Medicare Advantage,Cooper,2026-11-08,high
+AETNA,MEDICARE,Aetna,Medicare Advantage,Cooper,2026-11-08,high
+SILVER_SUMMIT,MANAGED_CARE,SilverSummit Healthplan (Centene),All plans (one rate published for all),Cooper,2026-11-08,medium: Ambetter and Allwell are SilverSummit products
+SILVER_SUMMIT,MEDICARE,SilverSummit Healthplan (Centene),Medicare Advantage,Cooper,2026-11-08,high: Ambetter and Allwell are SilverSummit products
+UNITED_HEALTH_CARE,MEDICARE,UnitedHealthcare,Medicare Advantage,Cooper,2026-11-08,high
+Tricare,Tricare,TRICARE,TRICARE,Cooper,2026-11-08,high: TriWest runs TRICARE West
+Hometown Health Plan Nevada,All Plans,Hometown Health,All plans (one rate published for all),Cooper,2026-11-08,medium
+MOLINA,MEDICARE,Molina Healthcare,Medicare Advantage,Cooper,2026-11-08,high
+AETNA,QHP,Aetna,Marketplace (exchange) plan,Cooper,2026-11-08,high
+SIERRA_HEALTH_PLAN_OF_NEVADA,MEDICARE,Health Plan of Nevada (HPN),Medicare Advantage,Cooper,2026-11-08,high
+SELECT_HEALTH,MEDICARE,Select Health (Intermountain),Medicare Advantage,Cooper,2026-11-08,high
+CAREMORE_HEALTH,MEDICARE,CareMore Health,Medicare Advantage,Cooper,2026-11-08,high
+SELECT_HEALTH,MANAGED_CARE,Select Health (Intermountain),All plans (one rate published for all),Cooper,2026-11-08,medium
+ALIGNMENT_HEALTH,MEDICARE,Alignment Health,Medicare Advantage,Cooper,2026-11-08,high
+TRIWEST,FEDERAL,TRICARE,TRICARE,Cooper,2026-11-08,high: TriWest runs TRICARE West
+Anthem_BCBS,All Products,Anthem Blue Cross Blue Shield (Nevada),All plans (one rate published for all),Cooper,2026-11-08,medium
+AETNA-ALL PLANS,AETNA-ALL PLANS,Aetna,All plans (one rate published for all),Cooper,2026-11-08,medium
+Sierra Health and Life,Nevada Hand,Sierra Health and Life,All plans (one rate published for all),Cooper,2026-11-08,medium
+Ambetter,Commercial Exchange Plan,SilverSummit Healthplan (Centene),Marketplace (exchange) plan,Cooper,2026-11-08,high: Ambetter and Allwell are SilverSummit products
+Anthem_Pathway,All Products_HMO,Anthem Blue Cross Blue Shield (Nevada),Marketplace (exchange) plan,Cooper,2026-11-08,high
+UHC COMM-ALL OTHER PLANS,UHC COMM-ALL OTHER PLANS,UnitedHealthcare,All plans (one rate published for all),Cooper,2026-11-08,medium
+ANTHEM BCBS-ALL OTHER PLANS,ANTHEM BCBS-ALL OTHER PLANS,Anthem Blue Cross Blue Shield (Nevada),All plans (one rate published for all),Cooper,2026-11-08,medium
+ANTHEM BCBS MCR ADV,ANTHEM BCBS MCR ADV,Anthem Blue Cross Blue Shield (Nevada),Medicare Advantage,Cooper,2026-11-08,high
+Hometown Health,PPO/EPO,Hometown Health,PPO / EPO,Cooper,2026-11-08,high
+Hometown Health,HMO,Hometown Health,HMO,Cooper,2026-11-08,high
+SilverSummit Healthplan,Commercial Exchange,SilverSummit Healthplan (Centene),Marketplace (exchange) plan,Cooper,2026-11-08,high: Ambetter and Allwell are SilverSummit products
+United Healthcare,Commercial,UnitedHealthcare,All plans (one rate published for all),Cooper,2026-11-08,medium
+SELECTHEALTH MCARE-ALL PLANS,SELECTHEALTH MCARE-ALL PLANS,Select Health (Intermountain),Medicare Advantage,Cooper,2026-11-08,high
+CIGNA-ALL PLANS,CIGNA-ALL PLANS,Cigna,All plans (one rate published for all),Cooper,2026-11-08,medium
+United Healthcare,All Products,UnitedHealthcare,All plans (one rate published for all),Cooper,2026-11-08,medium
+Aetna,All Products,Aetna,All plans (one rate published for all),Cooper,2026-11-08,medium
+Cigna_Greatwest,All Products,Cigna,All plans (one rate published for all),Cooper,2026-11-08,medium
+Silver Summit,All Products _Ambetter,SilverSummit Healthplan (Centene),Marketplace (exchange) plan,Cooper,2026-11-08,high: Ambetter and Allwell are SilverSummit products
+Silver Summit,Silver Summit Medicare,SilverSummit Healthplan (Centene),Medicare Advantage,Cooper,2026-11-08,high: Ambetter and Allwell are SilverSummit products
+Aetna,Aetna Medicare,Aetna,Medicare Advantage,Cooper,2026-11-08,high
+Traditional Medicare,Traditional Medicare,Original Medicare,Original Medicare,Cooper,2026-11-08,high
+Aetna,Medicare Advantage,Aetna,Medicare Advantage,Cooper,2026-11-08,high
+United Healthcare,Medicare Advantage,UnitedHealthcare,Medicare Advantage,Cooper,2026-11-08,high
+Prominence,All Products,Prominence Health Plan,All plans (one rate published for all),Cooper,2026-11-08,medium
+Alignment,Medicare Advantage,Alignment Health,Medicare Advantage,Cooper,2026-11-08,high
+Silver Summit,Medicare Advantage_Allwell,SilverSummit Healthplan (Centene),Medicare Advantage,Cooper,2026-11-08,high: Ambetter and Allwell are SilverSummit products
+UHC,UHC Commercial All Payer,UnitedHealthcare,All plans (one rate published for all),Cooper,2026-11-08,medium
+Aetna,Aetna Commercial,Aetna,All plans (one rate published for all),Cooper,2026-11-08,medium
+Anthem BCBS,Anthem PAR PPO,Anthem Blue Cross Blue Shield (Nevada),PPO,Cooper,2026-11-08,high
+Anthem BCBS,Anthem Exchange,Anthem Blue Cross Blue Shield (Nevada),Marketplace (exchange) plan,Cooper,2026-11-08,high
+Silver Summit,Silver Summit Medicaid,SilverSummit Healthplan (Centene),Medicaid plan,Cooper,2026-11-08,high: Ambetter and Allwell are SilverSummit products
+Anthem BCBS,Anthem Medicaid,Anthem Blue Cross Blue Shield (Nevada),Medicaid plan,Cooper,2026-11-08,high
+Traditional Medicaid,Traditional Medicaid,Nevada Medicaid (fee for service),Medicaid,Cooper,2026-11-08,high
+ANTHEM BCBS MCAID,ANTHEM BCBS MCAID,Anthem Blue Cross Blue Shield (Nevada),Medicaid plan,Cooper,2026-11-08,high
+BCBS of NV,BCBS of Nevada,Anthem Blue Cross Blue Shield (Nevada),All plans (one rate published for all),Cooper,2026-11-08,medium
+UNITED_HEALTHCARE,MANAGED_CARE,UnitedHealthcare,All plans (one rate published for all),Cooper,2026-11-08,medium
+SilverSummit Healthplan,Medicare Advantage,SilverSummit Healthplan (Centene),Medicare Advantage,Cooper,2026-11-08,high: Ambetter and Allwell are SilverSummit products
+TriWest Healthcare Alliance Corp - VA CCN,Tricare,VA Community Care,VA Community Care,Cooper,2026-11-08,high
+UHC,UHC,UnitedHealthcare,All plans (one rate published for all),Cooper,2026-11-08,medium
+UHC,UHC Options PPO,UnitedHealthcare,Options PPO,Cooper,2026-11-08,high
+Silver Summit,Silver Summit Commercial (Insurance Exchange),SilverSummit Healthplan (Centene),Marketplace (exchange) plan,Cooper,2026-11-08,high: Ambetter and Allwell are SilverSummit products
+Health Plan of Nevada,HPN Medicare,Health Plan of Nevada (HPN),Medicare Advantage,Cooper,2026-11-08,high: plan name points to this company or product
+Saint Mary health Plan,Saint Mary Health Plan Medicare,Saint Mary's Health Plan,Medicare Advantage,Cooper,2026-11-08,high
+Health Net Federal Services Tricare,Health Net Federal Services Tricare (1/1/2025 - 12/31/2026),TRICARE,TRICARE,Cooper,2026-11-08,high: TriWest runs TRICARE West
+UHC,Optum Care,UnitedHealthcare,All plans (one rate published for all),Cooper,2026-11-08,medium
+Silver Summit,Silver Summit Commercials,SilverSummit Healthplan (Centene),All plans (one rate published for all),Cooper,2026-11-08,medium: Ambetter and Allwell are SilverSummit products
+Imperial Insurance Company,Imperial Insurance Company Medicare,Imperial Insurance Companies,Medicare Advantage,Cooper,2026-11-08,high
+Anthem BCBS,Anthem BCBS Medicare,Anthem Blue Cross Blue Shield (Nevada),Medicare Advantage,Cooper,2026-11-08,high
+Imperial Insurance Company,Imperial Insurance Company Commercial Ins Exchange,Imperial Insurance Companies,Marketplace (exchange) plan,Cooper,2026-11-08,high
+Imperial Insurance Company,Imperial Insurance Company Commercial,Imperial Insurance Companies,All plans (one rate published for all),Cooper,2026-11-08,medium
+Alignment,Alignment Health Plan,Alignment Health,All plans (one rate published for all),Cooper,2026-11-08,medium
+Molina Healthcare Of NV,Molina Healthcare Of NV Medicare,Molina Healthcare,Medicare Advantage,Cooper,2026-11-08,high
+Triwest,Triwest Medicare (1/1/2025 - 12/31/2026),TRICARE,TRICARE,Cooper,2026-11-08,high: TriWest runs TRICARE West
+Saint Mary health Plan,Saint Mary Health Plan Medicare Atrio,Saint Mary's Health Plan,Medicare Advantage,Cooper,2026-11-08,high
+Intermountain Healthcare (HCP),Healthcare Partner Commercial,Select Health (Intermountain),All plans (one rate published for all),Cooper,2026-11-08,medium
+Imperial Insurance Companies,Imperial Insurance Company Exchange,Imperial Insurance Companies,Marketplace (exchange) plan,Cooper,2026-11-08,high
+Imperial Insurance Companies,Imperial Insurance Company Medicare,Imperial Insurance Companies,Medicare Advantage,Cooper,2026-11-08,high
+Triwest,Triwest,TRICARE,TRICARE,Cooper,2026-11-08,high: TriWest runs TRICARE West
+Anthem BCBS,Anthem Medicare,Anthem Blue Cross Blue Shield (Nevada),Medicare Advantage,Cooper,2026-11-08,high
+Imperial Insurance Companies,Imperial Insurance Company Commercial,Imperial Insurance Companies,All plans (one rate published for all),Cooper,2026-11-08,medium
+Health Net Federal Services Tricare,Health Net Federal Services Tricare (1/1/2025 - 12/31/2025),TRICARE,TRICARE,Cooper,2026-11-08,high: TriWest runs TRICARE West
+Intermountain Healthcare (HCP),Healthcare Partner SR Medicare,Select Health (Intermountain),Medicare Advantage,Cooper,2026-11-08,high
+Alignment,Alignment Medicare,Alignment Health,Medicare Advantage,Cooper,2026-11-08,high
+Molina Healthcare,Molina Medicare,Molina Healthcare,Medicare Advantage,Cooper,2026-11-08,high
+CareSource,CareSource HIX,CareSource,Marketplace (exchange) plan,Cooper,2026-11-08,high
+Aetna Medicare,HMO,Aetna,Medicare Advantage,Cooper,2026-11-08,high: Medicare plans
+HumanaHCP,MANAGED_MEDICARE,Humana,Medicare Advantage,Cooper,2026-11-08,high
+SR_CARE_PLUS,MANAGED_MEDICARE,Health Plan of Nevada (HPN),Medicare Advantage,Cooper,2026-11-08,high
+VHS_Employees_HPN,Commercial,Health Plan of Nevada (HPN),All plans (one rate published for all),Cooper,2026-11-08,medium
+UHC,HMO,UnitedHealthcare,HMO,Cooper,2026-11-08,high
+SELECT HEALTH,MANAGED_MEDICARE,Select Health (Intermountain),Medicare Advantage,Cooper,2026-11-08,high
+Humana,Commercial,Humana,All plans (one rate published for all),Cooper,2026-11-08,medium
+Ambetter,Commercial,SilverSummit Healthplan (Centene),Marketplace (exchange) plan,Cooper,2026-11-08,high: Ambetter and Allwell are SilverSummit products
+Sierra HPN,Commercial,Health Plan of Nevada (HPN),All plans (one rate published for all),Cooper,2026-11-08,medium
+Anthem Blue Cross Blue Shield Pathway X,HMO,Anthem Blue Cross Blue Shield (Nevada),Marketplace (exchange) plan,Cooper,2026-11-08,high
+Great West Healthcare (Mediversal),PPO,Cigna,PPO,Cooper,2026-11-08,high
+Anthem Blue Cross Blue Shield Indeminity,PPO,Anthem Blue Cross Blue Shield (Nevada),PPO,Cooper,2026-11-08,high
+Silversummit Medicare,HMO,SilverSummit Healthplan (Centene),Medicare Advantage,Cooper,2026-11-08,high: Ambetter and Allwell are SilverSummit products
+Select Health,HMO,Select Health (Intermountain),HMO,Cooper,2026-11-08,high
+Teachers Trust,PPO,Teachers Health Trust,Employee / member plan,Cooper,2026-11-08,high: union health trust; card usually shows the trust
+Humana-Medicare Advantage,HMO,Humana,Medicare Advantage,Cooper,2026-11-08,high
+Humana-Commerical,PPO,Humana,PPO,Cooper,2026-11-08,high
+Alignment Medicare,HMO,Alignment Health,Medicare Advantage,Cooper,2026-11-08,high
+Sierra/HPN,HMO,Health Plan of Nevada (HPN),HMO,Cooper,2026-11-08,high
+Sierra Healthcare Options,PPO,Sierra Health Options,PPO,Cooper,2026-11-08,high
+One Health,PPO,One Health Plan,PPO,Cooper,2026-11-08,high
+United Healthcare,PPO,UnitedHealthcare,PPO,Cooper,2026-11-08,high
+TriWest,PPO,TRICARE,TRICARE,Cooper,2026-11-08,high: TriWest runs TRICARE West
+Saint Mary's Health Plan,PPO,Saint Mary's Health Plan,PPO,Cooper,2026-11-08,high
+Southpoint (Gaghan South),PPO,South Point Hotel & Casino,Employee / member plan,Cooper,2026-11-08,high: employer's own plan; card usually shows the employer
+UHC,UHC Options,UnitedHealthcare,Options PPO,Cooper,2026-11-08,high
+UHC Adhoc,UHC Adhoc,UnitedHealthcare,All plans (one rate published for all),Cooper,2026-11-08,medium
+Health Plan of Nevada,HPN Medicaid,Health Plan of Nevada (HPN),Medicaid plan,Cooper,2026-11-08,high: plan name points to this company or product
+Molina Healthcare,Molina Medicaid,Molina Healthcare,Medicaid plan,Cooper,2026-11-08,high
+Molina Healthcare Of NV,Molina Healthcare Of NV Medicaid,Molina Healthcare,Medicaid plan,Cooper,2026-11-08,high
+Sierra (HPN) Medicaid,HPN Medicaid,Health Plan of Nevada (HPN),Medicaid plan,Cooper,2026-11-08,high: plan name points to this company or product
+BCBS of NV,Managed Medicare 100%,Anthem Blue Cross Blue Shield (Nevada),Medicare Advantage,Cooper,2026-11-08,high
+Humana,Managed Medicare 100%,Humana,Medicare Advantage,Cooper,2026-11-08,high
+Senior Dimensions,Managed Medicare 100%,UnitedHealthcare,Medicare Advantage,Cooper,2026-11-08,high
+Aetna,Managed Medicare 100%,Aetna,Medicare Advantage,Cooper,2026-11-08,high
+UHC,Managed Medicare 100%,UnitedHealthcare,Medicare Advantage,Cooper,2026-11-08,high
+Kaiser,Managed Medicare 100%,Kaiser Permanente,Medicare Advantage,Cooper,2026-11-08,high
+Cigna,all,Cigna,All plans (one rate published for all),Cooper,2026-11-08,medium
+Ambetter,All,SilverSummit Healthplan (Centene),Marketplace (exchange) plan,Cooper,2026-11-08,high: Ambetter and Allwell are SilverSummit products
+Blue Cross Blue Shield of NV Anthem,All,Anthem Blue Cross Blue Shield (Nevada),All plans (one rate published for all),Cooper,2026-11-08,medium
+Healthscope,All,HealthSCOPE Benefits,All plans (one rate published for all),Cooper,2026-11-08,"medium: administers employer plans (e.g. Clark County, Nevada PEBP)"
+Aetna,all,Aetna,All plans (one rate published for all),Cooper,2026-11-08,medium
+Hometown Health Plan NV,All,Hometown Health,All plans (one rate published for all),Cooper,2026-11-08,medium
+UHC MCAID,UHC MCAID,UnitedHealthcare,Medicaid plan,Cooper,2026-11-08,high
+Anthem Medicaid,HMO,Anthem Blue Cross Blue Shield (Nevada),Medicaid plan,Cooper,2026-11-08,high
+Molina Medicaid,HMO,Molina Healthcare,Medicaid plan,Cooper,2026-11-08,high
+HPN Medicaid,HMO,Health Plan of Nevada (HPN),Medicaid plan,Cooper,2026-11-08,high
+SIERRA_SMART_CHOICE,MANAGED_MEDICAID,Health Plan of Nevada (HPN),Medicaid plan,Cooper,2026-11-08,high
+SilverSummit,MANAGED_MEDICAID,SilverSummit Healthplan (Centene),Medicaid plan,Cooper,2026-11-08,high: Ambetter and Allwell are SilverSummit products
+MOLINA NV,MEDICAID,Molina Healthcare,Medicaid plan,Cooper,2026-11-08,high
+Health Plan of Nevada,HPN Commercial,Health Plan of Nevada (HPN),All plans (one rate published for all),Cooper,2026-11-08,medium: plan name points to this company or product
+HUMANA,MEDICARE,Humana,Medicare Advantage,Cooper,2026-11-08,high
+PROMINENCE,MEDICARE,Prominence Health Plan,Medicare Advantage,Cooper,2026-11-08,high
+Anthem,All plans,Anthem Blue Cross Blue Shield (Nevada),All plans (one rate published for all),Cooper,2026-11-08,medium
+UMR,All plans,UMR (UnitedHealthcare),All plans (one rate published for all),Cooper,2026-11-08,medium: UMR administers employer plans
+Aetna,All plans,Aetna,All plans (one rate published for all),Cooper,2026-11-08,medium
+UHC,PPO,UnitedHealthcare,PPO,Cooper,2026-11-08,high
+ANTHEM BLUE CROSS BLUE SHIELD,HMO,Anthem Blue Cross Blue Shield (Nevada),HMO,Cooper,2026-11-08,high
+UNITED_HEALTHCARE,MEDICARE,UnitedHealthcare,Medicare Advantage,Cooper,2026-11-08,high
+Centene,Centene,SilverSummit Healthplan (Centene),All plans (one rate published for all),Cooper,2026-11-08,medium: Ambetter and Allwell are SilverSummit products
+Silversummit Medicare,PPO,SilverSummit Healthplan (Centene),Medicare Advantage,Cooper,2026-11-08,high: Ambetter and Allwell are SilverSummit products
+Triwest,Triwest (TRICARE)(1/1/2025 - 12/31/2026),TRICARE,TRICARE,Cooper,2026-11-08,high: TriWest runs TRICARE West
+ANTHEM_BCBS,MEDICAID,Anthem Blue Cross Blue Shield (Nevada),Medicaid plan,Cooper,2026-11-08,high
+[payer_AETNA MEDICARE],[plan_MANAGED MEDICARE],Aetna,Medicare Advantage,Cooper,2026-11-08,high: Medicare plans
+Alignment Medicare,PPO,Alignment Health,Medicare Advantage,Cooper,2026-11-08,high
+[payer_CAREMORE],[plan_MANAGED MEDICARE],CareMore Health,Medicare Advantage,Cooper,2026-11-08,high
+Select Health,PPO,Select Health (Intermountain),PPO,Cooper,2026-11-08,high
+[payer_MEDICAID],[plan_MEDICAID],Nevada Medicaid (fee for service),Medicaid,Cooper,2026-11-08,high
+Saint Mary's Health Plan,HMO,Saint Mary's Health Plan,HMO,Cooper,2026-11-08,high
+Molina Medicaid,PPO,Molina Healthcare,Medicaid plan,Cooper,2026-11-08,high
+[payer_TRICARE],[plan_TRICARE],TRICARE,TRICARE,Cooper,2026-11-08,high: TriWest runs TRICARE West
+[payer_AETNA],[plan_HMO/PPO],Aetna,All plans (one rate published for all),Cooper,2026-11-08,medium
+[payer_SILVERSUMMIT HEALTHPLAN],[plan_MANAGED MEDICAID],SilverSummit Healthplan (Centene),Medicaid plan,Cooper,2026-11-08,high: Ambetter and Allwell are SilverSummit products
+[payer_MOLINA MEDICAID NV],[plan_MANAGED MEDICAID],Molina Healthcare,Medicaid plan,Cooper,2026-11-08,high
+[payer_BLUE CROSS OF NV],[plan_BLUE CROSS],Anthem Blue Cross Blue Shield (Nevada),All plans (one rate published for all),Cooper,2026-11-08,medium
+[payer_GOLDEN RULE],[plan_HMO/PPO],Golden Rule (UnitedHealthcare),All plans (one rate published for all),Cooper,2026-11-08,medium
+[payer_BLUE CROSS OF NV HMO],[plan_BLUE CROSS],Anthem Blue Cross Blue Shield (Nevada),All plans (one rate published for all),Cooper,2026-11-08,medium
+[payer_HEALTHSCOPE-CLARK COUNTY],[plan_HMO/PPO],HealthSCOPE Benefits,All plans (one rate published for all),Cooper,2026-11-08,"medium: administers employer plans (e.g. Clark County, Nevada PEBP)"
+[payer_HOMETOWN HEALTH],[plan_HMO/PPO],Hometown Health,All plans (one rate published for all),Cooper,2026-11-08,medium
+[payer_BCBS FEDERAL EMPLOYEE],[plan_BLUE CROSS],Blue Cross Blue Shield Federal Employee Program,All plans (one rate published for all),Cooper,2026-11-08,medium
+[payer_EBMS LOCAL 1908],[plan_HMO/PPO],Clark County Firefighters Local 1908,Employee / member plan,Cooper,2026-11-08,high: union health trust; card usually shows the trust
+[payer_LOCAL 357],[plan_HMO/PPO],IBEW Local 357,Employee / member plan,Cooper,2026-11-08,high: union health trust; card usually shows the trust
+[payer_TEACHERS HEALTH TRUST],[plan_HMO/PPO],Teachers Health Trust,Employee / member plan,Cooper,2026-11-08,high: union health trust; card usually shows the trust
+[payer_LOCAL 631],[plan_HMO/PPO],Teamsters Local 631,Employee / member plan,Cooper,2026-11-08,high: union health trust; card usually shows the trust
+[payer_SIERRA HEALTH & LIFE],[plan_HMO/PPO],Sierra Health and Life,All plans (one rate published for all),Cooper,2026-11-08,medium
+[payer_PLUMBERS/PIPEFITTERS 525],[plan_HMO/PPO],Plumbers & Pipefitters Local 525,Employee / member plan,Cooper,2026-11-08,high: union health trust; card usually shows the trust
+[payer_MERITAIN HEALTH],[plan_HMO/PPO],Meritain Health,All plans (one rate published for all),Cooper,2026-11-08,medium: administers employer plans
+[payer_PEBP HEALTHSCOPE],[plan_HMO/PPO],HealthSCOPE Benefits,All plans (one rate published for all),Cooper,2026-11-08,"medium: administers employer plans (e.g. Clark County, Nevada PEBP)"
+[payer_CIGNA],[plan_HMO/PPO],Cigna,All plans (one rate published for all),Cooper,2026-11-08,medium
+[payer_HPN MEDICAID],[plan_MANAGED MEDICAID],Health Plan of Nevada (HPN),Medicaid plan,Cooper,2026-11-08,high
+[payer_LOCAL 986],[plan_HMO/PPO],Teamsters Local 986,Employee / member plan,Cooper,2026-11-08,high: union health trust; card usually shows the trust
+[payer_MGM MIRAGE],[plan_HMO/PPO],MGM Resorts,Employee / member plan,Cooper,2026-11-08,high: employer's own plan; card usually shows the employer
+[payer_HR NEVADA UMR],[plan_HMO/PPO],UMR (UnitedHealthcare),All plans (one rate published for all),Cooper,2026-11-08,medium: UMR administers employer plans
+[payer_CULINARY HEALTH PLAN],[plan_HMO/PPO],Culinary Health Fund,Employee / member plan,Cooper,2026-11-08,high
+[payer_UMR VENETIAN],[plan_HMO/PPO],UMR (UnitedHealthcare),All plans (one rate published for all),Cooper,2026-11-08,medium: UMR administers employer plans
+[payer_UMR PPO],[plan_HMO/PPO],UMR (UnitedHealthcare),All plans (one rate published for all),Cooper,2026-11-08,medium: UMR administers employer plans
+[payer_AMBETTER SILVERSUMMIT],[plan_HMO/PPO],SilverSummit Healthplan (Centene),Marketplace (exchange) plan,Cooper,2026-11-08,high: Ambetter and Allwell are SilverSummit products
+[payer_PROMINENCE HEALTH PLAN],[plan_HMO/PPO],Prominence Health Plan,All plans (one rate published for all),Cooper,2026-11-08,medium
+[payer_CHAMPVA],[plan_VETERANS ADMIN],CHAMPVA,CHAMPVA,Cooper,2026-11-08,high
+[payer_LOCAL 14],[plan_HMO/PPO],Teamsters Local 14,Employee / member plan,Cooper,2026-11-08,high: union health trust; card usually shows the trust
+[payer_HPN COMMERCIAL],[plan_HMO/PPO],Health Plan of Nevada (HPN),All plans (one rate published for all),Cooper,2026-11-08,medium
+[payer_CONSTRUCTION/LABORERS 872],[plan_HMO/PPO],Laborers Health & Welfare Trust (Nevada),Employee / member plan,Cooper,2026-11-08,high: union health trust; card usually shows the trust
+[payer_MEDICARE],[plan_MEDICARE],Original Medicare,Original Medicare,Cooper,2026-11-08,high
+[payer_HUMANA MEDICARE],[plan_MANAGED MEDICARE],Humana,Medicare Advantage,Cooper,2026-11-08,high
+Southpoint (Gaghan South),HMO,South Point Hotel & Casino,Employee / member plan,Cooper,2026-11-08,high: employer's own plan; card usually shows the employer
+[payer_SCAN HEALTH PLAN],[plan_MANAGED MEDICARE],SCAN Health Plan,Medicare Advantage,Cooper,2026-11-08,high
+[payer_SELECT HEALTH],[plan_HMO/PPO],Select Health (Intermountain),All plans (one rate published for all),Cooper,2026-11-08,medium
+[payer_SELECT HEALTH IHC],[plan_MANAGED MEDICARE],Select Health (Intermountain),Medicare Advantage,Cooper,2026-11-08,high
+[payer_UHC MEDICARE],[plan_MANAGED MEDICARE],UnitedHealthcare,Medicare Advantage,Cooper,2026-11-08,high
+[payer_UHC MEDICARE SOLUTIONS],[plan_MANAGED MEDICARE],UnitedHealthcare,Medicare Advantage,Cooper,2026-11-08,high
+[payer_HUMANA GOLD],[plan_MANAGED MEDICARE],Humana,Medicare Advantage,Cooper,2026-11-08,high
+TriWest,HMO,TRICARE,TRICARE,Cooper,2026-11-08,high: TriWest runs TRICARE West
+[payer_ALLWELL SILVERSUMMIT],[plan_MANAGED MEDICARE],SilverSummit Healthplan (Centene),Medicare Advantage,Cooper,2026-11-08,high: Ambetter and Allwell are SilverSummit products
+One Health,HMO,One Health Plan,HMO,Cooper,2026-11-08,high

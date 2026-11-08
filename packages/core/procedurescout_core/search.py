@@ -19,7 +19,7 @@ from sqlalchemy import Connection, text
 
 from .enums import CodeSystem
 from .object_store import ObjectStore
-from .plans import PlanError, approved_spellings, matches
+from .plans import PlanError, all_plans_spellings, approved_spellings, matches
 from .price_store import PublishedPrice, find_prices
 from .pricing import (
     MODE_PRICE_TYPE,
@@ -58,6 +58,7 @@ class FacilityResult:
     headline: Headline | None = None
     badges: Badges = field(default_factory=Badges)
     change_percent: Decimal | None = None  # headline vs the previous published file
+    all_plans_rate: bool = False  # plan rates here are the insurer's one rate for all plans
 
 
 @dataclass(frozen=True, slots=True)
@@ -70,6 +71,7 @@ class SearchResult:
     note: str | None = None
     mode: str = "cash"
     typical: Typical | None = None
+    all_plans_spellings: frozenset[tuple[str, str]] = frozenset()
 
 
 def _codes_for_service(
@@ -140,11 +142,13 @@ def search(
     if (mode == "plan") != (plan_id is not None):
         raise SearchError("a plan is needed for plan prices (and only for them)")
     spellings: set[tuple[str, str]] = set()
+    fallback: set[tuple[str, str]] = set()
     if plan_id is not None:
         try:
             spellings = approved_spellings(conn, plan_id)
         except PlanError as exc:
             raise SearchError(str(exc)) from exc
+        fallback = all_plans_spellings(conn, plan_id)
     if not 1 <= max_facilities <= MAX_FACILITIES:
         raise SearchError(f"max_facilities must be 1 to {MAX_FACILITIES}")
     if provider_type is not None:
@@ -219,13 +223,22 @@ def search(
         for system, value in codes:
             for p in find_prices(conn, store, [uuid.UUID(i) for i in with_files], system, value):
                 by_facility.setdefault(p.facility_id, []).append(p)
+    uses_all_plans: set[str] = set()
     if plan_id is not None:
         # only this plan's negotiated rates (by approved spellings) plus cash and
-        # list prices for comparison; other plans are never shown in its place
-        by_facility = {
-            fid: [p for p in rows if p.price_type != "negotiated" or matches(p, spellings)]
-            for fid, rows in by_facility.items()
-        }
+        # list prices for comparison; other plans are never shown in its place.
+        # Where a hospital published no rate for this plan but one rate for all
+        # of the insurer's plans, that rate is used and labeled.
+        filtered: dict[str, list[PublishedPrice]] = {}
+        for fid, rows in by_facility.items():
+            exact = [p for p in rows if p.price_type == "negotiated" and matches(p, spellings)]
+            pool = exact or [
+                p for p in rows if p.price_type == "negotiated" and matches(p, fallback)
+            ]
+            if pool and not exact:
+                uses_all_plans.add(fid)
+            filtered[fid] = [p for p in rows if p.price_type != "negotiated"] + pool
+        by_facility = filtered
     heads = {fid: headline(rows, mode) for fid, rows in by_facility.items()}
     cash_heads = {fid: headline(rows, "cash") for fid, rows in by_facility.items()}
     present = [h for h in heads.values() if h is not None]
@@ -242,7 +255,8 @@ def search(
         now = heads.get(fid)
         rows = previous.get(fid, [])
         if plan_id is not None:
-            rows = [p for p in rows if p.price_type != "negotiated" or matches(p, spellings)]
+            wanted = fallback if fid in uses_all_plans else spellings
+            rows = [p for p in rows if p.price_type != "negotiated" or matches(p, wanted)]
         before = headline(rows, mode) if rows else None
         if now is None or before is None or now.possible_error or before.possible_error:
             return None
@@ -264,6 +278,7 @@ def search(
             headline=heads.get(str(f[0])),
             badges=badges(heads.get(str(f[0])), present, typ, cash_heads.get(str(f[0]))),
             change_percent=change(str(f[0])),
+            all_plans_rate=str(f[0]) in uses_all_plans,
         )
         for f in facilities
     )
@@ -279,7 +294,77 @@ def search(
         note=note,
         mode=mode,
         typical=typ,
+        all_plans_spellings=frozenset(fallback),
     )
+
+
+@dataclass(frozen=True, slots=True)
+class Nearby:
+    facility_id: str
+    name: str
+    city: str | None
+    state_code: str
+    distance_miles: Decimal
+    provider_types: tuple[str, ...]
+
+
+def nearby(
+    conn: Connection,
+    *,
+    latitude: Decimal,
+    longitude: Decimal,
+    radius_miles: Decimal = Decimal(25),
+    provider_type: str | None = None,
+    limit: int = MAX_FACILITIES,
+) -> list[Nearby]:
+    """Active facilities near a place (for the "help paying" check), nearest
+    first; no prices are read. Filters are validated like search()."""
+    if not (Decimal(-90) <= latitude <= Decimal(90)) or not (
+        Decimal(-180) <= longitude <= Decimal(180)
+    ):
+        raise SearchError("latitude/longitude out of range")
+    if not (Decimal(1) <= radius_miles <= Decimal(MAX_RADIUS_MILES)):
+        raise SearchError(f"radius must be 1 to {MAX_RADIUS_MILES} miles")
+    if provider_type is not None and not (
+        _PTYPE.match(provider_type)
+        and conn.execute(
+            text("SELECT 1 FROM ref.provider_type WHERE code = :c AND review_state = 'approved'"),
+            {"c": provider_type},
+        ).first()
+    ):
+        raise SearchError(f"unknown provider type: {provider_type!r}")
+    rows = conn.execute(
+        text(
+            """
+            SELECT f.id, f.name, f.city, f.state_code,
+                   round(CAST(ST_Distance(f.geom, p.pt) AS numeric) / :mpm, 1) AS miles,
+                   coalesce(array_agg(fpt.provider_type ORDER BY fpt.provider_type)
+                            FILTER (WHERE fpt.provider_type IS NOT NULL), '{}') AS types
+            FROM ref.facility f
+            CROSS JOIN (
+                SELECT CAST(ST_SetSRID(ST_MakePoint(:lng, :lat), 4326) AS geography) AS pt
+            ) p
+            LEFT JOIN ref.facility_provider_type fpt ON fpt.facility_id = f.id
+            WHERE f.geom IS NOT NULL AND f.status = 'active'
+              AND ST_DWithin(f.geom, p.pt, :meters)
+              AND (CAST(:ptype AS text) IS NULL OR EXISTS (
+                    SELECT 1 FROM ref.facility_provider_type x
+                    WHERE x.facility_id = f.id AND x.provider_type = :ptype))
+            GROUP BY f.id, f.name, f.city, f.state_code, p.pt, f.geom
+            ORDER BY miles, f.name
+            LIMIT :n
+            """
+        ),
+        {
+            "lat": latitude,
+            "lng": longitude,
+            "meters": radius_miles * METERS_PER_MILE,
+            "mpm": METERS_PER_MILE,
+            "ptype": provider_type,
+            "n": max(1, min(limit, MAX_FACILITIES)),
+        },
+    ).all()
+    return [Nearby(str(r[0]), str(r[1]), r[2], str(r[3]), Decimal(r[4]), tuple(r[5])) for r in rows]
 
 
 @dataclass(frozen=True, slots=True)

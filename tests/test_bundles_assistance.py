@@ -49,7 +49,10 @@ def test_committed_files_load(conn: Connection) -> None:
     a = catalog.load_assistance_policies(
         conn, (ROOT / "data/reference/assistance_policies.csv").read_text()
     )
-    assert b.rejects == [] and b.summary == {"bundles_proposed": 3}  # need clinical review
+    assert b.rejects == [] and b.summary == {
+        "bundles_proposed": 3,
+        "bundles_approved": 2,
+    }  # 3 medical need a clinician
     assert g.rows_loaded == 24
     # proposed policies name real CCNs (not in this synthetic database); check their syntax
     assert {r.rule for r in a.rejects} == {"facility_not_found"}

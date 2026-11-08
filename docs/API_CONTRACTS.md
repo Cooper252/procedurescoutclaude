@@ -14,10 +14,28 @@ Plans by the names on people's cards that have at least one approved hospital sp
 ## GET /v1/provider-types
 Approved provider types for the filter: `[{code, name}]`.
 
+## GET /v1/places/zip/{zip5}
+Centre of a ZIP code area (Census ZCTA) so people can search by ZIP: `{zip, state, lat, lng}` (strings). 404 if unknown, 422 if not 5 digits.
+
+## GET /v1/places/cities?state=
+Cities in a state with active, geocoded facilities, most facilities first: `[{state, city, slug, lat, lng, facilities}]`; the center is the center of those facilities. 422 for a bad state code.
+
+## GET /v1/places/city/{state}/{slug}
+One city from that list; 404 if unknown.
+
+## GET /v1/facilities/near
+Query: `lat`, `lng`, `radius_miles` (1–100, default 25), optional `provider_type` (approved code). Nearest active facilities, up to 50, without prices: `[{facility_id, name, city, state, distance_miles, provider_types}]`. Used by the help-paying check.
+
+## GET /v1/facilities/{facility_id}
+One active facility: `{facility_id, name, address, city, state, zip, phone, website, emergency_services, cms_rating, cms_rating_as_of, provider_types, prices_published_at, lat, lng}`. `website` is null unless a person reviewed it. 404 if unknown or not a UUID.
+
+## GET /v1/facilities/{facility_id}/prices?service=
+Every published price at that facility under the approved codes of one approved service: `{facility_id, service, service_name, unit, codes, prices_published_at, prices: [...]}` (same price fields as search). Empty `prices` when nothing is published; 422 for an unapproved service.
+
 ## GET /v1/search
 Query: `lat`, `lng` (required), `radius_miles` (1–100, default 25), and either `service` (an approved slug) or `code_system` + `code` (a code present in `ref.code`), optional `provider_type` (an approved code), `mode` (`cash` default | `list` | `plan`) and `plan_id` (required with `plan`).
 
-Response: `{service, service_name, unit, codes, note, facilities: [{facility_id, name, city, state, distance_miles, provider_types, status, prices_published_at, prices: [{price_source, code, description, setting, price_type, payer, plan, amount, percentage, algorithm, methodology}]}]}`. Each facility also has `headline` (lowest amount of the chosen type) and `headline_highest`, `headline_possible_error`, badges `lowest_near_you`, `below_typical`, `cash_cheaper_than_plan` with `badge_notes`, and `change_percent_since_last_file`; the response has `mode` and `typical` `{low, middle, high, count}` (null under 5 prices). Up to 50 nearest facilities. `status` is `prices` or `no_published_prices` (a facility nearby with nothing published is listed, never filled in). `price_source` is `hospital_file` today; `provider_submitted` and `provider_correction` later (D-030). Unknown or unapproved filters return 422 without reading any price.
+Response: `{service, service_name, unit, codes, note, facilities: [{facility_id, name, city, state, distance_miles, provider_types, status, prices_published_at, prices: [{price_source, code, description, setting, price_type, payer, plan, amount, percentage, algorithm, methodology}]}]}`. Each facility also has `headline` (lowest amount of the chosen type) and `headline_highest`, `headline_possible_error`, badges `lowest_near_you`, `below_typical`, `cash_cheaper_than_plan` with `badge_notes`, and `change_percent_since_last_file`, `plan_rate_is_all_plans` (plan mode: the rate is the insurer's one rate for all its plans, D-041), and each price has `plan_match` (`plan` | `all_plans`, plan mode only); the response has `mode` and `typical` `{low, middle, high, count}` (null under 5 prices). Up to 50 nearest facilities. `status` is `prices` or `no_published_prices` (a facility nearby with nothing published is listed, never filled in). `price_source` is `hospital_file` today; `provider_submitted` and `provider_correction` later (D-030). Unknown or unapproved filters return 422 without reading any price.
 
 ## Bundles and assistance (`care_routes.py`)
 - `GET /v1/assistance/message?state=NV` — `{message, detail}` for the banner on every page; with a state, the message states the common free-care and help limits in dollars from that state's reviewed policies.

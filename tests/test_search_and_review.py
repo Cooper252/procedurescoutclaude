@@ -69,8 +69,8 @@ def test_committed_catalog_files_load_with_review_state(conn: Connection) -> Non
         conn, (ROOT / "data/reference/service_catalog.csv").read_text()
     )
     assert types.rejects == [] and services.rejects == []
-    assert types.summary == {"approved": 11}  # Cooper approved the full list (2026-11-08)
-    assert services.summary == {"approved": services.rows_in}
+    assert types.summary == {"approved": 16}  # Cooper approved the full list (2026-11-08)
+    assert services.summary == {"approved": services.rows_in}  # Cooper (D-042)
     no_descriptor = conn.execute(
         text("SELECT count(*) FROM ref.code WHERE system = 'CPT' AND descriptor IS NOT NULL")
     ).scalar()
@@ -246,7 +246,79 @@ def test_search_box_suggestions_use_names_and_approved_words(
     assert "synthetic-proposed" not in [s.slug for s in suggest(conn, "synthetic")]
 
 
-def test_committed_synonyms_load_as_proposals(conn: Connection) -> None:
+def test_committed_synonyms_load_approved(conn: Connection) -> None:
+    catalog.load_provider_types(conn, (ROOT / "data/reference/provider_types.csv").read_text())
     catalog.load_services(conn, (ROOT / "data/reference/service_catalog.csv").read_text())
     stats = catalog.load_synonyms(conn, (ROOT / "data/reference/service_synonyms.csv").read_text())
-    assert stats.rejects == [] and stats.summary == {"proposed": stats.rows_in}
+    assert stats.rejects == [] and stats.summary == {"approved": stats.rows_in}  # Cooper
+
+
+def test_zip_lookup(client: TestClient, conn: Connection) -> None:
+    conn.execute(
+        text(
+            "INSERT INTO ref.county (county_fips, state_code, name, source) "
+            "VALUES ('32003', 'NV', 'Synthetic County', 'synthetic') ON CONFLICT DO NOTHING"
+        )
+    )
+    conn.execute(
+        text(
+            "INSERT INTO ref.zcta (zcta5, state_code, county_fips, crosses_counties, aland_m2, "
+            "geom, gazetteer_year, source) VALUES ('89999', 'NV', '32003', false, 1, "
+            "CAST(ST_SetSRID(ST_MakePoint(-115.14, 36.17), 4326) AS geography), 2026, 'synthetic')"
+        )
+    )
+    r = client.get("/v1/places/zip/89999").json()
+    assert (r["state"], r["lat"][:5], r["lng"][:7]) == ("NV", "36.17", "-115.14")
+    assert client.get("/v1/places/zip/00000").status_code == 404
+    assert client.get("/v1/places/zip/abc").status_code == 422
+
+
+def test_facilities_near(client: TestClient) -> None:
+    r = client.get(
+        "/v1/facilities/near",
+        params={"lat": "36.17", "lng": "-115.14", "provider_type": "hospital"},
+    )
+    assert r.status_code == 200, r.text
+    names = [f["name"] for f in r.json()]
+    assert names == ["SYNTHETIC VALLEY MEDICAL CENTER", "SYNTHETIC DESERT HOSPITAL"]  # Reno is out
+    assert r.json()[0]["distance_miles"] == "0.0" and "prices" not in r.json()[0]
+    bad = {"lat": "36.17", "lng": "-115.14", "provider_type": "no_such_type"}
+    assert client.get("/v1/facilities/near", params=bad).status_code == 422
+    far = {"lat": "36.17", "lng": "-115.14", "radius_miles": "500"}
+    assert client.get("/v1/facilities/near", params=far).status_code == 422
+
+
+def test_facility_page_endpoints(client: TestClient, conn: Connection) -> None:
+    near = client.get("/v1/facilities/near", params={"lat": "36.17", "lng": "-115.14"}).json()
+    fid = near[0]["facility_id"]
+    d = client.get(f"/v1/facilities/{fid}")
+    assert d.status_code == 200, d.text
+    assert d.json()["name"] == "SYNTHETIC VALLEY MEDICAL CENTER"
+    assert d.json()["prices_published_at"] is not None
+    p = client.get(f"/v1/facilities/{fid}/prices", params={"service": "synthetic-service"})
+    assert p.status_code == 200, p.text
+    body = p.json()
+    assert body["codes"] == ["CPT 99999"] and body["unit"] == "per_service"
+    assert ("gross", "100.1") in {(x["price_type"], x["amount"]) for x in body["prices"]}
+    other = near[1]["facility_id"]  # nearby, nothing published: no prices, never guessed
+    assert (
+        client.get(
+            f"/v1/facilities/{other}/prices", params={"service": "synthetic-service"}
+        ).json()["prices"]
+        == []
+    )
+    bad = client.get(f"/v1/facilities/{fid}/prices", params={"service": "synthetic-proposed"})
+    assert bad.status_code == 422  # unapproved service refused
+    assert client.get("/v1/facilities/not-a-uuid").status_code == 404
+    assert client.get("/v1/facilities/00000000-0000-4000-8000-000000000000").status_code == 404
+
+
+def test_city_places(client: TestClient) -> None:
+    rows = client.get("/v1/places/cities", params={"state": "NV"}).json()
+    assert rows and all(r["state"] == "NV" and r["facilities"] >= 1 for r in rows)
+    first = rows[0]
+    one = client.get(f"/v1/places/city/nv/{first['slug']}")
+    assert one.status_code == 200 and one.json()["city"] == first["city"]
+    assert client.get("/v1/places/city/nv/no-such-town").status_code == 404
+    assert client.get("/v1/places/city/nv/Bad Slug!").status_code == 404
+    assert client.get("/v1/places/cities", params={"state": "N1"}).status_code == 422

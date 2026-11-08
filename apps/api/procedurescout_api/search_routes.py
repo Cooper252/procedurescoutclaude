@@ -17,13 +17,17 @@ from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import Path as PathParam
 from pydantic import BaseModel
 from sqlalchemy import Connection, create_engine, text
 from sqlalchemy.engine import Engine
 
+from procedurescout_core.facilities import facility_detail, facility_prices
 from procedurescout_core.object_store import LocalStore, ObjectStore
-from procedurescout_core.plans import list_plans
-from procedurescout_core.search import SearchError, search, suggest
+from procedurescout_core.places import City, PlaceError, cities, city
+from procedurescout_core.plans import list_plans, matches
+from procedurescout_core.price_store import PriceQueryError, PublishedPrice
+from procedurescout_core.search import SearchError, SearchResult, nearby, search, suggest
 
 from .settings import get_settings
 
@@ -71,6 +75,7 @@ class Price(BaseModel):
     percentage: str | None
     algorithm: str | None
     methodology: str | None
+    plan_match: str | None = None  # "plan" or "all_plans" (insurer's one rate for all plans)
 
 
 class FacilityOut(BaseModel):
@@ -91,6 +96,7 @@ class FacilityOut(BaseModel):
     cash_cheaper_than_plan: bool
     badge_notes: list[str]
     change_percent_since_last_file: str | None
+    plan_rate_is_all_plans: bool = False
     prices: list[Price]
 
 
@@ -130,6 +136,107 @@ def services_suggest(
     ]
 
 
+class PlaceOut(BaseModel):
+    zip: str
+    state: str
+    lat: str
+    lng: str
+
+
+@router.get("/places/zip/{zip5}", response_model=PlaceOut)
+def place_for_zip(zip5: Annotated[str, PathParam(pattern="^[0-9]{5}$")], conn: Conn) -> PlaceOut:
+    """The center of a ZIP code area (Census ZCTA), so people can search by ZIP."""
+    row = conn.execute(
+        text(
+            "SELECT zcta5, state_code, ST_Y(geom::geometry)::text, ST_X(geom::geometry)::text "
+            "FROM ref.zcta WHERE zcta5 = :z"
+        ),
+        {"z": zip5},
+    ).first()
+    if row is None:
+        raise HTTPException(status_code=404, detail="ZIP code not found")
+    return PlaceOut(zip=row[0], state=row[1], lat=row[2], lng=row[3])
+
+
+class NearbyOut(BaseModel):
+    facility_id: str
+    name: str
+    city: str | None
+    state: str
+    distance_miles: str
+    provider_types: list[str]
+
+
+@router.get("/facilities/near", response_model=list[NearbyOut])
+def facilities_near(
+    conn: Conn,
+    lat: Annotated[Decimal, Query(ge=-90, le=90)],
+    lng: Annotated[Decimal, Query(ge=-180, le=180)],
+    radius_miles: Annotated[Decimal, Query(ge=1, le=100)] = Decimal(25),
+    provider_type: Annotated[str | None, Query(max_length=40)] = None,
+) -> list[NearbyOut]:
+    """Facilities near a place, nearest first (no prices), for the help-paying check."""
+    try:
+        rows = nearby(
+            conn,
+            latitude=lat,
+            longitude=lng,
+            radius_miles=radius_miles,
+            provider_type=provider_type,
+        )
+    except SearchError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return [
+        NearbyOut(
+            facility_id=n.facility_id,
+            name=n.name,
+            city=n.city,
+            state=n.state_code,
+            distance_miles=format(n.distance_miles, "f"),
+            provider_types=list(n.provider_types),
+        )
+        for n in rows
+    ]
+
+
+class CityOut(BaseModel):
+    state: str
+    city: str
+    slug: str
+    lat: str
+    lng: str
+    facilities: int
+
+
+def _city(c: City) -> CityOut:
+    return CityOut(
+        state=c.state_code, city=c.name, slug=c.slug, lat=c.lat, lng=c.lng, facilities=c.facilities
+    )
+
+
+@router.get("/places/cities", response_model=list[CityOut])
+def places_cities(
+    conn: Conn, state: Annotated[str, Query(min_length=2, max_length=2)]
+) -> list[CityOut]:
+    """Cities in a state that have facilities (for service-by-city pages)."""
+    try:
+        return [_city(c) for c in cities(conn, state)]
+    except PlaceError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.get("/places/city/{state}/{slug}", response_model=CityOut)
+def places_city(
+    conn: Conn,
+    state: Annotated[str, PathParam(min_length=2, max_length=2)],
+    slug: Annotated[str, PathParam(max_length=80)],
+) -> CityOut:
+    try:
+        return _city(city(conn, state, slug))
+    except PlaceError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
 class PlanOut(BaseModel):
     plan_id: str
     payer: str
@@ -151,6 +258,28 @@ def plans(conn: Conn) -> list[PlanOut]:
         )
         for p in list_plans(conn)
     ]
+
+
+def _price(p: PublishedPrice) -> Price:
+    return Price(
+        price_source=p.price_source,
+        code=f"{p.code_system} {p.code}",
+        description=p.description_raw,
+        setting=p.setting,
+        price_type=p.price_type,
+        payer=p.payer_name_raw,
+        plan=p.plan_name_raw,
+        amount=_s(p.amount),
+        percentage=_s(p.percentage),
+        algorithm=p.algorithm,
+        methodology=p.methodology,
+    )
+
+
+def _plan_match(out: Price, p: PublishedPrice, result: SearchResult) -> Price:
+    if result.mode == "plan" and p.price_type == "negotiated":
+        out.plan_match = "all_plans" if matches(p, set(result.all_plans_spellings)) else "plan"
+    return out
 
 
 def _s(value: Decimal | None) -> str | None:
@@ -245,23 +374,88 @@ def search_endpoint(
                 change_percent_since_last_file=None
                 if f.change_percent is None
                 else format(f.change_percent, "f"),
-                prices=[
-                    Price(
-                        price_source=p.price_source,
-                        code=f"{p.code_system} {p.code}",
-                        description=p.description_raw,
-                        setting=p.setting,
-                        price_type=p.price_type,
-                        payer=p.payer_name_raw,
-                        plan=p.plan_name_raw,
-                        amount=_s(p.amount),
-                        percentage=_s(p.percentage),
-                        algorithm=p.algorithm,
-                        methodology=p.methodology,
-                    )
-                    for p in f.prices
-                ],
+                plan_rate_is_all_plans=f.all_plans_rate,
+                prices=[_plan_match(_price(p), p, result) for p in f.prices],
             )
             for f in result.facilities
         ],
+    )
+
+
+class FacilityDetailOut(BaseModel):
+    facility_id: str
+    name: str
+    address: str | None
+    city: str | None
+    state: str
+    zip: str | None
+    phone: str | None
+    website: str | None
+    emergency_services: bool | None
+    cms_rating: int | None
+    cms_rating_as_of: str | None
+    provider_types: list[str]
+    prices_published_at: str | None
+    lat: str | None
+    lng: str | None
+
+
+@router.get("/facilities/{facility_id}", response_model=FacilityDetailOut)
+def facility(
+    facility_id: Annotated[str, PathParam(max_length=36)], conn: Conn
+) -> FacilityDetailOut:
+    """One facility's public details (website only when a person reviewed it)."""
+    try:
+        d = facility_detail(conn, facility_id)
+    except SearchError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return FacilityDetailOut(
+        facility_id=d.facility_id,
+        name=d.name,
+        address=d.address,
+        city=d.city,
+        state=d.state_code,
+        zip=d.zip5,
+        phone=d.phone,
+        website=d.website,
+        emergency_services=d.emergency_services,
+        cms_rating=d.cms_rating,
+        cms_rating_as_of=d.cms_rating_as_of,
+        provider_types=list(d.provider_types),
+        prices_published_at=d.prices_published_at,
+        lat=d.lat,
+        lng=d.lng,
+    )
+
+
+class FacilityPricesOut(BaseModel):
+    facility_id: str
+    service: str
+    service_name: str
+    unit: str
+    codes: list[str]
+    prices_published_at: str | None
+    prices: list[Price]
+
+
+@router.get("/facilities/{facility_id}/prices", response_model=FacilityPricesOut)
+def facility_service_prices(
+    facility_id: Annotated[str, PathParam(max_length=36)],
+    conn: Conn,
+    store: Store,
+    service: Annotated[str, Query(max_length=80)],
+) -> FacilityPricesOut:
+    """Every published price at one facility for one approved service."""
+    try:
+        r = facility_prices(conn, store, facility_id, service)
+    except (SearchError, PriceQueryError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return FacilityPricesOut(
+        facility_id=r.facility_id,
+        service=r.service_slug,
+        service_name=r.service_name,
+        unit=r.unit,
+        codes=list(r.codes),
+        prices_published_at=r.published_at,
+        prices=[_price(p) for p in r.prices],
     )

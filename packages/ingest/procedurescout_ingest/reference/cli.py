@@ -63,6 +63,7 @@ ASSISTANCE_CSV = "data/reference/assistance_policies.csv"
 PAYERS_CSV = "data/reference/payers.csv"
 PAYER_ALIASES_CSV = "data/reference/payer_aliases.csv"
 SYNONYMS_CSV = "data/reference/service_synonyms.csv"
+COVERAGE_CSV = "data/reference/coverage_limits.csv"
 STEP_DATASETS = {
     "hospitals": "cms_hospital_general_information",
     "ascs": "cms_asc_facility",
@@ -80,6 +81,7 @@ STEP_DATASETS = {
     "probe": "cms_hpt_txt_discovery",
     "price_files": "price_file_check",
     "catalog": "service_catalog",
+    "health_centers": "hrsa_health_center_sites",
 }
 
 
@@ -460,6 +462,7 @@ def cmd_catalog(args: argparse.Namespace, engine: Engine) -> None:
             ("payers", catalog.load_payers, PAYERS_CSV),
             ("payer_aliases", catalog.load_payer_aliases, PAYER_ALIASES_CSV),
             ("synonyms", catalog.load_synonyms, SYNONYMS_CSV),
+            ("coverage_limits", catalog.load_coverage_limits, COVERAGE_CSV),
         ):
             part = loader(c, Path(path).read_text())
             stats.rows_in += part.rows_in
@@ -470,6 +473,21 @@ def cmd_catalog(args: argparse.Namespace, engine: Engine) -> None:
         return stats
 
     _run(engine, "service_catalog", work, source_file="data/reference catalog CSVs")
+
+
+def cmd_health_centers(args: argparse.Namespace, engine: Engine) -> None:
+    """HRSA health center sites for one state (sliding-fee clinics, HELP-01)."""
+    from . import health_centers
+
+    with new_client() as client:
+        blob = acquire(args.file or health_centers.HRSA_SITES_URL, client)
+    _run(
+        engine,
+        "hrsa_health_center_sites",
+        lambda c: health_centers.load_health_centers(c, decode_text(blob.data), args.state),
+        blob=blob,
+        parameters={"state": args.state},
+    )
 
 
 def cmd_hcpcs(args: argparse.Namespace, engine: Engine) -> None:
@@ -626,6 +644,7 @@ def cmd_nv_all(args: argparse.Namespace, engine: Engine) -> None:
     if os.path.exists(ALIASES_CSV):
         step("aliases", lambda: cmd_aliases(ns(file=ALIASES_CSV), engine))
     step("catalog", lambda: cmd_catalog(ns(), engine))
+    step("health_centers", lambda: cmd_health_centers(ns(state=st, file=None), engine))
     if os.path.exists(WEBSITES_CSV):
         step("websites", lambda: cmd_websites(ns(file=WEBSITES_CSV), engine))
         step("discover", lambda: cmd_discover(ns(state=st), engine))
@@ -715,6 +734,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     state(sp)
 
+    sp = sub.add_parser("health-centers", help="HRSA health center sites for a state")
+    state(sp)
+    sp.add_argument("--file", default=None, help="CSV path or URL (default: HRSA download)")
     sp = sub.add_parser("hcpcs", help="HCPCS Level II codes")
     sp.add_argument("--file", default=HCPCS_OCT_2026_URL)
     sp.add_argument("--release", default="2026-10")
@@ -758,6 +780,7 @@ def main(argv: list[str] | None = None) -> None:
             "storage-experiment": lambda: cmd_storage_experiment(args, engine),
             "review-list": lambda: cmd_review_list(args, engine),
             "catalog": lambda: cmd_catalog(args, engine),
+            "health-centers": lambda: cmd_health_centers(args, engine),
             "auto-publish": lambda: cmd_auto_publish(args, engine),
             "approve": lambda: cmd_approve(args, engine),
             "reject": lambda: cmd_reject(args, engine),

@@ -2,6 +2,84 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-08 — Approvals and full price removed from search (D-044)
+
+Cooper approved: the standard service list (184 new services, 131 synonyms, 5 provider types; all now reviewed_by Cooper), the two dental packages (the 3 medical bundles still wait for a clinician), and the 4 Nevada coverage limits. Website: the "Full price" choice is gone from search and the bundle builder; it stays in Details and the bill steps; "No cash price published" is shown where there is none. Tests updated to the approved files.
+
+`make lint typecheck test`: `290 passed, 1 warning` (3.13); `/tmp/v312/bin/python -m pytest -q`: `290 passed, 1 warning`. Website `tsc` clean, build succeeded, no horizontal scroll at 390/1280 px.
+
+
+- Migration `0016_help_paying_sources.py`: `ref.health_center` (HRSA sites, API read) and `ref.coverage_limit` (proposed until reviewed), dataset `hrsa_health_center_sites`.
+- `reference/health_centers.py` + CLI `health-centers` (run in `nv-all`): loads HRSA's "Health Center Service Delivery and Look-Alike Sites" CSV for the state (active sites, location). The workspace cannot reach data.hrsa.gov (proxy 403), so the file is fetched in the GitHub run; columns are found by name and the step stops with the headers it saw if a required one is missing. **Not yet run on the real file.**
+- `data/reference/coverage_limits.csv` (proposed): Nevada adults Medicaid up to 138%, children (Medicaid or Nevada Check Up) up to 205%, pregnancy up to 205% (DWSS MAGI chart effective 4/1/2025), marketplace premium tax credit 138 to 400% (KFF: enhanced credits ended after 2025). `catalog.load_coverage_limits`; `assistance.coverage` turns approved limits into dollars for the household; the help check returns `coverage`.
+- API: `GET /v1/health-centers/near`.
+- Website help page: "You may also qualify for" (programs with dollar limits and apply links), community health centers near you (call, directions, website), free and charitable clinics (Nevada 211 link).
+- Tests: `tests/test_help_paying.py` (4), nv-all step list updated.
+
+`make lint typecheck test`: `290 passed, 1 warning` (3.13). Website `tsc` clean, build succeeded; help page walk-through at 390 px (2 people, $25,000: three Medicaid lines, two sample centers, 211 link), no horizontal scroll.
+
+
+- Migration `0015_master_catalog_offers.py`: `ref.procedure.includes`, `ref.procedure_provider_type`, six new units, schema `prov` with `listing_price` and `offer` (triggers: only approved services can be priced; a special must be lower than the regular price). API role has no access to `prov`.
+- `scripts/catalog_proposal.py` added **184 proposed services** (dental, chiropractic, massage, physical therapy, med spa, IV, weight loss, doctor and urgent care visits, ER levels, shots, labs, imaging, heart and sleep tests, eye and hearing care, surgery, mental health), each with what it includes and who offers it, plus 131 proposed synonyms and 5 proposed provider types (massage therapy, mental health, eye care, hearing care, podiatry). Two proposed dental packages in `bundles.csv`. All unreviewed (rule 10); Cooper's 18 approved services are unchanged.
+- `catalog.load_services` reads the optional `includes` and `provider_types` columns.
+- `procedurescout_core/offers.py`: rules, exact price with a special, plain wording.
+- Website: "List price" is now "Full price" with an explanation; provider results show "Regular price" with a labeled special underneath; units for the new kinds of prices.
+- Tests: `tests/test_catalog_offers.py` (5).
+
+`make lint typecheck test`: `286 passed, 1 warning` (3.13); `/tmp/v312/bin/python -m pytest -q`: `286 passed, 1 warning`. Website `tsc` clean, `npm run build` succeeded, special shown on the sample dentist at 390 px without horizontal scroll.
+
+
+- API: `GET /v1/places/cities?state=` and `GET /v1/places/city/{state}/{slug}` (cities with active geocoded facilities; center = center of their facilities). Core: `procedurescout_core/places.py`. Test: `test_city_places`.
+- Website, rendered on the server for search engines: `/prices` (cities + ZIP box), `/prices/{state}`, `/prices/{state}/{city}` (services), `/prices/{state}/{city}/{service}` and `/prices/zip/{zip}/{service}` (published cash prices within 25 miles, typical range, places with no price, disclaimer, free-care link, FAQ with structured data built only from the published prices, links to other services and nearby cities). `sitemap.xml` lists every city × service page; `robots.txt` and page `noindex` block indexing in preview mode so sample data is never indexed.
+- Results page: distance (5/10/25/50/100 miles), provider type and sort (lowest price / nearest; exact decimal comparison, no floats) filters; "search N miles" steps up when nothing is near.
+
+Checks run here: `make lint typecheck test`: `281 passed, 1 warning` (3.13); `/tmp/v312/bin/python -m pytest -q`: `281 passed, 1 warning`. Website: `tsc` clean; `npm run build` succeeded; Playwright: city page, ZIP box → ZIP page, 5-mile filter (2 places) and nearest-first sort at 390 and 1280 px, no horizontal scroll, no console errors; unknown city or service returns 404.
+
+
+Cooper answered all three questions in writing ("1- 1, 2- 1, 3- 1"): one-for-all rates labeled, employer and union plans in the picker, high + medium proposals approved. `payers.csv` (159) and `payer_aliases.csv` (431) now carry reviewed_by Cooper, 2026-11-08. Test renamed back to `test_committed_plan_names_load_approved`.
+
+## 2026-11-08 — One-for-all plan rates labeled (D-041); plan names waiting for approval
+
+- Correction: Cooper's "1" answered only the first of three questions (the other two were not shown to him). The plan names were first committed as reviewed by Cooper in error; they are now **unreviewed** and unused until he approves (rules 9, 10).
+- `data/reference/payers.csv` (159 card names) and `payer_aliases.csv` (431 hospital spellings) from the high/medium proposals, no reviewer yet.
+- `plans.all_plans_spellings` + `search.py`: an insurer's one-for-all rate is used only for its commercial HMO/PPO/EPO/POS/HDHP plans, only where the plan has no rate of its own, and flagged (`FacilityResult.all_plans_rate`; API `plan_rate_is_all_plans`, per price `plan_match`).
+- `catalog.load_payer_aliases`: a payer spelling shared by several companies keeps its first payer alias (`payer_spelling_shared`).
+- Website: the plan picker groups plans by insurer; a result using a one-for-all rate is labeled "All <insurer> plans" with a note, and the details table tags those rows. Preview data adds "Sample Health EPO" to show it.
+- Tests: `test_all_plans_rate_is_used_only_when_the_plan_has_none_and_is_labeled`, `test_api_labels_all_plans_rates`, `test_committed_plan_names_wait_for_review`.
+
+`make lint typecheck test`: `280 passed, 1 warning` (3.13); `/tmp/v312/bin/python -m pytest -q`: `280 passed, 1 warning`. Website: `tsc` clean, `npm run build` succeeded, no horizontal scroll on 10 pages at 390 px.
+
+
+Run #14's `payer-plan-names.csv`: 626 payer + plan spellings (344 payer spellings) across 29 hospitals, 40,164,770 prices with a payer. `scripts/draft_plan_names.py` drafted a proposal for every spelling (`data/reference/proposed/plan_names_proposed.csv`; review copy `plan-names-review.xlsx` sent to Cooper): 163 card names (insurer + plan as on a card) covering 83.0% of those prices; the rest are networks, doctor groups, workers' comp, jails, hospice, specialty-only contracts, out-of-state Blue plans and test rows, kept out of the picker. Confidence: high 53.8% of prices, medium ("one rate for all of the insurer's plans") 28.4%, low 1.9% ("Sierra" with no company). **All proposed; nothing loaded into `payers.csv` / `payer_aliases.csv` until Cooper approves** (rules 9, 10).
+
+
+- API: `GET /v1/facilities/{id}` (details; website only when reviewed) and `GET /v1/facilities/{id}/prices?service=` (every published price at one facility under the service's approved codes; unapproved services refused, nothing guessed when no file). Core: `procedurescout_core/facilities.py`. Test: `test_facility_page_endpoints`.
+- Website: `app/facility/[id]/page.tsx` (call, directions, emergency room, Medicare rating where published, help paying here in dollars, prices grouped cash / plans / list with codes, whole-procedure links, how we got these prices, claim link); result names link to it. `app/bundles/page.tsx` (pick a procedure and a place, required pieces locked, optional pieces as checkboxes, each piece's published price or "not published here", running total marked complete or missing pieces). `app/learn/page.tsx` with `lib/learn.ts` (7 short guides, EN/ES; the No Surprises Help Desk number and Good Faith Estimate timing checked against cms.gov). Home links to both; footer and phone menu link Learn.
+- Preview data adds sample facility details, sample bundles shaped like `bundles.csv`, and sample estimates (`lib/synthetic_demo.ts`). Live bundles stay empty until the proposed bundles get clinical review.
+
+Checks run here: `make lint typecheck test`: `277 passed, 1 warning` (3.13); `/tmp/v312/bin/python -m pytest -q`: `277 passed, 1 warning`. `npx tsc --noEmit` clean; `npm run build` succeeded (13 pages). Playwright: results → facility page → colonoscopy bundle → tick biopsy; birth bundle via ZIP and place picker; Learn; at 390 and 1280 px, no console errors.
+
+
+Cooper asked for a provider login and disclaimers.
+- `apps/web/app/providers/page.tsx` (For providers: claim, verification, posting prices, corrections, rules, "free to start") and `app/providers/sign-in/page.tsx` (sign-in screen). **Provider accounts are not built**: the sign-in form is disabled and says accounts are not open yet; nothing is sent. "Provider sign in" is in the header, the phone menu and the footer.
+- Disclaimers: `lib/legal.ts` with `app/disclaimer`, `app/terms`, `app/privacy` (English and Spanish), each marked "Draft, pending legal review" (Q25). Short disclaimer in every footer; "Before you go" box under every result list (not a quote, other bills, insurance cost sharing, Good Faith Estimate right); the help-paying results say the check is not an application or decision.
+- Header switches to the menu button below 1,200 px so the longer Spanish labels never overflow (checked at 920/1100/1200/1280/1440 px in both languages: no horizontal scroll).
+
+Checks run here: `npx tsc --noEmit` clean; `npm run build` succeeded (11 pages). Playwright screenshots of the new pages at 390, 1000 and 1280 px with no console errors. No Python code changed.
+
+
+Implemented in `apps/web` (Next.js 15.5.28, React 19.3.1, TypeScript 5.9.3, no other dependencies):
+- Pages: home (`app/page.tsx`: search with suggestions, ZIP or "use my location", provider-type choice, popular searches, free-care panel in dollars, "Already got a bill?", trust strip), results (`app/search/page.tsx`: cash / my insurance / list switch, plan picker, typical range, one big price per place, badges, change since last file, details table with codes, places with no published price listed separately), help paying (`app/help-paying/page.tsx`: household size, income, ZIP → each nearby hospital "free care likely / discount likely / ask them", other help), bill help (`app/bill/page.tsx`), how we get prices (`app/how-it-works/page.tsx`).
+- Every page: free-care banner, emergency line, English/Español switch (`lib/i18n.ts`; Spanish needs a native-speaker review), footer with sources.
+- Money shown with string/BigInt arithmetic only (`lib/money.ts`); income and household size stay in memory, never in a URL or storage; only the language choice is remembered.
+- Preview mode: without `API_URL` the site answers from `lib/synthetic_demo.ts` ("Sample …" facilities, made-up prices) with a "Preview: sample data" bar on every page. With `API_URL` it calls the API through `/api` (Next.js rewrite).
+- API additions: `GET /v1/places/zip/{zip5}` (ZIP centre from Census ZCTA) and `GET /v1/facilities/near` (nearest facilities, no prices; for the help-paying check); `search.nearby()`.
+- Cooper approved the 30 everyday search words (`service_synonyms.csv`, Q23 resolved).
+
+Checks run here: `npx tsc --noEmit` clean; `npm run build` succeeded (all 6 pages, first load 111–124 kB). Playwright walked home → suggestions → results → details → insurance switch, home free-care panel → help-paying check, bill page, Spanish results, at 390 px and 1280 px with no console errors (screenshots sent to Cooper). Python: `make lint typecheck test`: `276 passed, 1 warning` (3.13); `/tmp/v312/bin/python -m pytest -q`: `276 passed, 1 warning` (`test_zip_lookup`, `test_facilities_near`, `test_committed_synonyms_load_approved`).
+
+Not done / not verified: the website has only been run in preview mode; it has not been run against the API with real data, has no automated browser tests in CI, and is not deployed. Still to build: facility page, price details page, bundle builder, service-by-city pages, Learn, compare tray, accessibility audit.
+
 ## 2026-11-08 — Build step 1: headline prices, typical ranges, badges, likely-error flags, price history, plans by card name, search suggestions
 
 Implemented and tested (synthetic) per D-040:

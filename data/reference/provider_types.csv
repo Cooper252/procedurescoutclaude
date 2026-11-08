@@ -10,3 +10,8 @@ urgent_care,Urgent care,ai_suggested,Cooper,2026-11-08
 physician_office,Doctor's office,ai_suggested,Cooper,2026-11-08
 chiropractic_office,Chiropractor,ai_suggested,Cooper,2026-11-08
 physical_therapy,Physical therapy,ai_suggested,Cooper,2026-11-08
+massage_therapy,Massage therapy,ai_suggested,Cooper,2026-11-08
+mental_health,Mental health (therapist or counselor),ai_suggested,Cooper,2026-11-08
+eye_care,Eye doctor (optometrist or ophthalmologist),ai_suggested,Cooper,2026-11-08
+hearing_care,Hearing care (audiologist),ai_suggested,Cooper,2026-11-08
+podiatry,Foot doctor (podiatrist),ai_suggested,Cooper,2026-11-08

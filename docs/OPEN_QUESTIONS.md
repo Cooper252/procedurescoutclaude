@@ -18,11 +18,17 @@
 | Q17 | Paid listings (D-031, rules confirmed 2026-11-07): length of the free period and the prices; counsel review of the advertising terms. | Cooper (counsel) | Before Phase 9 |
 | Q20 | Review the 13 proposed hospital financial assistance policies on the review page (UMC, 3 HCA, 3 St. Rose, 2 Renown, Carson Tahoe, North Vista, Saint Mary's, Banner Churchill); still to find: the Valley Health System (UHS) Las Vegas hospitals, Northern Nevada Medical Center, rural hospitals. | Cooper | Before launch |
 | Q22 | Confirm NRS 439B.260 (30% off billed charges for uninsured patients at certain Nevada hospitals) applies as North Vista's policy says, before it is shown (SITE_DESIGN §4.9). | Engineering + counsel | Before launch |
-| Q23 | Approve the 30 proposed everyday search words (`data/reference/service_synonyms.csv`, e.g. "knee scope" → knee arthroscopy). | Cooper | Before launch |
-| Q24 | After the next run: approve the list of Nevada plans as printed on cards and which hospital spellings belong to each (from `payer-plan-names.csv`). | Cooper | Before launch |
+| Q25 | Have a lawyer review the draft disclaimer, terms of use and privacy notice (`apps/web/lib/legal.ts`), and the Spanish versions, before launch. | Cooper (counsel) | Before launch |
+| Q26 | How providers sign in: one-time email link plus a second step (proposed), or passwords; and which email service sends the links (may cost money). | Cooper | Before Phase 9 |
+| Q24 | Plan names approved (D-041). Still open: the low-confidence spellings (plain "Sierra", "Blue Cross Blue Shield Medicare", Cigna Wyoming) in `data/reference/proposed/plan_names_proposed.csv`. | Cooper | Before launch |
 | Q10 | NUBC revenue code descriptions: licence or code-only display? | Cooper (counsel) | Phase 3 |
 
 ## Resolved
+
+- Q27 (2026-11-08): Cooper approved the standard service list, synonyms, provider types and dental packages. Still open: a clinician check of the 3 medical bundles; "what's included" lines for the first 18 services.
+- Q28 (2026-11-08): Cooper approved the 4 Nevada coverage limits.
+
+- Q23 (2026-11-08): Cooper approved all 30 everyday search words.
 
 - Q21: everything in `PRODUCT_REVIEW.md` approved (D-039, 2026-11-08); verification strictness per provider type to be set when the portal is built.
 

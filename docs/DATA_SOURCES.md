@@ -28,3 +28,12 @@ Checked 2026-11-04. "Verified" means the source was opened during Phase 0; "Unve
 
 - PatientRightsAdvocate.org v. AMA (filed 2026-08-13, N.D. Ill.) challenging CPT copyright.
 - CMS CY2027 Physician Fee Schedule proposed rule, section II.H, request for comment on CPT licensing (comments closed 2026-09-14).
+
+
+## Help paying (added 2026-11-08, D-043)
+| Source | Use | Access |
+|---|---|---|
+| HRSA "Health Center Service Delivery and Look-Alike Sites" (https://data.hrsa.gov/DataDownload/DD_Files/Health_Center_Service_Delivery_and_LookAlike_Sites.csv, refreshed daily) | Community health centers with sliding fees | Downloaded in the GitHub run (`health-centers` step); the workspace proxy blocks data.hrsa.gov |
+| Nevada DWSS "Appendix A MAGI Income Charts" (effective 4/1/2025) | Nevada Medicaid / Check Up percentages | `data/reference/coverage_limits.csv` (proposed) |
+| KFF, "9 Things to Watch for the 2027 ACA Open Enrollment Period" | Enhanced premium tax credits ended after 2025; 400% cap | `coverage_limits.csv` (proposed) |
+| Nevada 211 community clinics page | Free and charitable clinics (link only) | Link on the help page |

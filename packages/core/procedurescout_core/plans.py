@@ -66,6 +66,34 @@ def approved_spellings(conn: Connection, plan_id: uuid.UUID | str) -> set[tuple[
     return {(str(r[0]), str(r[1])) for r in rows}
 
 
+ALL_PLANS = "All plans (one rate published for all)"
+_FALLBACK_TYPES = ("hmo", "ppo", "epo", "pos", "hdhp")
+
+
+def all_plans_spellings(conn: Connection, plan_id: uuid.UUID | str) -> set[tuple[str, str]]:
+    """Approved spellings of the same insurer's "All plans" rate, used for a
+    regular employer or individual plan (HMO/PPO/EPO/POS/HDHP, commercial) only
+    when a hospital published one rate for all of that insurer's plans (Cooper,
+    2026-11-08). Never for Medicare, Medicaid, marketplace or employer plans.
+    Prices found this way are labeled, never passed off as the exact plan."""
+    pid = str(uuid.UUID(str(plan_id)))
+    rows = conn.execute(
+        text(
+            """
+            SELECT a.raw_payer_normalized, a.raw_plan_normalized
+            FROM ref.plan me
+            JOIN ref.plan allp ON allp.payer_id = me.payer_id AND allp.canonical_name = :all
+                              AND allp.id <> me.id
+            JOIN ref.plan_alias a ON a.plan_id = allp.id AND a.review_state = 'approved'
+            WHERE me.id = CAST(:p AS uuid) AND me.segment = 'commercial'
+              AND me.product_type::text = ANY(:types)
+            """
+        ),
+        {"p": pid, "all": ALL_PLANS, "types": list(_FALLBACK_TYPES)},
+    ).all()
+    return {(str(r[0]), str(r[1])) for r in rows}
+
+
 def matches(price: PublishedPrice, spellings: set[tuple[str, str]]) -> bool:
     if price.payer_name_raw is None or price.plan_name_raw is None:
         return False

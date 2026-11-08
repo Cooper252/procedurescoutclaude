@@ -1,0 +1,230 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { api } from "@/lib/api";
+import { SERVICE_ES, TYPE_ES } from "@/lib/i18n";
+import type { ProviderType, Suggestion } from "@/lib/types";
+import { useApp } from "./AppState";
+import { Locate, Pin, Search } from "./Icons";
+
+interface Props {
+  initialService?: { slug: string; name: string } | null;
+  initialZip?: string;
+  initialType?: string | null;
+  compact?: boolean;
+}
+
+export function SearchForm({ initialService = null, initialZip = "", initialType = null, compact = false }: Props) {
+  const { t, lang, place, setPlace } = useApp();
+  const router = useRouter();
+  const listId = useId();
+  const [text, setText] = useState(initialService?.name ?? "");
+  const [picked, setPicked] = useState<{ slug: string; name: string } | null>(initialService);
+  const [options, setOptions] = useState<Suggestion[]>([]);
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(-1);
+  const [zip, setZip] = useState(initialZip || place?.zip || "");
+  const [types, setTypes] = useState<ProviderType[]>([]);
+  const [ptype, setPtype] = useState<string>(initialType ?? "");
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const coords = useRef<{ lat: string; lng: string } | null>(null);
+
+  useEffect(() => {
+    api.providerTypes().then(setTypes).catch(() => setTypes([]));
+  }, []);
+
+  useEffect(() => {
+    if (picked && text === picked.name) return;
+    const q = text.trim();
+    if (q.length < 2) {
+      setOptions([]);
+      return;
+    }
+    const id = setTimeout(() => {
+      api
+        .suggest(q)
+        .then((s) => {
+          setOptions(s);
+          setOpen(true);
+          setActive(-1);
+        })
+        .catch(() => setOptions([]));
+    }, 150);
+    return () => clearTimeout(id);
+  }, [text, picked]);
+
+  const label = (s: { slug: string; name: string }) => (lang === "es" ? SERVICE_ES[s.slug] ?? s.name : s.name);
+
+  function choose(s: Suggestion) {
+    setPicked({ slug: s.slug, name: s.name });
+    setText(s.name);
+    setOpen(false);
+    setError(null);
+  }
+
+  function onKey(e: KeyboardEvent<HTMLInputElement>) {
+    if (!open || options.length === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActive((a) => Math.min(options.length - 1, a + 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActive((a) => Math.max(0, a - 1));
+    } else if (e.key === "Enter" && active >= 0) {
+      e.preventDefault();
+      choose(options[active]!);
+    } else if (e.key === "Escape") {
+      setOpen(false);
+    }
+  }
+
+  function useLocation() {
+    if (!("geolocation" in navigator)) {
+      setError(t.locationDenied);
+      return;
+    }
+    setBusy(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        // two decimals (about half a mile) is enough for a 25-mile search
+        coords.current = { lat: pos.coords.latitude.toFixed(2), lng: pos.coords.longitude.toFixed(2) };
+        setZip("");
+        setBusy(false);
+        setError(null);
+      },
+      () => {
+        setBusy(false);
+        setError(t.locationDenied);
+      },
+      { maximumAge: 600000, timeout: 10000 },
+    );
+  }
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    let service = picked && text === picked.name ? picked : null;
+    if (!service && options.length === 1) service = { slug: options[0]!.slug, name: options[0]!.name };
+    if (!service) {
+      setError(t.pickService);
+      return;
+    }
+    const params = new URLSearchParams({ service: service.slug });
+    if (ptype) params.set("type", ptype);
+    if (coords.current && !zip) {
+      params.set("lat", coords.current.lat);
+      params.set("lng", coords.current.lng);
+    } else {
+      if (!/^\d{5}$/.test(zip)) {
+        setError(t.badZip);
+        return;
+      }
+      setBusy(true);
+      try {
+        const p = await api.zip(zip);
+        setPlace(p);
+      } catch {
+        setBusy(false);
+        setError(t.zipNotFound);
+        return;
+      }
+      params.set("zip", zip);
+    }
+    setBusy(false);
+    router.push(`/search?${params.toString()}`);
+  }
+
+  return (
+    <form className={compact ? "search compact" : "search"} onSubmit={submit} role="search" noValidate>
+      <div className="field grow">
+        <label htmlFor={`${listId}-what`}>{t.whatLabel}</label>
+        <div className="input-icon">
+          <Search size={20} />
+          <input
+            id={`${listId}-what`}
+            role="combobox"
+            aria-expanded={open && options.length > 0}
+            aria-controls={`${listId}-list`}
+            aria-autocomplete="list"
+            aria-activedescendant={active >= 0 ? `${listId}-opt-${active}` : undefined}
+            autoComplete="off"
+            placeholder={t.whatPlaceholder}
+            value={picked && text === picked.name ? label(picked) : text}
+            onChange={(e) => {
+              setText(e.target.value);
+              setPicked(null);
+            }}
+            onKeyDown={onKey}
+            onFocus={() => options.length && setOpen(true)}
+            onBlur={() => setTimeout(() => setOpen(false), 150)}
+          />
+        </div>
+        {open && options.length > 0 && (
+          <ul className="suggest" id={`${listId}-list`} role="listbox">
+            {options.map((o, i) => (
+              <li
+                key={o.slug}
+                id={`${listId}-opt-${i}`}
+                role="option"
+                aria-selected={i === active}
+                className={i === active ? "on" : ""}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  choose(o);
+                }}
+              >
+                <span>{label(o)}</span>
+                {o.matched !== o.name && <span className="suggest-why">“{o.matched}”</span>}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+      <div className="field zip">
+        <label htmlFor={`${listId}-zip`}>{t.whereLabel}</label>
+        <div className="input-icon">
+          <Pin size={20} />
+          <input
+            id={`${listId}-zip`}
+            inputMode="numeric"
+            autoComplete="postal-code"
+            maxLength={5}
+            placeholder={t.wherePlaceholder}
+            value={zip}
+            onChange={(e) => {
+              setZip(e.target.value.replace(/\D/g, ""));
+              coords.current = null;
+            }}
+          />
+        </div>
+      </div>
+      {!compact && types.length > 0 && (
+        <div className="field type">
+          <label htmlFor={`${listId}-type`}>{t.typeLabel}</label>
+          <select id={`${listId}-type`} value={ptype} onChange={(e) => setPtype(e.target.value)}>
+            <option value="">{t.typeAny}</option>
+            {types.map((ty) => (
+              <option key={ty.code} value={ty.code}>
+                {lang === "es" ? TYPE_ES[ty.code] ?? ty.name : ty.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+      <button className="btn primary search-btn" type="submit" disabled={busy}>
+        <Search size={20} /> <span>{t.searchBtn}</span>
+      </button>
+      <div className="search-foot">
+        <button type="button" className="link-btn" onClick={useLocation} disabled={busy}>
+          <Locate size={16} /> {busy ? t.locating : coords.current && !zip ? "✓ " + t.useLocation : t.useLocation}
+        </button>
+        {error && (
+          <p className="form-error" role="alert">
+            {error}
+          </p>
+        )}
+      </div>
+    </form>
+  );
+}

@@ -214,3 +214,75 @@ def test_api_plans_and_plan_search(client: TestClient, conn: Connection) -> None
     first = r.json()["facilities"][0]
     assert first["headline"] == "75.25" and first["headline_price_type"] == "negotiated"
     assert r.json()["typical"] is None  # one facility is not enough for a typical range
+
+
+def _more_plans(conn: Connection) -> None:
+    catalog.load_payers(
+        conn,
+        ",".join(catalog.PAYER_COLUMNS) + "\n"
+        "Synthetic Health,All plans (one rate published for all),unknown,commercial,"
+        "tester,2026-11-08\n"
+        "Synthetic Health,Bronze EPO,epo,commercial,tester,2026-11-08\n"
+        "Synthetic Health,Medicare Gold,other,medicare_advantage,tester,2026-11-08\n",
+    )
+    stats = catalog.load_payer_aliases(
+        conn,
+        ALIASES_HEADER
+        + "Synthetic Payer Two,HMO,Synthetic Health,All plans (one rate published for all),"
+        "tester,2026-11-08,\n"
+        + "Synthetic Payer Four,EPO,Synthetic Health,Bronze EPO,tester,2026-11-08,\n"
+        + "Synthetic Payer Five,MA,Synthetic Health,Medicare Gold,tester,2026-11-08,\n",
+    )
+    assert stats.rejects == []
+
+
+def test_all_plans_rate_is_used_only_when_the_plan_has_none_and_is_labeled(
+    conn: Connection, world: LocalStore
+) -> None:
+    _more_plans(conn)
+    epo = run(conn, world, mode="plan", plan_id=_plan_id(conn, "Bronze EPO"))
+    near = epo.facilities[0]  # type: ignore[attr-defined]
+    assert near.all_plans_rate  # no Bronze EPO rate published; the one-for-all rate, labeled
+    assert {p.payer_name_raw for p in near.prices if p.price_type == "negotiated"} == {
+        "Synthetic Payer Two"
+    }
+    gold = run(conn, world, mode="plan", plan_id=_plan_id(conn, "Gold PPO"))
+    g = gold.facilities[0]  # type: ignore[attr-defined]
+    assert not g.all_plans_rate  # its own rate exists, so the all-plans rate is not mixed in
+    assert {p.payer_name_raw for p in g.prices if p.price_type == "negotiated"} == {
+        "Synthetic Payer One"
+    }
+    medicare = run(conn, world, mode="plan", plan_id=_plan_id(conn, "Medicare Gold"))
+    m = medicare.facilities[0]  # type: ignore[attr-defined]
+    assert not m.all_plans_rate and not [p for p in m.prices if p.price_type == "negotiated"]
+
+
+def test_api_labels_all_plans_rates(client: TestClient, conn: Connection) -> None:
+    _more_plans(conn)
+    r = client.get(
+        "/v1/search",
+        params={
+            "lat": "36.17",
+            "lng": "-115.14",
+            "service": "synthetic-service",
+            "mode": "plan",
+            "plan_id": _plan_id(conn, "Bronze EPO"),
+        },
+    )
+    assert r.status_code == 200, r.text
+    first = r.json()["facilities"][0]
+    assert first["plan_rate_is_all_plans"] is True
+    neg = [p for p in first["prices"] if p["price_type"] == "negotiated"]
+    assert [p["plan_match"] for p in neg] == ["all_plans"]
+
+
+def test_committed_plan_names_load_approved(conn: Connection) -> None:
+    root = Path(__file__).resolve().parent.parent / "data/reference"
+    payers = catalog.load_payers(conn, (root / "payers.csv").read_text())
+    aliases = catalog.load_payer_aliases(conn, (root / "payer_aliases.csv").read_text())
+    assert payers.rows_loaded == payers.rows_in > 100  # Cooper approved (2026-11-08, D-041)
+    assert aliases.rejects == []
+    assert aliases.summary.get("approved") == aliases.rows_in
+    names = {p.payer for p in list_plans(conn)}
+    assert "Anthem Blue Cross Blue Shield (Colorado)" not in names  # out-of-state Blues (rule 9)
+    assert {"Anthem Blue Cross Blue Shield (Nevada)", "Culinary Health Fund"} <= names

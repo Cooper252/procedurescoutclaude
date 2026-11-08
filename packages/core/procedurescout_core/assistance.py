@@ -299,3 +299,111 @@ def check(
         percent_of_guideline=percent.quantize(Decimal(1), rounding=ROUND_DOWN),
         facilities=tuple(results),
     )
+
+
+# ------------------------------------------------- public coverage (HELP-01)
+@dataclass(frozen=True, slots=True)
+class CoverageMatch:
+    program: str
+    group: str
+    label: str
+    limit_text: str  # "under $30,250 a year for 2 people" (approximate; the agency decides)
+    apply_url: str
+    source_url: str
+    notes: str | None
+
+
+def coverage(
+    conn: Connection, *, state_code: str, household_size: int, annual_income: Decimal
+) -> list[CoverageMatch]:
+    """Public programs whose reviewed income limits the household is under,
+    in dollars for its size. Only approved limits are used (rule 10). Says
+    "may qualify"; the agency decides (it counts income monthly, with rules
+    this cannot see)."""
+    if annual_income < 0:
+        raise AssistanceError("income cannot be negative")
+    year = latest_guideline_year(conn)
+    fpg = guideline(conn, year, state_code, household_size)
+    pct = annual_income * 100 / fpg
+    rows = conn.execute(
+        text(
+            """
+            SELECT program, group_code, min_percent_fpg, max_percent_fpg, label, apply_url,
+                   source_url, notes
+            FROM ref.coverage_limit
+            WHERE state_code = :s AND review_state = 'approved'
+            ORDER BY program, group_code
+            """
+        ),
+        {"s": state_code.upper()},
+    ).all()
+    out = []
+    people = "person" if household_size == 1 else "people"
+    for r in rows:
+        low, high = Decimal(str(r[2])), Decimal(str(r[3]))
+        if not (low <= pct <= high):
+            continue
+        top = dollars(income_limit(fpg, high))
+        text_ = f"up to about {top} a year for {household_size} {people}"
+        if low > 0:
+            bottom = dollars(income_limit(fpg, low))
+            text_ = f"about {bottom} to {top} a year for {household_size} {people}"
+        out.append(
+            CoverageMatch(str(r[0]), str(r[1]), str(r[4]), text_, str(r[5]), str(r[6]), r[7])
+        )
+    return out
+
+
+@dataclass(frozen=True, slots=True)
+class HealthCenter:
+    name: str
+    organization: str | None
+    address: str | None
+    city: str | None
+    state_code: str
+    zip5: str | None
+    phone: str | None
+    website: str | None
+    distance_miles: Decimal
+
+
+def health_centers_near(
+    conn: Connection,
+    *,
+    latitude: Decimal,
+    longitude: Decimal,
+    radius_miles: Decimal,
+    limit: int = 10,
+) -> list[HealthCenter]:
+    """HRSA health center sites near a place, nearest first (sliding fees by income)."""
+    if not (Decimal(-90) <= latitude <= Decimal(90)) or not (
+        Decimal(-180) <= longitude <= Decimal(180)
+    ):
+        raise AssistanceError("latitude/longitude out of range")
+    if not (Decimal(1) <= radius_miles <= Decimal(100)):
+        raise AssistanceError("radius must be 1 to 100 miles")
+    rows = conn.execute(
+        text(
+            """
+            SELECT name, organization, address_line1, city, state_code, zip5, phone, website,
+                   round(CAST(ST_Distance(geom, p.pt) AS numeric) / 1609.344, 1)
+            FROM ref.health_center
+            CROSS JOIN (
+                SELECT CAST(ST_SetSRID(ST_MakePoint(:lng, :lat), 4326) AS geography) AS pt
+            ) p
+            WHERE geom IS NOT NULL AND ST_DWithin(geom, p.pt, :m)
+            ORDER BY 9, name
+            LIMIT :n
+            """
+        ),
+        {
+            "lat": latitude,
+            "lng": longitude,
+            "m": radius_miles * Decimal("1609.344"),
+            "n": max(1, min(limit, 50)),
+        },
+    ).all()
+    return [
+        HealthCenter(str(r[0]), r[1], r[2], r[3], str(r[4]), r[5], r[6], r[7], Decimal(str(r[8])))
+        for r in rows
+    ]

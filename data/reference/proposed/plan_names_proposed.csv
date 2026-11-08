@@ -1,0 +1,627 @@
+payer_name_raw,plan_name_raw,prices,facilities,facility_names,proposed_insurer,proposed_plan,product_type,segment,kind,use_in_picker,confidence,notes
+HUMANA,HMO,1215035,7,CENTENNIAL HILLS HOSPITAL MEDICAL CENTER; HENDERSON HOSPITAL; NORTHERN NEVADA MEDICAL CENTER; SPRING VALLEY HOSPITAL MEDICAL CENTER; SUMMERLIN HOSPITAL MEDICAL CENTER; VALLEY HOSPITAL MEDICAL CENTER; WEST HENDERSON HOSPITAL,Humana,HMO,hmo,commercial,insurer,yes,high,
+HUMANA,PPO,1214813,7,CENTENNIAL HILLS HOSPITAL MEDICAL CENTER; HENDERSON HOSPITAL; NORTHERN NEVADA MEDICAL CENTER; SPRING VALLEY HOSPITAL MEDICAL CENTER; SUMMERLIN HOSPITAL MEDICAL CENTER; VALLEY HOSPITAL MEDICAL CENTER; WEST HENDERSON HOSPITAL,Humana,PPO,ppo,commercial,insurer,yes,high,
+SIERRA_HEALTH_OPTIONS,MANAGED_CARE,1211555,7,CENTENNIAL HILLS HOSPITAL MEDICAL CENTER; HENDERSON HOSPITAL; NORTHERN NEVADA MEDICAL CENTER; SPRING VALLEY HOSPITAL MEDICAL CENTER; SUMMERLIN HOSPITAL MEDICAL CENTER; VALLEY HOSPITAL MEDICAL CENTER; WEST HENDERSON HOSPITAL,Sierra Health Options,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+SIERRA_HEALTH_PLAN_OF_NEVADA,MANAGED_CARE,1207639,7,CENTENNIAL HILLS HOSPITAL MEDICAL CENTER; HENDERSON HOSPITAL; NORTHERN NEVADA MEDICAL CENTER; SPRING VALLEY HOSPITAL MEDICAL CENTER; SUMMERLIN HOSPITAL MEDICAL CENTER; VALLEY HOSPITAL MEDICAL CENTER; WEST HENDERSON HOSPITAL,Health Plan of Nevada (HPN),All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+MULTIPLAN,MANAGED_CARE,1184211,7,CENTENNIAL HILLS HOSPITAL MEDICAL CENTER; HENDERSON HOSPITAL; NORTHERN NEVADA MEDICAL CENTER; SPRING VALLEY HOSPITAL MEDICAL CENTER; SUMMERLIN HOSPITAL MEDICAL CENTER; VALLEY HOSPITAL MEDICAL CENTER; WEST HENDERSON HOSPITAL,MultiPlan,,unknown,commercial,network,no,-,a network many employer plans rent; your card may show its logo
+NEVADA_PREFERRED_PROVIDERS,MANAGED_CARE,1119201,7,CENTENNIAL HILLS HOSPITAL MEDICAL CENTER; HENDERSON HOSPITAL; NORTHERN NEVADA MEDICAL CENTER; SPRING VALLEY HOSPITAL MEDICAL CENTER; SUMMERLIN HOSPITAL MEDICAL CENTER; VALLEY HOSPITAL MEDICAL CENTER; WEST HENDERSON HOSPITAL,Prominence HealthFirst (formerly Nevada Preferred),,unknown,commercial,network,no,-,a provider network; your card may show its logo
+PROMINENCE,PPO,1091623,6,CENTENNIAL HILLS HOSPITAL MEDICAL CENTER; HENDERSON HOSPITAL; SPRING VALLEY HOSPITAL MEDICAL CENTER; SUMMERLIN HOSPITAL MEDICAL CENTER; VALLEY HOSPITAL MEDICAL CENTER; WEST HENDERSON HOSPITAL,Prominence Health Plan,PPO,ppo,commercial,insurer,yes,high,
+PROMINENCE,HMO,1091623,6,CENTENNIAL HILLS HOSPITAL MEDICAL CENTER; HENDERSON HOSPITAL; SPRING VALLEY HOSPITAL MEDICAL CENTER; SUMMERLIN HOSPITAL MEDICAL CENTER; VALLEY HOSPITAL MEDICAL CENTER; WEST HENDERSON HOSPITAL,Prominence Health Plan,HMO,hmo,commercial,insurer,yes,high,
+CIGNA,HMO,1029343,7,CENTENNIAL HILLS HOSPITAL MEDICAL CENTER; HENDERSON HOSPITAL; NORTHERN NEVADA MEDICAL CENTER; SPRING VALLEY HOSPITAL MEDICAL CENTER; SUMMERLIN HOSPITAL MEDICAL CENTER; VALLEY HOSPITAL MEDICAL CENTER; WEST HENDERSON HOSPITAL,Cigna,HMO,hmo,commercial,insurer,yes,high,
+CIGNA,PPO,994195,7,CENTENNIAL HILLS HOSPITAL MEDICAL CENTER; HENDERSON HOSPITAL; NORTHERN NEVADA MEDICAL CENTER; SPRING VALLEY HOSPITAL MEDICAL CENTER; SUMMERLIN HOSPITAL MEDICAL CENTER; VALLEY HOSPITAL MEDICAL CENTER; WEST HENDERSON HOSPITAL,Cigna,PPO,ppo,commercial,insurer,yes,high,
+AETNA,MANAGED_CARE,962701,7,CENTENNIAL HILLS HOSPITAL MEDICAL CENTER; HENDERSON HOSPITAL; NORTHERN NEVADA MEDICAL CENTER; SPRING VALLEY HOSPITAL MEDICAL CENTER; SUMMERLIN HOSPITAL MEDICAL CENTER; VALLEY HOSPITAL MEDICAL CENTER; WEST HENDERSON HOSPITAL,Aetna,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+AETNA,FIRST_HEALTH,581713,6,CENTENNIAL HILLS HOSPITAL MEDICAL CENTER; HENDERSON HOSPITAL; NORTHERN NEVADA MEDICAL CENTER; SPRING VALLEY HOSPITAL MEDICAL CENTER; SUMMERLIN HOSPITAL MEDICAL CENTER; WEST HENDERSON HOSPITAL,Aetna,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+UNITED_HEALTH_CARE,MANAGED_CARE,549955,5,CENTENNIAL HILLS HOSPITAL MEDICAL CENTER; HENDERSON HOSPITAL; SPRING VALLEY HOSPITAL MEDICAL CENTER; SUMMERLIN HOSPITAL MEDICAL CENTER; WEST HENDERSON HOSPITAL,UnitedHealthcare,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Aetna,PPO,382032,5,BOULDER CITY HOSPITAL; MOUNTAINVIEW HOSPITAL; SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER; SUNRISE HOSPITAL AND MEDICAL CENTER; UNIVERSITY MEDICAL CENTER,Aetna,PPO,ppo,commercial,insurer,yes,high,
+Aetna,HMO,378739,4,MOUNTAINVIEW HOSPITAL; SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER; SUNRISE HOSPITAL AND MEDICAL CENTER; UNIVERSITY MEDICAL CENTER,Aetna,HMO,hmo,commercial,insurer,yes,high,
+HEALTH_SERVICES_COALITION,MANAGED_CARE,372115,5,CENTENNIAL HILLS HOSPITAL MEDICAL CENTER; HENDERSON HOSPITAL; SPRING VALLEY HOSPITAL MEDICAL CENTER; SUMMERLIN HOSPITAL MEDICAL CENTER; WEST HENDERSON HOSPITAL,Health Services Coalition,,unknown,commercial,network,no,-,Las Vegas employers' and unions' purchasing coalition; your card may show it
+Sierra,PPO,356388,3,MOUNTAINVIEW HOSPITAL; SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER; SUNRISE HOSPITAL AND MEDICAL CENTER,Sierra Health (company not stated),PPO,ppo,commercial,insurer,yes,low,"could be HPN, Sierra Health and Life or Sierra Health Options"
+Sierra,HMO,356313,3,MOUNTAINVIEW HOSPITAL; SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER; SUNRISE HOSPITAL AND MEDICAL CENTER,Sierra Health (company not stated),HMO,hmo,commercial,insurer,yes,low,"could be HPN, Sierra Health and Life or Sierra Health Options"
+Select Health,COMM,319954,3,MOUNTAINVIEW HOSPITAL; SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER; SUNRISE HOSPITAL AND MEDICAL CENTER,Select Health (Intermountain),All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Centene,HIX,310055,3,MOUNTAINVIEW HOSPITAL; SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER; SUNRISE HOSPITAL AND MEDICAL CENTER,SilverSummit Healthplan (Centene),Marketplace (exchange) plan,other,exchange,insurer,yes,high,Ambetter and Allwell are SilverSummit products
+Health Services Coalition,COMM,285233,3,MOUNTAINVIEW HOSPITAL; SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER; SUNRISE HOSPITAL AND MEDICAL CENTER,Health Services Coalition,,unknown,commercial,network,no,-,Las Vegas employers' and unions' purchasing coalition; your card may show it
+Anthem,PPO,271749,3,MOUNTAINVIEW HOSPITAL; SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER; SUNRISE HOSPITAL AND MEDICAL CENTER,Anthem Blue Cross Blue Shield (Nevada),PPO,ppo,commercial,insurer,yes,high,
+Anthem,Pathway,271710,3,MOUNTAINVIEW HOSPITAL; SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER; SUNRISE HOSPITAL AND MEDICAL CENTER,Anthem Blue Cross Blue Shield (Nevada),Marketplace (exchange) plan,other,exchange,insurer,yes,high,
+Anthem,HIX,271695,3,MOUNTAINVIEW HOSPITAL; SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER; SUNRISE HOSPITAL AND MEDICAL CENTER,Anthem Blue Cross Blue Shield (Nevada),Marketplace (exchange) plan,other,exchange,insurer,yes,high,
+Anthem,HMO,271680,3,MOUNTAINVIEW HOSPITAL; SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER; SUNRISE HOSPITAL AND MEDICAL CENTER,Anthem Blue Cross Blue Shield (Nevada),HMO,hmo,commercial,insurer,yes,high,
+United,AllPayerAppendix,271219,3,MOUNTAINVIEW HOSPITAL; SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER; SUNRISE HOSPITAL AND MEDICAL CENTER,UnitedHealthcare,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+CIGNA,OAP,264632,3,MOUNTAINVIEW HOSPITAL; SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER; SUNRISE HOSPITAL AND MEDICAL CENTER,Cigna,Open Access Plus (OAP),pos,commercial,insurer,yes,high,
+Select Health,HIX,251659,3,MOUNTAINVIEW HOSPITAL; SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER; SUNRISE HOSPITAL AND MEDICAL CENTER,Select Health (Intermountain),Marketplace (exchange) plan,other,exchange,insurer,yes,high,
+MultiPlan,PRIMARY,248367,3,MOUNTAINVIEW HOSPITAL; SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER; SUNRISE HOSPITAL AND MEDICAL CENTER,MultiPlan,,unknown,commercial,network,no,-,a network many employer plans rent; your card may show its logo
+Hometown Health Providers,HMO/PPO/POS,229862,3,MOUNTAINVIEW HOSPITAL; SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER; SUNRISE HOSPITAL AND MEDICAL CENTER,Hometown Health,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Hometown Health Providers,ThirdPartyAdministratior(TPA),229862,3,MOUNTAINVIEW HOSPITAL; SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER; SUNRISE HOSPITAL AND MEDICAL CENTER,Hometown Health,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+One Health Plan,All Plans,214606,1,UNIVERSITY MEDICAL CENTER,One Health Plan,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+NEVADA_SIERRA_HEALTH_&_LIFE,COMMERCIAL,208203,1,SPRING VALLEY HOSPITAL MEDICAL CENTER,Sierra Health and Life,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Molina Healthcare,MCD,207774,3,MOUNTAINVIEW HOSPITAL; SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER; SUNRISE HOSPITAL AND MEDICAL CENTER,Molina Healthcare,Medicaid plan,other,medicaid_managed_care,insurer,yes,high,
+Hometown Health Plan of Nevada,All Plans,205159,1,UNIVERSITY MEDICAL CENTER,Hometown Health,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Hometown Health Plan of Nevada,Nevada Department of Corrections,204310,1,UNIVERSITY MEDICAL CENTER,,,other,unknown,exclude,no,-,"prison health care, not a plan people pick"
+Hometown Health Plan of Nevada,Friday Health Plans,204310,1,UNIVERSITY MEDICAL CENTER,,,other,unknown,exclude,no,-,Friday Health Plans closed in 2023
+Cement Masons & Plasters H&W,All Plans,173576,1,UNIVERSITY MEDICAL CENTER,Cement Masons & Plasters H&W,Employee / member plan,unknown,union_trust,union,yes,high,union health trust; card usually shows the trust
+Kaiser,POSPPO,171144,1,UNIVERSITY MEDICAL CENTER,Kaiser Permanente,POS,pos,commercial,insurer,yes,high,
+Great West Healthcare,All Plans,171129,1,UNIVERSITY MEDICAL CENTER,Cigna,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Cigna,HealthPartners,171126,1,UNIVERSITY MEDICAL CENTER,Cigna,HealthPartners members,unknown,commercial,insurer,yes,high,plan name points to this company or product
+National Security Technologies,All Plans,171126,1,UNIVERSITY MEDICAL CENTER,National Security Technologies,Employee / member plan,unknown,employer_self_funded,employer,yes,high,employer's own plan; card usually shows the employer
+Cirque De Soleil,All Plans,171126,1,UNIVERSITY MEDICAL CENTER,Cirque De Soleil,Employee / member plan,unknown,employer_self_funded,employer,yes,high,employer's own plan; card usually shows the employer
+Cigna,Generic,171126,1,UNIVERSITY MEDICAL CENTER,Cigna,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Boyd Group,All Plans,168061,1,UNIVERSITY MEDICAL CENTER,Boyd Group,Employee / member plan,unknown,employer_self_funded,employer,yes,high,employer's own plan; card usually shows the employer
+UFCW Local 711 Retail Clerks,All Plans,167089,1,UNIVERSITY MEDICAL CENTER,Ufcw Local 711 Retail Clerks,Employee / member plan,unknown,union_trust,union,yes,high,union health trust; card usually shows the trust
+Laborers Health and Welfare,All Plans,166861,1,UNIVERSITY MEDICAL CENTER,Laborers Health & Welfare Trust (Nevada),Employee / member plan,unknown,union_trust,union,yes,high,union health trust; card usually shows the trust
+Bricklayers Local 13,All Plans,166852,1,UNIVERSITY MEDICAL CENTER,Bricklayers Local 13,Employee / member plan,unknown,union_trust,union,yes,high,union health trust; card usually shows the trust
+Plumbers & Pipefitters Loc 525,All Plans,166843,1,UNIVERSITY MEDICAL CENTER,Plumbers & Pipefitters Local 525,Employee / member plan,unknown,union_trust,union,yes,high,union health trust; card usually shows the trust
+Teamsters Local 631,All Plans,166843,1,UNIVERSITY MEDICAL CENTER,Teamsters Local 631,Employee / member plan,unknown,union_trust,union,yes,high,union health trust; card usually shows the trust
+Electrical Workers,IBEW 357,166843,1,UNIVERSITY MEDICAL CENTER,IBEW Local 357,Employee / member plan,unknown,union_trust,union,yes,high,union health trust; card usually shows the trust
+Teamsters Local 14,All Plans,166843,1,UNIVERSITY MEDICAL CENTER,Teamsters Local 14,Employee / member plan,unknown,union_trust,union,yes,high,union health trust; card usually shows the trust
+Caesar's Entertainment,Anthem,166843,1,UNIVERSITY MEDICAL CENTER,Caesars Entertainment,Employee / member plan (Anthem),unknown,employer_self_funded,employer,yes,high,employer's own plan; card usually shows the employer
+Teamsters Local 986,All Plans,166843,1,UNIVERSITY MEDICAL CENTER,Teamsters Local 986,Employee / member plan,unknown,union_trust,union,yes,high,union health trust; card usually shows the trust
+Las Vegas Sand Corps,All Plans,163801,1,UNIVERSITY MEDICAL CENTER,Las Vegas Sands,Employee / member plan,unknown,employer_self_funded,employer,yes,high,employer's own plan; card usually shows the employer
+Culinary Health Fund,COMM,160223,1,SUNRISE HOSPITAL AND MEDICAL CENTER,Culinary Health Fund,Employee / member plan,unknown,union_trust,union,yes,high,
+City of North Las Vegas,All Plans,158059,1,UNIVERSITY MEDICAL CENTER,City Of North Las Vegas,Employee / member plan,unknown,employer_self_funded,employer,yes,high,employer's own plan; card usually shows the employer
+United Healthcare,All Plans,154903,1,UNIVERSITY MEDICAL CENTER,UnitedHealthcare,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+GEHA-UHC,All Plans,154783,1,UNIVERSITY MEDICAL CENTER,GEHA (UnitedHealthcare network),All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+SUREST,All Plans,154729,1,UNIVERSITY MEDICAL CENTER,Surest (UnitedHealthcare),All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+United Healthcare,Oxford Health,154696,1,UNIVERSITY MEDICAL CENTER,UnitedHealthcare,Oxford Health,unknown,commercial,insurer,yes,high,plan name points to this company or product
+United Healthcare,Golden Rule,154690,1,UNIVERSITY MEDICAL CENTER,Golden Rule (UnitedHealthcare),All plans (one rate published for all),unknown,commercial,insurer,yes,medium,plan name points to this company or product
+United Healthcare,UMR,154690,1,UNIVERSITY MEDICAL CENTER,UMR (UnitedHealthcare),All plans (one rate published for all),unknown,employer_self_funded,insurer,yes,medium,plan name points to this company or product
+United Healthcare,Generic,154690,1,UNIVERSITY MEDICAL CENTER,UnitedHealthcare,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+American Postal Workers Health Plan,APWU,154690,1,UNIVERSITY MEDICAL CENTER,APWU Health Plan,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Wynn Resorts,All Plans,141574,1,UNIVERSITY MEDICAL CENTER,Wynn Resorts,Employee / member plan,unknown,employer_self_funded,employer,yes,high,employer's own plan; card usually shows the employer
+Resorts World Las Vegas,All Plans,140818,1,UNIVERSITY MEDICAL CENTER,Resorts World Las Vegas,Employee / member plan,unknown,employer_self_funded,employer,yes,high,employer's own plan; card usually shows the employer
+Clark County Self Funded,All Plans,138378,1,UNIVERSITY MEDICAL CENTER,Clark County (employee plan),Employee / member plan,unknown,employer_self_funded,employer,yes,high,employer's own plan; card usually shows the employer
+Aetna,International Passport to Health,136713,1,UNIVERSITY MEDICAL CENTER,Aetna,International members,unknown,commercial,insurer,yes,high,plan name points to this company or product
+Clark County EPO,All Plans,135768,1,UNIVERSITY MEDICAL CENTER,Clark County (employee plan),Employee / member plan,unknown,employer_self_funded,employer,yes,high,employer's own plan; card usually shows the employer
+MGM Grand,MGM Properties,135528,1,UNIVERSITY MEDICAL CENTER,MGM Resorts,Employee / member plan,unknown,employer_self_funded,employer,yes,high,employer's own plan; card usually shows the employer
+Las Vegas Metro Police Dept,All Plans,134691,1,UNIVERSITY MEDICAL CENTER,Las Vegas Metro Police Dept,Employee / member plan,unknown,employer_self_funded,employer,yes,high,employer's own plan; card usually shows the employer
+Caesar's Entertainment,SHO,134058,1,UNIVERSITY MEDICAL CENTER,Caesars Entertainment,Employee / member plan (Sierra Health Options),unknown,employer_self_funded,employer,yes,high,employer's own plan; card usually shows the employer
+Culinary Workers HWF,All Plans,133483,1,UNIVERSITY MEDICAL CENTER,Culinary Health Fund,Employee / member plan,unknown,union_trust,union,yes,high,
+Elevance (Anthem BCBS),MCR,133314,3,MOUNTAINVIEW HOSPITAL; SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER; SUNRISE HOSPITAL AND MEDICAL CENTER,Anthem Blue Cross Blue Shield (Nevada),Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+Clark County Firefighters 1908,All Plans,133169,1,UNIVERSITY MEDICAL CENTER,Clark County Firefighters Local 1908,Employee / member plan,unknown,union_trust,union,yes,high,union health trust; card usually shows the trust
+Employee Painters Trust,All Plans,132860,1,UNIVERSITY MEDICAL CENTER,Employee Painters Trust,Employee / member plan,unknown,union_trust,union,yes,high,union health trust; card usually shows the trust
+City Of Henderson,All Plans,132822,1,UNIVERSITY MEDICAL CENTER,City Of Henderson,Employee / member plan,unknown,employer_self_funded,employer,yes,high,employer's own plan; card usually shows the employer
+Mirage Las Vegas,All Plans,132162,1,UNIVERSITY MEDICAL CENTER,MGM Resorts,Employee / member plan,unknown,employer_self_funded,employer,yes,high,employer's own plan; card usually shows the employer
+Operating Engineers,Local 501,132162,1,UNIVERSITY MEDICAL CENTER,Operating Engineers,Employee / member plan (Local 501),unknown,union_trust,union,yes,high,union health trust; card usually shows the trust
+Caesar's Entertainment,Aetna,132161,1,UNIVERSITY MEDICAL CENTER,Caesars Entertainment,Employee / member plan (Aetna),unknown,employer_self_funded,employer,yes,high,employer's own plan; card usually shows the employer
+CMN Global,COMM,131676,3,MOUNTAINVIEW HOSPITAL; SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER; SUNRISE HOSPITAL AND MEDICAL CENTER,,,unknown,commercial,network,no,-,"a network or repricing company, not something most people see on a card"
+United,OptionsPPO,131669,3,MOUNTAINVIEW HOSPITAL; SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER; SUNRISE HOSPITAL AND MEDICAL CENTER,UnitedHealthcare,Options PPO,ppo,commercial,insurer,yes,high,
+MultiPlan,COMPLEMENTARY,131654,3,MOUNTAINVIEW HOSPITAL; SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER; SUNRISE HOSPITAL AND MEDICAL CENTER,MultiPlan,,unknown,commercial,network,no,-,a network many employer plans rent; your card may show its logo
+MultiPlan,INTERNATIONAL,131648,3,MOUNTAINVIEW HOSPITAL; SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER; SUNRISE HOSPITAL AND MEDICAL CENTER,MultiPlan,,unknown,commercial,network,no,-,a network many employer plans rent; your card may show its logo
+MedCare International,COMM,131648,3,MOUNTAINVIEW HOSPITAL; SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER; SUNRISE HOSPITAL AND MEDICAL CENTER,,,unknown,commercial,network,no,-,"a network or repricing company, not something most people see on a card"
+Olympus MedSave USA,COMM,131648,3,MOUNTAINVIEW HOSPITAL; SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER; SUNRISE HOSPITAL AND MEDICAL CENTER,,,unknown,commercial,network,no,-,"a network or repricing company, not something most people see on a card"
+NV Health & Welfare Trust,COMM,131648,3,MOUNTAINVIEW HOSPITAL; SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER; SUNRISE HOSPITAL AND MEDICAL CENTER,Nv Health & Welfare Trust,Employee / member plan,unknown,union_trust,union,yes,high,union health trust; card usually shows the trust
+United,GlobalBenefitPlan,131609,3,MOUNTAINVIEW HOSPITAL; SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER; SUNRISE HOSPITAL AND MEDICAL CENTER,UnitedHealthcare,Global (international members),unknown,commercial,insurer,yes,high,plan name points to this company or product
+Switch,All Plans,131578,1,UNIVERSITY MEDICAL CENTER,Switch,Employee / member plan,unknown,employer_self_funded,employer,yes,high,employer's own plan; card usually shows the employer
+Las Vegas Firefighters 1285,UHC,131302,1,UNIVERSITY MEDICAL CENTER,Las Vegas Firefighters 1285,Employee / member plan (UnitedHealthcare),unknown,union_trust,union,yes,high,union health trust; card usually shows the trust
+Las Vegas Firefighters 1285,All Plans,131293,1,UNIVERSITY MEDICAL CENTER,Las Vegas Firefighters 1285,Employee / member plan,unknown,union_trust,union,yes,high,union health trust; card usually shows the trust
+Blue Cross Blue Shield of Nevada,Anthem Medicaid,126467,1,UNIVERSITY MEDICAL CENTER,Anthem Blue Cross Blue Shield (Nevada),Medicaid plan,other,medicaid_managed_care,insurer,yes,high,
+Nevada Hand,All Plans,122811,1,UNIVERSITY MEDICAL CENTER,Nevada Hand,Employee / member plan,unknown,employer_self_funded,employer,yes,high,employer's own plan; card usually shows the employer
+MGM Grand,Resorts International Direct,122718,1,UNIVERSITY MEDICAL CENTER,MGM Resorts,Employee / member plan (Resorts International Direct),unknown,employer_self_funded,employer,yes,high,employer's own plan; card usually shows the employer
+State of Nevada,All Plans,116680,1,UNIVERSITY MEDICAL CENTER,State of Nevada PEBP,Employee / member plan,unknown,employer_self_funded,employer,yes,high,employer's own plan; card usually shows the employer
+Teacher's Health Trust,All Plans,116650,1,UNIVERSITY MEDICAL CENTER,Teachers Health Trust,Employee / member plan,unknown,union_trust,union,yes,high,union health trust; card usually shows the trust
+Stations Casinos,All Plans,116620,1,UNIVERSITY MEDICAL CENTER,Station Casinos,Employee / member plan,unknown,employer_self_funded,employer,yes,high,employer's own plan; card usually shows the employer
+Venetian/Palazzo,All Plans,116590,1,UNIVERSITY MEDICAL CENTER,The Venetian Resort,Employee / member plan,unknown,employer_self_funded,employer,yes,high,employer's own plan; card usually shows the employer
+Golden Entertainment,All Plans,116509,1,UNIVERSITY MEDICAL CENTER,Golden Entertainment,Employee / member plan,unknown,employer_self_funded,employer,yes,high,employer's own plan; card usually shows the employer
+Golden Nugget Hotel & Casino,All Plans,116503,1,UNIVERSITY MEDICAL CENTER,Golden Nugget Hotel & Casino,Employee / member plan,unknown,employer_self_funded,employer,yes,high,employer's own plan; card usually shows the employer
+PLI Las Vegas,All Plans,116476,1,UNIVERSITY MEDICAL CENTER,Pli Las Vegas,Employee / member plan,unknown,employer_self_funded,employer,yes,high,employer's own plan; card usually shows the employer
+Arroweye Solutions,All Plans,116470,1,UNIVERSITY MEDICAL CENTER,Arroweye Solutions,Employee / member plan,unknown,employer_self_funded,employer,yes,high,employer's own plan; card usually shows the employer
+Marshall Retail Group,All Plans,116470,1,UNIVERSITY MEDICAL CENTER,Marshall Retail Group,Employee / member plan,unknown,employer_self_funded,employer,yes,high,employer's own plan; card usually shows the employer
+Truline Corporation,All Plans,116470,1,UNIVERSITY MEDICAL CENTER,Truline Corporation,Employee / member plan,unknown,employer_self_funded,employer,yes,high,employer's own plan; card usually shows the employer
+Sierra Health and Life,Options,116470,1,UNIVERSITY MEDICAL CENTER,Sierra Health and Life,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+P3 Health Partners,All Plans,116470,1,UNIVERSITY MEDICAL CENTER,,,unknown,commercial,provider_group,no,-,a doctor group or health system that manages care for an insurer's plans; match through the insurer instead
+Dignity Health,All Plans,116470,1,UNIVERSITY MEDICAL CENTER,,,unknown,commercial,provider_group,no,-,a doctor group or health system that manages care for an insurer's plans; match through the insurer instead
+Rebel Oil Company,All Plans,116470,1,UNIVERSITY MEDICAL CENTER,Rebel Oil Company,Employee / member plan,unknown,employer_self_funded,employer,yes,high,employer's own plan; card usually shows the employer
+Sierra Health and Life,Sierra Health Life Insurance,102161,1,UNIVERSITY MEDICAL CENTER,Sierra Health and Life,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Sierra Health and Life,WynnEncore,102134,1,UNIVERSITY MEDICAL CENTER,Wynn Resorts,Employee / member plan,unknown,employer_self_funded,employer,yes,high,plan name points to this company or product
+Sierra Health and Life,HPN HMO Bronze Plan,102134,1,UNIVERSITY MEDICAL CENTER,Health Plan of Nevada (HPN),HMO,hmo,commercial,insurer,yes,high,plan name points to this company or product
+Sierra Health and Life,HPN Health Plan of Nevada,102134,1,UNIVERSITY MEDICAL CENTER,Health Plan of Nevada (HPN),All plans (one rate published for all),unknown,commercial,insurer,yes,medium,plan name points to this company or product
+Sierra Health and Life,City of Las Vegas PPO,102134,1,UNIVERSITY MEDICAL CENTER,City of Las Vegas,Employee / member plan (PPO),ppo,employer_self_funded,employer,yes,high,plan name points to this company or product
+Sierra Health and Life,Sierra Choice,102134,1,UNIVERSITY MEDICAL CENTER,Sierra Health and Life,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Sierra Health and Life,City of Las Vegas HMO,102134,1,UNIVERSITY MEDICAL CENTER,City of Las Vegas,Employee / member plan (HMO),hmo,employer_self_funded,employer,yes,high,plan name points to this company or product
+Sierra Health and Life,HPN Open Access POS,102134,1,UNIVERSITY MEDICAL CENTER,Health Plan of Nevada (HPN),POS,pos,commercial,insurer,yes,high,plan name points to this company or product
+AIG,Claim Services,99665,1,UNIVERSITY MEDICAL CENTER,,,unknown,commercial,exclude,no,-,"not a plan a patient picks (jail, hospice, research, catch-all, out-of-state or unclear)"
+Beech Street,All Plans,99665,1,UNIVERSITY MEDICAL CENTER,Beech Street,,unknown,commercial,network,no,-,a rental network
+Molina,Medicaid,98734,2,CARSON TAHOE REGIONAL MEDICAL CENTER; UNIVERSITY MEDICAL CENTER,Molina Healthcare,Medicaid plan,other,medicaid_managed_care,insurer,yes,high,
+UNITED_HEALTH_CARE,HMO,94805,1,NORTHERN NEVADA MEDICAL CENTER,UnitedHealthcare,HMO,hmo,commercial,insurer,yes,high,
+Blue Cross Blue Shield of Nevada,Anthem PPO,93531,1,UNIVERSITY MEDICAL CENTER,Anthem Blue Cross Blue Shield (Nevada),PPO,ppo,commercial,insurer,yes,high,
+Blue Cross Blue Shield of Nevada,Generic,93282,1,UNIVERSITY MEDICAL CENTER,Anthem Blue Cross Blue Shield (Nevada),All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Blue Cross Blue Shield of Nevada,Anthem Federal,93180,1,UNIVERSITY MEDICAL CENTER,Anthem Blue Cross Blue Shield (Nevada),Federal Employee Program,other,commercial,insurer,yes,high,
+Southwest Carpenters H&W,All Plans,93075,1,UNIVERSITY MEDICAL CENTER,Southwest Carpenters H&W,Employee / member plan,unknown,union_trust,union,yes,high,union health trust; card usually shows the trust
+Blue Cross Blue Shield of Nevada,Anthem HMO,93051,1,UNIVERSITY MEDICAL CENTER,Anthem Blue Cross Blue Shield (Nevada),HMO,hmo,commercial,insurer,yes,high,
+Operating Engineers,Local 12,93012,1,UNIVERSITY MEDICAL CENTER,Operating Engineers,Employee / member plan (Local 12),unknown,union_trust,union,yes,high,union health trust; card usually shows the trust
+California Ironwork Field Welfare,All Plans,92958,1,UNIVERSITY MEDICAL CENTER,California Ironwork Field Welfare,Employee / member plan,unknown,union_trust,union,yes,high,union health trust; card usually shows the trust
+Sheet Metal Workers,All Plans,92925,1,UNIVERSITY MEDICAL CENTER,Sheet Metal Workers,Employee / member plan,unknown,union_trust,union,yes,high,union health trust; card usually shows the trust
+SO CA Pipe Trades H&W,All Plans,92898,1,UNIVERSITY MEDICAL CENTER,So Ca Pipe Trades H&W,Employee / member plan,unknown,union_trust,union,yes,high,union health trust; card usually shows the trust
+First Health,WC,91829,2,SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER; SUNRISE HOSPITAL AND MEDICAL CENTER,First Health (Aetna),,other,workers_comp,exclude,no,-,workers' compensation
+Centene,MCD,90894,3,MOUNTAINVIEW HOSPITAL; SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER; SUNRISE HOSPITAL AND MEDICAL CENTER,SilverSummit Healthplan (Centene),Medicaid plan,other,medicaid_managed_care,insurer,yes,high,Ambetter and Allwell are SilverSummit products
+PROMINENCE,MANAGED_CARE,90571,1,NORTHERN NEVADA MEDICAL CENTER,Prominence Health Plan,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+FIRST_HEALTH_NETWORK,MANAGED_CARE,89258,1,NORTHERN NEVADA MEDICAL CENTER,First Health (Aetna),,unknown,commercial,network,no,-,an Aetna-owned rental network
+CIGNA,Commercial,86101,1,SUNRISE HOSPITAL AND MEDICAL CENTER,Cigna,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Molina,Marketplace,84094,1,UNIVERSITY MEDICAL CENTER,Molina Healthcare,Marketplace (exchange) plan,other,exchange,insurer,yes,high,
+Hometown Health Providers,Commercial,81758,1,SUNRISE HOSPITAL AND MEDICAL CENTER,Hometown Health,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Silver Summit Health Plan (Centene),All Plans,78828,1,UNIVERSITY MEDICAL CENTER,SilverSummit Healthplan (Centene),All plans (one rate published for all),unknown,commercial,insurer,yes,medium,Ambetter and Allwell are SilverSummit products
+Sierra Health and Life,HPN Nevada Checkup,78567,1,UNIVERSITY MEDICAL CENTER,Health Plan of Nevada (HPN),Nevada Check Up (children),other,medicaid_managed_care,insurer,yes,high,plan name points to this company or product
+Sierra Health and Life,HPN Medicaid fka Smart Choice,78567,1,UNIVERSITY MEDICAL CENTER,Health Plan of Nevada (HPN),Medicaid plan,other,medicaid_managed_care,insurer,yes,high,plan name points to this company or product
+BUSINESS_COALITION,MANAGED_CARE,78538,1,NORTHERN NEVADA MEDICAL CENTER,Health Services Coalition,,unknown,commercial,network,no,-,Las Vegas employers' and unions' purchasing coalition; your card may show it
+MOLINA,MEDICAID,76589,7,CENTENNIAL HILLS HOSPITAL MEDICAL CENTER; HENDERSON HOSPITAL; NORTHERN NEVADA MEDICAL CENTER; SPRING VALLEY HOSPITAL MEDICAL CENTER; SUMMERLIN HOSPITAL MEDICAL CENTER; VALLEY HOSPITAL MEDICAL CENTER; WEST HENDERSON HOSPITAL,Molina Healthcare,Medicaid plan,other,medicaid_managed_care,insurer,yes,high,
+ANTHEM_BLUE_CROSS_BLUE_SHIELD,MEDICAID,76479,7,CENTENNIAL HILLS HOSPITAL MEDICAL CENTER; HENDERSON HOSPITAL; NORTHERN NEVADA MEDICAL CENTER; SPRING VALLEY HOSPITAL MEDICAL CENTER; SUMMERLIN HOSPITAL MEDICAL CENTER; VALLEY HOSPITAL MEDICAL CENTER; WEST HENDERSON HOSPITAL,Anthem Blue Cross Blue Shield (Nevada),Medicaid plan,other,medicaid_managed_care,insurer,yes,high,
+Anthem,Commercial,76101,1,SUNRISE HOSPITAL AND MEDICAL CENTER,Anthem Blue Cross Blue Shield (Nevada),All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+SMART_CHOICE,MEDICAID,75360,7,CENTENNIAL HILLS HOSPITAL MEDICAL CENTER; HENDERSON HOSPITAL; NORTHERN NEVADA MEDICAL CENTER; SPRING VALLEY HOSPITAL MEDICAL CENTER; SUMMERLIN HOSPITAL MEDICAL CENTER; VALLEY HOSPITAL MEDICAL CENTER; WEST HENDERSON HOSPITAL,Health Plan of Nevada (HPN),Medicaid plan,other,medicaid_managed_care,insurer,yes,high,
+SILVER_SUMMIT,MEDICAID,75360,7,CENTENNIAL HILLS HOSPITAL MEDICAL CENTER; HENDERSON HOSPITAL; NORTHERN NEVADA MEDICAL CENTER; SPRING VALLEY HOSPITAL MEDICAL CENTER; SUMMERLIN HOSPITAL MEDICAL CENTER; VALLEY HOSPITAL MEDICAL CENTER; WEST HENDERSON HOSPITAL,SilverSummit Healthplan (Centene),Medicaid plan,other,medicaid_managed_care,insurer,yes,high,Ambetter and Allwell are SilverSummit products
+Aetna,Commercial,74474,4,BANNER CHURCHILL COMMUNITY HOSPITAL; CARSON TAHOE REGIONAL MEDICAL CENTER; DESERT VIEW HOSPITAL; SUNRISE HOSPITAL AND MEDICAL CENTER,Aetna,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+AETNA,FIRSTHEALTH,73954,1,VALLEY HOSPITAL MEDICAL CENTER,Aetna,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Health Net,Tricare West Region,68979,1,UNIVERSITY MEDICAL CENTER,TRICARE,TRICARE,other,tricare,government,yes,high,
+Aetna,Medicare Managed Care,68823,1,UNIVERSITY MEDICAL CENTER,Aetna,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+SelectHealth,Med Network,68796,1,UNIVERSITY MEDICAL CENTER,Select Health (Intermountain),All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Advantra Freedom,All Plans,68758,1,UNIVERSITY MEDICAL CENTER,Advantra (Coventry Medicare),All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+SelectHealth,Value Network HMOPOS,68733,1,UNIVERSITY MEDICAL CENTER,Select Health (Intermountain),POS,pos,commercial,insurer,yes,high,
+VA PC3 (VA Choice),Community Care,68657,1,UNIVERSITY MEDICAL CENTER,VA Community Care,VA Community Care,unknown,tricare,government,yes,high,
+Nevada Preferred Professionals,All Plans,68643,1,UNIVERSITY MEDICAL CENTER,Nevada Preferred Professionals,,unknown,commercial,network,no,-,
+Prominence Health Plan,PPO and Exchange,68643,1,UNIVERSITY MEDICAL CENTER,Prominence Health Plan,Marketplace (exchange) plan,other,exchange,insurer,yes,high,
+JW Marriott,All Plans,68643,1,UNIVERSITY MEDICAL CENTER,Jw Marriott,Employee / member plan,unknown,employer_self_funded,employer,yes,high,employer's own plan; card usually shows the employer
+Alignment Health,All Plans,68643,1,UNIVERSITY MEDICAL CENTER,Alignment Health,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Universal Health Network (UHN),All Plans,68643,1,UNIVERSITY MEDICAL CENTER,Universal Health Network,,unknown,commercial,network,no,-,
+Prominence Health Plan,HMO,68643,1,UNIVERSITY MEDICAL CENTER,Prominence Health Plan,HMO,hmo,commercial,insurer,yes,high,
+Laughlin Coalition,All Plans,68640,1,UNIVERSITY MEDICAL CENTER,Health Services Coalition,,unknown,commercial,network,no,-,Las Vegas employers' and unions' purchasing coalition; your card may show it
+Zuffa,All Plans,68640,1,UNIVERSITY MEDICAL CENTER,Zuffa,Employee / member plan,unknown,employer_self_funded,employer,yes,high,employer's own plan; card usually shows the employer
+Molina,Medicare Advantage,68628,1,UNIVERSITY MEDICAL CENTER,Molina Healthcare,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+Aetna,Generic,67397,1,UNIVERSITY MEDICAL CENTER,Aetna,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Mail Handlers Benefit Plan,MHBP,67397,1,UNIVERSITY MEDICAL CENTER,Mail Handlers Benefit Plan,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Strategic Resource Company (SRC)/Aetna Student Health,SRC Student,67391,1,UNIVERSITY MEDICAL CENTER,Aetna Student Health,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Aetna,Meritain,67391,1,UNIVERSITY MEDICAL CENTER,Aetna,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Coventry,All Plans,67391,1,UNIVERSITY MEDICAL CENTER,Coventry (Aetna),,unknown,commercial,network,no,-,Aetna-owned network
+First Health,All Plans,67229,1,UNIVERSITY MEDICAL CENTER,First Health (Aetna),,unknown,commercial,network,no,-,an Aetna-owned rental network
+Health Net,Generic,67220,1,UNIVERSITY MEDICAL CENTER,Health Net,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Three Rivers Provider Network,All Plans,67220,1,UNIVERSITY MEDICAL CENTER,Three Rivers Provider Network,,unknown,commercial,network,no,-,
+ANTHEM_BLUE_CROSS_BLUE_SHIELD,PPO,65253,7,CENTENNIAL HILLS HOSPITAL MEDICAL CENTER; HENDERSON HOSPITAL; NORTHERN NEVADA MEDICAL CENTER; SPRING VALLEY HOSPITAL MEDICAL CENTER; SUMMERLIN HOSPITAL MEDICAL CENTER; VALLEY HOSPITAL MEDICAL CENTER; WEST HENDERSON HOSPITAL,Anthem Blue Cross Blue Shield (Nevada),PPO,ppo,commercial,insurer,yes,high,
+Aetna,QHP GateKeeper,63697,1,UNIVERSITY MEDICAL CENTER,Aetna,Marketplace (exchange) plan,other,exchange,insurer,yes,high,
+Health Direct Partners,All Plans,63400,1,UNIVERSITY MEDICAL CENTER,,,unknown,commercial,network,no,-,"a network or repricing company, not something most people see on a card"
+ANTHEM_BLUE_CROSS_BLUE_SHIELD,HMO,63261,6,CENTENNIAL HILLS HOSPITAL MEDICAL CENTER; HENDERSON HOSPITAL; SPRING VALLEY HOSPITAL MEDICAL CENTER; SUMMERLIN HOSPITAL MEDICAL CENTER; VALLEY HOSPITAL MEDICAL CENTER; WEST HENDERSON HOSPITAL,Anthem Blue Cross Blue Shield (Nevada),HMO,hmo,commercial,insurer,yes,high,
+ANTHEM_BLUE_CROSS_BLUE_SHIELD,QHP,63261,6,CENTENNIAL HILLS HOSPITAL MEDICAL CENTER; HENDERSON HOSPITAL; SPRING VALLEY HOSPITAL MEDICAL CENTER; SUMMERLIN HOSPITAL MEDICAL CENTER; VALLEY HOSPITAL MEDICAL CENTER; WEST HENDERSON HOSPITAL,Anthem Blue Cross Blue Shield (Nevada),Marketplace (exchange) plan,other,exchange,insurer,yes,high,
+United,Commercial|Options,59392,3,SAINT ROSE DOMINICAN HOSPITALS - ROSE DE LIMA; SAINT ROSE DOMINICAN HOSPITALS - SAN MARTIN CAMPUS; SAINT ROSE DOMINICAN HOSPITALS - SIENA CAMPUS,UnitedHealthcare,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Coventry,Commercial|All Plans,59356,3,SAINT ROSE DOMINICAN HOSPITALS - ROSE DE LIMA; SAINT ROSE DOMINICAN HOSPITALS - SAN MARTIN CAMPUS; SAINT ROSE DOMINICAN HOSPITALS - SIENA CAMPUS,Coventry (Aetna),,unknown,commercial,network,no,-,Aetna-owned network
+Oscar,Commercial|All Plans,59356,3,SAINT ROSE DOMINICAN HOSPITALS - ROSE DE LIMA; SAINT ROSE DOMINICAN HOSPITALS - SAN MARTIN CAMPUS; SAINT ROSE DOMINICAN HOSPITALS - SIENA CAMPUS,Oscar Health,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Nevada Energy,All Plans,58229,1,UNIVERSITY MEDICAL CENTER,NV Energy,Employee / member plan,unknown,employer_self_funded,employer,yes,high,employer's own plan; card usually shows the employer
+Prominence HealthFirst,COMM,56036,3,MOUNTAINVIEW HOSPITAL; SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER; SUNRISE HOSPITAL AND MEDICAL CENTER,Prominence HealthFirst (formerly Nevada Preferred),,unknown,commercial,network,no,-,a provider network; your card may show its logo
+Ambetter,Centene All Plans,54266,1,UNIVERSITY MEDICAL CENTER,SilverSummit Healthplan (Centene),Marketplace (exchange) plan,other,exchange,insurer,yes,high,Ambetter and Allwell are SilverSummit products
+Community Care Health,MGMCD,49677,3,MOUNTAINVIEW HOSPITAL; SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER; SUNRISE HOSPITAL AND MEDICAL CENTER,,,other,medicaid_managed_care,network,no,-,"a network or repricing company, not something most people see on a card"
+Clark County Detention Center,All Plans,48883,1,UNIVERSITY MEDICAL CENTER,,,unknown,commercial,exclude,no,-,"not a plan a patient picks (jail, hospice, research, catch-all, out-of-state or unclear)"
+SCAN,Medicare,48725,1,UNIVERSITY MEDICAL CENTER,SCAN Health Plan,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+United,MGMCD,48354,3,MOUNTAINVIEW HOSPITAL; SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER; SUNRISE HOSPITAL AND MEDICAL CENTER,UnitedHealthcare,Medicaid plan,other,medicaid_managed_care,insurer,yes,high,
+CareMore,MCR,44905,3,MOUNTAINVIEW HOSPITAL; SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER; SUNRISE HOSPITAL AND MEDICAL CENTER,CareMore Health,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+Alignment Health Plan,MCR,43967,3,MOUNTAINVIEW HOSPITAL; SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER; SUNRISE HOSPITAL AND MEDICAL CENTER,Alignment Health,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+Emerging Therapy Solutions,COMM,42897,1,MOUNTAINVIEW HOSPITAL,,,unknown,commercial,network,no,-,"a network or repricing company, not something most people see on a card"
+Aetna,MCR,41869,3,MOUNTAINVIEW HOSPITAL; SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER; SUNRISE HOSPITAL AND MEDICAL CENTER,Aetna,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+Health Services Coalition,Commercial|All Plans,40240,3,SAINT ROSE DOMINICAN HOSPITALS - ROSE DE LIMA; SAINT ROSE DOMINICAN HOSPITALS - SAN MARTIN CAMPUS; SAINT ROSE DOMINICAN HOSPITALS - SIENA CAMPUS,Health Services Coalition,,unknown,commercial,network,no,-,Las Vegas employers' and unions' purchasing coalition; your card may show it
+Cigna,Commercial|PPO,39833,3,SAINT ROSE DOMINICAN HOSPITALS - ROSE DE LIMA; SAINT ROSE DOMINICAN HOSPITALS - SAN MARTIN CAMPUS; SAINT ROSE DOMINICAN HOSPITALS - SIENA CAMPUS,Cigna,PPO,ppo,commercial,insurer,yes,high,
+Cigna,Commercial|All Other Plans,39833,3,SAINT ROSE DOMINICAN HOSPITALS - ROSE DE LIMA; SAINT ROSE DOMINICAN HOSPITALS - SAN MARTIN CAMPUS; SAINT ROSE DOMINICAN HOSPITALS - SIENA CAMPUS,Cigna,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+First Health,WCOMP,39819,1,MOUNTAINVIEW HOSPITAL,First Health (Aetna),,other,workers_comp,exclude,no,-,workers' compensation
+Optum Transplants,COMM,39192,1,MOUNTAINVIEW HOSPITAL,,,unknown,commercial,exclude,no,-,"specialty-only contract (transplant, kidney or behavioral health), not a general plan"
+Emerging Therapy Solutions,MGMCR,39061,1,MOUNTAINVIEW HOSPITAL,,,other,medicare_advantage,network,no,-,"a network or repricing company, not something most people see on a card"
+Evernorth,COMM,38774,1,SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER,Cigna,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Aetna,Commercial|HMO,37424,3,SAINT ROSE DOMINICAN HOSPITALS - ROSE DE LIMA; SAINT ROSE DOMINICAN HOSPITALS - SAN MARTIN CAMPUS; SAINT ROSE DOMINICAN HOSPITALS - SIENA CAMPUS,Aetna,HMO,hmo,commercial,insurer,yes,high,
+United,MGMCR,37378,1,SUNRISE HOSPITAL AND MEDICAL CENTER,UnitedHealthcare,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+First Health,COMM,37158,2,MOUNTAINVIEW HOSPITAL; SUNRISE HOSPITAL AND MEDICAL CENTER,First Health (Aetna),,unknown,commercial,network,no,-,an Aetna-owned rental network
+United,Commercial,36902,1,SUNRISE HOSPITAL AND MEDICAL CENTER,UnitedHealthcare,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Aetna,Commercial|All Other Plans,36818,3,SAINT ROSE DOMINICAN HOSPITALS - ROSE DE LIMA; SAINT ROSE DOMINICAN HOSPITALS - SAN MARTIN CAMPUS; SAINT ROSE DOMINICAN HOSPITALS - SIENA CAMPUS,Aetna,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Aetna,Commercial|PPO,34133,3,SAINT ROSE DOMINICAN HOSPITALS - ROSE DE LIMA; SAINT ROSE DOMINICAN HOSPITALS - SAN MARTIN CAMPUS; SAINT ROSE DOMINICAN HOSPITALS - SIENA CAMPUS,Aetna,PPO,ppo,commercial,insurer,yes,high,
+BCBS - Anthem,Commercial|PPO,34125,3,SAINT ROSE DOMINICAN HOSPITALS - ROSE DE LIMA; SAINT ROSE DOMINICAN HOSPITALS - SAN MARTIN CAMPUS; SAINT ROSE DOMINICAN HOSPITALS - SIENA CAMPUS,Anthem Blue Cross Blue Shield (Nevada),PPO,ppo,commercial,insurer,yes,high,
+United,Commercial|All Other Plans,33514,3,SAINT ROSE DOMINICAN HOSPITALS - ROSE DE LIMA; SAINT ROSE DOMINICAN HOSPITALS - SAN MARTIN CAMPUS; SAINT ROSE DOMINICAN HOSPITALS - SIENA CAMPUS,UnitedHealthcare,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Anthem,MGMCD,33424,1,SUNRISE HOSPITAL AND MEDICAL CENTER,Anthem Blue Cross Blue Shield (Nevada),Medicaid plan,other,medicaid_managed_care,insurer,yes,high,
+Molina,MCD,33424,1,SUNRISE HOSPITAL AND MEDICAL CENTER,Molina Healthcare,Medicaid plan,other,medicaid_managed_care,insurer,yes,high,
+Silver Summit,MGMCD,33424,1,SUNRISE HOSPITAL AND MEDICAL CENTER,SilverSummit Healthplan (Centene),Medicaid plan,other,medicaid_managed_care,insurer,yes,high,Ambetter and Allwell are SilverSummit products
+Health Plan of NV,Commercial|All Plans,33248,3,SAINT ROSE DOMINICAN HOSPITALS - ROSE DE LIMA; SAINT ROSE DOMINICAN HOSPITALS - SAN MARTIN CAMPUS; SAINT ROSE DOMINICAN HOSPITALS - SIENA CAMPUS,Health Plan of Nevada (HPN),All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Sierra Health Options,Commercial|Prime,33068,3,SAINT ROSE DOMINICAN HOSPITALS - ROSE DE LIMA; SAINT ROSE DOMINICAN HOSPITALS - SAN MARTIN CAMPUS; SAINT ROSE DOMINICAN HOSPITALS - SIENA CAMPUS,Sierra Health Options,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Sierra Health Options,Commercial|State of NV,33008,3,SAINT ROSE DOMINICAN HOSPITALS - ROSE DE LIMA; SAINT ROSE DOMINICAN HOSPITALS - SAN MARTIN CAMPUS; SAINT ROSE DOMINICAN HOSPITALS - SIENA CAMPUS,Sierra Health Options,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+SelectHealth,Medicare HMO,32524,1,UNIVERSITY MEDICAL CENTER,Select Health (Intermountain),Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+Healthcare Partners of Nevada,SCAN Health Plan Nevada Medicare Advantage HMO,32521,1,UNIVERSITY MEDICAL CENTER,,,other,medicare_advantage,provider_group,no,-,a doctor group or health system that manages care for an insurer's plans; match through the insurer instead
+Healthcare Partners of Nevada,AARP Medicare Complete HMO IHC,32521,1,UNIVERSITY MEDICAL CENTER,,,other,medicare_advantage,provider_group,no,-,a doctor group or health system that manages care for an insurer's plans; match through the insurer instead
+Healthcare Partners of Nevada,Humana Gold Plus Medicare HMO IHC,32521,1,UNIVERSITY MEDICAL CENTER,,,other,medicare_advantage,provider_group,no,-,a doctor group or health system that manages care for an insurer's plans; match through the insurer instead
+Healthcare Partners of Nevada,Alignment HMO IHC,32521,1,UNIVERSITY MEDICAL CENTER,,,unknown,commercial,provider_group,no,-,a doctor group or health system that manages care for an insurer's plans; match through the insurer instead
+OptumCare,Humana Medicare HMO OptumCare,32520,1,UNIVERSITY MEDICAL CENTER,,,other,medicare_advantage,provider_group,no,-,a doctor group or health system that manages care for an insurer's plans; match through the insurer instead
+Sierra Health and Life,SHL Medicare Advantage,32514,1,UNIVERSITY MEDICAL CENTER,Sierra Health and Life,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+OptumCare,Anthem MediBlue,32514,1,UNIVERSITY MEDICAL CENTER,,,other,medicare_advantage,provider_group,no,-,a doctor group or health system that manages care for an insurer's plans; match through the insurer instead
+BCBS - Anthem,Commercial|HMO,32181,3,SAINT ROSE DOMINICAN HOSPITALS - ROSE DE LIMA; SAINT ROSE DOMINICAN HOSPITALS - SAN MARTIN CAMPUS; SAINT ROSE DOMINICAN HOSPITALS - SIENA CAMPUS,Anthem Blue Cross Blue Shield (Nevada),HMO,hmo,commercial,insurer,yes,high,
+Hometown Health,All Products (Fully Insured and Self-Funded),30520,1,CARSON VALLEY HEALTH,Hometown Health,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Intermountain,Medicare|All Plans,26820,3,SAINT ROSE DOMINICAN HOSPITALS - ROSE DE LIMA; SAINT ROSE DOMINICAN HOSPITALS - SAN MARTIN CAMPUS; SAINT ROSE DOMINICAN HOSPITALS - SIENA CAMPUS,Select Health (Intermountain),Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+Cigna,Commercial,26667,2,CARSON TAHOE REGIONAL MEDICAL CENTER; DESERT VIEW HOSPITAL,Cigna,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+CareSource,MGMCD,26640,3,MOUNTAINVIEW HOSPITAL; SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER; SUNRISE HOSPITAL AND MEDICAL CENTER,CareSource,Medicaid plan,other,medicaid_managed_care,insurer,yes,high,
+Anthem,Medicaid|All Plans,26377,3,SAINT ROSE DOMINICAN HOSPITALS - ROSE DE LIMA; SAINT ROSE DOMINICAN HOSPITALS - SAN MARTIN CAMPUS; SAINT ROSE DOMINICAN HOSPITALS - SIENA CAMPUS,Anthem Blue Cross Blue Shield (Nevada),Medicaid plan,other,medicaid_managed_care,insurer,yes,high,
+Humana,Medicare|All Plans,25707,3,SAINT ROSE DOMINICAN HOSPITALS - ROSE DE LIMA; SAINT ROSE DOMINICAN HOSPITALS - SAN MARTIN CAMPUS; SAINT ROSE DOMINICAN HOSPITALS - SIENA CAMPUS,Humana,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+United,Medicare|All Plans,25674,3,SAINT ROSE DOMINICAN HOSPITALS - ROSE DE LIMA; SAINT ROSE DOMINICAN HOSPITALS - SAN MARTIN CAMPUS; SAINT ROSE DOMINICAN HOSPITALS - SIENA CAMPUS,UnitedHealthcare,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+CareMore,Medicare|All Plans,25085,3,SAINT ROSE DOMINICAN HOSPITALS - ROSE DE LIMA; SAINT ROSE DOMINICAN HOSPITALS - SAN MARTIN CAMPUS; SAINT ROSE DOMINICAN HOSPITALS - SIENA CAMPUS,CareMore Health,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+Alignment,Commercial|All Plans,24820,3,SAINT ROSE DOMINICAN HOSPITALS - ROSE DE LIMA; SAINT ROSE DOMINICAN HOSPITALS - SAN MARTIN CAMPUS; SAINT ROSE DOMINICAN HOSPITALS - SIENA CAMPUS,Alignment Health,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+SilverSummitHealthPlan,Medicaid|All Plans,24813,3,SAINT ROSE DOMINICAN HOSPITALS - ROSE DE LIMA; SAINT ROSE DOMINICAN HOSPITALS - SAN MARTIN CAMPUS; SAINT ROSE DOMINICAN HOSPITALS - SIENA CAMPUS,SilverSummit Healthplan (Centene),Medicaid plan,other,medicaid_managed_care,insurer,yes,high,Ambetter and Allwell are SilverSummit products
+Sierra Health Plan NV,Medicaid|All Plans,24813,3,SAINT ROSE DOMINICAN HOSPITALS - ROSE DE LIMA; SAINT ROSE DOMINICAN HOSPITALS - SAN MARTIN CAMPUS; SAINT ROSE DOMINICAN HOSPITALS - SIENA CAMPUS,Health Plan of Nevada (HPN),Medicaid plan,other,medicaid_managed_care,insurer,yes,high,
+Aetna,Medicare|All Plans,24354,3,SAINT ROSE DOMINICAN HOSPITALS - ROSE DE LIMA; SAINT ROSE DOMINICAN HOSPITALS - SAN MARTIN CAMPUS; SAINT ROSE DOMINICAN HOSPITALS - SIENA CAMPUS,Aetna,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+BCBS - Anthem,Medicare|All Plans,24354,3,SAINT ROSE DOMINICAN HOSPITALS - ROSE DE LIMA; SAINT ROSE DOMINICAN HOSPITALS - SAN MARTIN CAMPUS; SAINT ROSE DOMINICAN HOSPITALS - SIENA CAMPUS,Anthem Blue Cross Blue Shield (Nevada),Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+Humana,MCRHMO,23598,3,MOUNTAINVIEW HOSPITAL; SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER; SUNRISE HOSPITAL AND MEDICAL CENTER,Humana,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+Humana,MCRPPO,23595,3,MOUNTAINVIEW HOSPITAL; SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER; SUNRISE HOSPITAL AND MEDICAL CENTER,Humana,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+Hometown Health MCR,MCR,23523,3,MOUNTAINVIEW HOSPITAL; SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER; SUNRISE HOSPITAL AND MEDICAL CENTER,Hometown Health,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+Sierra HPN,MCD,23313,3,MOUNTAINVIEW HOSPITAL; SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER; SUNRISE HOSPITAL AND MEDICAL CENTER,Health Plan of Nevada (HPN),Medicaid plan,other,medicaid_managed_care,insurer,yes,high,
+Sierra,COMM,22630,1,SUNRISE HOSPITAL AND MEDICAL CENTER,Sierra Health (company not stated),All plans (one rate published for all),unknown,commercial,insurer,yes,low,"could be HPN, Sierra Health and Life or Sierra Health Options"
+Select Health,MCRPPO,22530,3,MOUNTAINVIEW HOSPITAL; SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER; SUNRISE HOSPITAL AND MEDICAL CENTER,Select Health (Intermountain),Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+United Healthcare,Medicare Advantage PPO,22058,1,UNIVERSITY MEDICAL CENTER,UnitedHealthcare,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+P3 Health Partners Nevada,Wellcare,22058,1,UNIVERSITY MEDICAL CENTER,,,unknown,commercial,provider_group,no,-,a doctor group or health system that manages care for an insurer's plans; match through the insurer instead
+P3 Health Partners Nevada,Humana Gold Plus Medicare P3,22058,1,UNIVERSITY MEDICAL CENTER,,,other,medicare_advantage,provider_group,no,-,a doctor group or health system that manages care for an insurer's plans; match through the insurer instead
+P3 Health Partners Nevada,Alignment Healthcare,22058,1,UNIVERSITY MEDICAL CENTER,,,unknown,commercial,provider_group,no,-,a doctor group or health system that manages care for an insurer's plans; match through the insurer instead
+United Healthcare,Medicare Solutions HMO,22058,1,UNIVERSITY MEDICAL CENTER,UnitedHealthcare,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+P3 Health Partners Nevada,Aetna Medicare P3,22058,1,UNIVERSITY MEDICAL CENTER,,,other,medicare_advantage,provider_group,no,-,a doctor group or health system that manages care for an insurer's plans; match through the insurer instead
+Allwell,Wellcare,22050,1,UNIVERSITY MEDICAL CENTER,SilverSummit Healthplan (Centene),All plans (one rate published for all),unknown,commercial,insurer,yes,medium,Ambetter and Allwell are SilverSummit products
+Health Plan Nevada,MCD,21927,1,SUNRISE HOSPITAL AND MEDICAL CENTER,Health Plan of Nevada (HPN),Medicaid plan,other,medicaid_managed_care,insurer,yes,high,
+CorVel,WORKERSCOMP,21426,3,MOUNTAINVIEW HOSPITAL; SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER; SUNRISE HOSPITAL AND MEDICAL CENTER,,,other,workers_comp,exclude,no,-,workers' compensation
+Olympus MedSave USA,WCOMP,21420,3,MOUNTAINVIEW HOSPITAL; SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER; SUNRISE HOSPITAL AND MEDICAL CENTER,,,other,workers_comp,exclude,no,-,workers' compensation
+Northern NV Health Ntwrk,Sierra Health,20888,1,CARSON TAHOE REGIONAL MEDICAL CENTER,,,unknown,commercial,network,no,-,"a network or repricing company, not something most people see on a card"
+Anthem Blue Cross Blue Shield,Medicaid,20738,1,CARSON TAHOE REGIONAL MEDICAL CENTER,Anthem Blue Cross Blue Shield (Nevada),Medicaid plan,other,medicaid_managed_care,insurer,yes,high,
+Silver Summit,HIX,20440,1,SUNRISE HOSPITAL AND MEDICAL CENTER,SilverSummit Healthplan (Centene),Marketplace (exchange) plan,other,exchange,insurer,yes,high,Ambetter and Allwell are SilverSummit products
+Healthcare Partners of NV,Commercial,20438,1,SUNRISE HOSPITAL AND MEDICAL CENTER,,,unknown,commercial,provider_group,no,-,a doctor group or health system that manages care for an insurer's plans; match through the insurer instead
+Anthem,MCR,20438,1,SUNRISE HOSPITAL AND MEDICAL CENTER,Anthem Blue Cross Blue Shield (Nevada),Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+Healthcare Partners of NV,MCR,20438,1,SUNRISE HOSPITAL AND MEDICAL CENTER,,,other,medicare_advantage,provider_group,no,-,a doctor group or health system that manages care for an insurer's plans; match through the insurer instead
+SilverSummit,Medicaid,20269,1,CARSON TAHOE REGIONAL MEDICAL CENTER,SilverSummit Healthplan (Centene),Medicaid plan,other,medicaid_managed_care,insurer,yes,high,Ambetter and Allwell are SilverSummit products
+MultiPlan,Commercial,20131,1,CARSON TAHOE REGIONAL MEDICAL CENTER,MultiPlan,,unknown,commercial,network,no,-,a network many employer plans rent; your card may show its logo
+OptumCare,AARP Medicare Complete OptumCare HMO,19912,1,UNIVERSITY MEDICAL CENTER,,,other,medicare_advantage,provider_group,no,-,a doctor group or health system that manages care for an insurer's plans; match through the insurer instead
+Blue Cross Blue Shield of Nevada,Medicare Advantage HMO,19912,1,UNIVERSITY MEDICAL CENTER,Anthem Blue Cross Blue Shield (Nevada),Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+Blue Cross Blue Shield of Nevada,Medicare Advantage PPO,19909,1,UNIVERSITY MEDICAL CENTER,Anthem Blue Cross Blue Shield (Nevada),Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+Sierra Health and Life,Senior Dimension,19906,1,UNIVERSITY MEDICAL CENTER,Sierra Health and Life,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+OptumCare,United Healthcare Medicare Focus fka Senior Dimensions,19906,1,UNIVERSITY MEDICAL CENTER,,,other,medicare_advantage,provider_group,no,-,a doctor group or health system that manages care for an insurer's plans; match through the insurer instead
+Scan,All Plans,19906,1,UNIVERSITY MEDICAL CENTER,SCAN Health Plan,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+OptumCare,United Healthcare Medicare Focus HMO Capitated,19906,1,UNIVERSITY MEDICAL CENTER,,,other,medicare_advantage,provider_group,no,-,a doctor group or health system that manages care for an insurer's plans; match through the insurer instead
+NV Laborers Health & Welfare Trust Fund,Commercial,19475,1,CARSON TAHOE REGIONAL MEDICAL CENTER,Laborers Health & Welfare Trust (Nevada),Employee / member plan,unknown,union_trust,union,yes,high,union health trust; card usually shows the trust
+Hometown Health Plan,Commercial,19461,1,CARSON TAHOE REGIONAL MEDICAL CENTER,Hometown Health,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Carson City Jail,Commercial,19459,1,CARSON TAHOE REGIONAL MEDICAL CENTER,,,unknown,commercial,exclude,no,-,"not a plan a patient picks (jail, hospice, research, catch-all, out-of-state or unclear)"
+Coalition,Coalition,19459,1,CARSON TAHOE REGIONAL MEDICAL CENTER,Health Services Coalition,,unknown,commercial,network,no,-,Las Vegas employers' and unions' purchasing coalition; your card may show it
+CareSource Medicaid,CareSource Medicaid,19459,1,CARSON TAHOE REGIONAL MEDICAL CENTER,CareSource,Medicaid plan,other,medicaid_managed_care,insurer,yes,high,
+Centene,MCR,19335,3,MOUNTAINVIEW HOSPITAL; SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER; SUNRISE HOSPITAL AND MEDICAL CENTER,SilverSummit Healthplan (Centene),Medicare Advantage,other,medicare_advantage,insurer,yes,high,Ambetter and Allwell are SilverSummit products
+SilverSummit,Commercial Exchange,19314,1,CARSON TAHOE REGIONAL MEDICAL CENTER,SilverSummit Healthplan (Centene),Marketplace (exchange) plan,other,exchange,insurer,yes,high,Ambetter and Allwell are SilverSummit products
+Molina,Commercial,19296,1,CARSON TAHOE REGIONAL MEDICAL CENTER,Molina Healthcare,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Prominence HealthFirst,Medicare Advantage,19296,1,CARSON TAHOE REGIONAL MEDICAL CENTER,Prominence HealthFirst (formerly Nevada Preferred),,other,medicare_advantage,network,no,-,a provider network; your card may show its logo
+Six Degrees Health,Six Degrees Health,19296,1,CARSON TAHOE REGIONAL MEDICAL CENTER,,,unknown,commercial,network,no,-,"a network or repricing company, not something most people see on a card"
+Prominence HealthFirst,Commercial,19294,1,CARSON TAHOE REGIONAL MEDICAL CENTER,Prominence HealthFirst (formerly Nevada Preferred),,unknown,commercial,network,no,-,a provider network; your card may show its logo
+PacifiCare of Nevada Inc,Medicare Advantage,19275,1,CARSON TAHOE REGIONAL MEDICAL CENTER,UnitedHealthcare,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+PacifiCare of Nevada Inc,Commercial,19274,1,CARSON TAHOE REGIONAL MEDICAL CENTER,UnitedHealthcare,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Health Net,Tricare,19051,3,MOUNTAINVIEW HOSPITAL; SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER; SUNRISE HOSPITAL AND MEDICAL CENTER,TRICARE,TRICARE,other,tricare,government,yes,high,
+Geha,ASA,18605,1,UNIVERSITY MEDICAL CENTER,GEHA,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Universal Healthcare,MCR,18297,3,MOUNTAINVIEW HOSPITAL; SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER; SUNRISE HOSPITAL AND MEDICAL CENTER,Universal Health Network,,other,medicare_advantage,network,no,-,
+United,Medicare,18258,3,MOUNTAINVIEW HOSPITAL; SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER; SUNRISE HOSPITAL AND MEDICAL CENTER,UnitedHealthcare,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+Kaiser,Northern CA,16733,1,UNIVERSITY MEDICAL CENTER,Kaiser Permanente,Visiting members (Northern California),unknown,commercial,insurer,yes,high,plan name points to this company or product
+Kaiser,Hawaii,16733,1,UNIVERSITY MEDICAL CENTER,Kaiser Permanente,Visiting members (Hawaii),unknown,commercial,insurer,yes,high,plan name points to this company or product
+Kaiser,Southern CA,16733,1,UNIVERSITY MEDICAL CENTER,Kaiser Permanente,Visiting members (Southern California),unknown,commercial,insurer,yes,high,plan name points to this company or product
+Cigna,All Plans,16689,1,UNIVERSITY MEDICAL CENTER,Cigna,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Aetna,Aetna,16665,2,MOUNT GRANT GENERAL HOSPITAL; NORTHEASTERN NEVADA REGIONAL HOSPITAL,Aetna,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Hometown Health,Hometown Health,16220,2,MOUNT GRANT GENERAL HOSPITAL; NORTHEASTERN NEVADA REGIONAL HOSPITAL,Hometown Health,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+TriWest Healthcare Alliance,Veterans,15697,2,MOUNTAINVIEW HOSPITAL; SUNRISE HOSPITAL AND MEDICAL CENTER,TRICARE,TRICARE,other,tricare,government,yes,high,TriWest runs TRICARE West
+Anthem,Managed Medicaid,15230,1,CARSON VALLEY HEALTH,Anthem Blue Cross Blue Shield (Nevada),Medicaid plan,other,medicaid_managed_care,insurer,yes,high,
+Silver Summit,Managed Medicaid,15171,1,CARSON VALLEY HEALTH,SilverSummit Healthplan (Centene),Medicaid plan,other,medicaid_managed_care,insurer,yes,high,Ambetter and Allwell are SilverSummit products
+First Health,COMMPPO,14057,1,SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER,First Health (Aetna),,ppo,commercial,network,no,-,an Aetna-owned rental network
+Multiplan,Commercial,12874,2,BANNER CHURCHILL COMMUNITY HOSPITAL; DESERT VIEW HOSPITAL,MultiPlan,,unknown,commercial,network,no,-,a network many employer plans rent; your card may show its logo
+Coventry,Commercial,12874,2,BANNER CHURCHILL COMMUNITY HOSPITAL; DESERT VIEW HOSPITAL,Coventry (Aetna),,unknown,commercial,network,no,-,Aetna-owned network
+United Healthcare,Medicare Solutions PPO,12616,1,UNIVERSITY MEDICAL CENTER,UnitedHealthcare,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+Blue Cross Blue Shield of Nevada,Anthem Medicare Advantage PPO,12608,1,UNIVERSITY MEDICAL CENTER,Anthem Blue Cross Blue Shield (Nevada),Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+OptumCare,UHC Medicare Focus,12608,1,UNIVERSITY MEDICAL CENTER,,,other,medicare_advantage,provider_group,no,-,a doctor group or health system that manages care for an insurer's plans; match through the insurer instead
+Blue Cross Blue Shield of Nevada,Anthem Medicare Advantage HMO,12608,1,UNIVERSITY MEDICAL CENTER,Anthem Blue Cross Blue Shield (Nevada),Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+OptumCare,UHC Medicare Focus HMO Capitated,12608,1,UNIVERSITY MEDICAL CENTER,,,other,medicare_advantage,provider_group,no,-,a doctor group or health system that manages care for an insurer's plans; match through the insurer instead
+OptumCare,UHC Medicare Solutions HMO,12608,1,UNIVERSITY MEDICAL CENTER,,,other,medicare_advantage,provider_group,no,-,a doctor group or health system that manages care for an insurer's plans; match through the insurer instead
+Anthem Blue Cross Blue Shield,Commercial,12532,1,CARSON TAHOE REGIONAL MEDICAL CENTER,Anthem Blue Cross Blue Shield (Nevada),All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Silver Summit,Silver Summit,12388,1,MOUNT GRANT GENERAL HOSPITAL,SilverSummit Healthplan (Centene),All plans (one rate published for all),unknown,commercial,insurer,yes,medium,Ambetter and Allwell are SilverSummit products
+CIGNA,CIGNA,12388,1,MOUNT GRANT GENERAL HOSPITAL,Cigna,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Prominence,Prominence,12388,1,MOUNT GRANT GENERAL HOSPITAL,Prominence Health Plan,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+United Healthcare,United Healthcare,12388,1,MOUNT GRANT GENERAL HOSPITAL,UnitedHealthcare,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Care Source,Care Source,12388,1,MOUNT GRANT GENERAL HOSPITAL,CareSource,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Healthplan Nevada,Healthplan Nevada,12388,1,MOUNT GRANT GENERAL HOSPITAL,Health Plan of Nevada (HPN),All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Anthem,Anthem,12388,1,MOUNT GRANT GENERAL HOSPITAL,Anthem Blue Cross Blue Shield (Nevada),All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Sierra Health and Life,Sierra Health and Life,12388,1,MOUNT GRANT GENERAL HOSPITAL,Sierra Health and Life,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Humana,Medicare Advantage,11686,2,BANNER CHURCHILL COMMUNITY HOSPITAL; CARSON VALLEY HEALTH,Humana,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+ANTHEM_BLUE_CROSS_BLUE_SHIELD,MEDICARE,11651,7,CENTENNIAL HILLS HOSPITAL MEDICAL CENTER; HENDERSON HOSPITAL; NORTHERN NEVADA MEDICAL CENTER; SPRING VALLEY HOSPITAL MEDICAL CENTER; SUMMERLIN HOSPITAL MEDICAL CENTER; VALLEY HOSPITAL MEDICAL CENTER; WEST HENDERSON HOSPITAL,Anthem Blue Cross Blue Shield (Nevada),Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+AETNA,MEDICARE,11651,7,CENTENNIAL HILLS HOSPITAL MEDICAL CENTER; HENDERSON HOSPITAL; NORTHERN NEVADA MEDICAL CENTER; SPRING VALLEY HOSPITAL MEDICAL CENTER; SUMMERLIN HOSPITAL MEDICAL CENTER; VALLEY HOSPITAL MEDICAL CENTER; WEST HENDERSON HOSPITAL,Aetna,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+SILVER_SUMMIT,MANAGED_CARE,11651,7,CENTENNIAL HILLS HOSPITAL MEDICAL CENTER; HENDERSON HOSPITAL; NORTHERN NEVADA MEDICAL CENTER; SPRING VALLEY HOSPITAL MEDICAL CENTER; SUMMERLIN HOSPITAL MEDICAL CENTER; VALLEY HOSPITAL MEDICAL CENTER; WEST HENDERSON HOSPITAL,SilverSummit Healthplan (Centene),All plans (one rate published for all),unknown,commercial,insurer,yes,medium,Ambetter and Allwell are SilverSummit products
+SILVER_SUMMIT,MEDICARE,11651,7,CENTENNIAL HILLS HOSPITAL MEDICAL CENTER; HENDERSON HOSPITAL; NORTHERN NEVADA MEDICAL CENTER; SPRING VALLEY HOSPITAL MEDICAL CENTER; SUMMERLIN HOSPITAL MEDICAL CENTER; VALLEY HOSPITAL MEDICAL CENTER; WEST HENDERSON HOSPITAL,SilverSummit Healthplan (Centene),Medicare Advantage,other,medicare_advantage,insurer,yes,high,Ambetter and Allwell are SilverSummit products
+UNITED_HEALTH_CARE,MEDICARE,10680,6,CENTENNIAL HILLS HOSPITAL MEDICAL CENTER; HENDERSON HOSPITAL; NORTHERN NEVADA MEDICAL CENTER; SPRING VALLEY HOSPITAL MEDICAL CENTER; SUMMERLIN HOSPITAL MEDICAL CENTER; WEST HENDERSON HOSPITAL,UnitedHealthcare,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+Tricare,Tricare,10594,3,NORTHEASTERN NEVADA REGIONAL HOSPITAL; NORTH VISTA HOSPITAL; SAINT MARY'S REGIONAL MEDICAL CENTER,TRICARE,TRICARE,other,tricare,government,yes,high,TriWest runs TRICARE West
+Hometown Health Plan Nevada,Friday Health Plans,10296,1,UNIVERSITY MEDICAL CENTER,,,other,unknown,exclude,no,-,Friday Health Plans closed in 2023
+Hometown Health Plan Nevada,Nevada Department of Corrections,10296,1,UNIVERSITY MEDICAL CENTER,,,other,unknown,exclude,no,-,"prison health care, not a plan people pick"
+Hometown Health Plan Nevada,All Plans,10296,1,UNIVERSITY MEDICAL CENTER,Hometown Health,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+MOLINA,MEDICARE,9871,6,CENTENNIAL HILLS HOSPITAL MEDICAL CENTER; HENDERSON HOSPITAL; SPRING VALLEY HOSPITAL MEDICAL CENTER; SUMMERLIN HOSPITAL MEDICAL CENTER; VALLEY HOSPITAL MEDICAL CENTER; WEST HENDERSON HOSPITAL,Molina Healthcare,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+AETNA,QHP,9871,6,CENTENNIAL HILLS HOSPITAL MEDICAL CENTER; HENDERSON HOSPITAL; SPRING VALLEY HOSPITAL MEDICAL CENTER; SUMMERLIN HOSPITAL MEDICAL CENTER; VALLEY HOSPITAL MEDICAL CENTER; WEST HENDERSON HOSPITAL,Aetna,Marketplace (exchange) plan,other,exchange,insurer,yes,high,
+SIERRA_HEALTH_PLAN_OF_NEVADA,MEDICARE,9871,6,CENTENNIAL HILLS HOSPITAL MEDICAL CENTER; HENDERSON HOSPITAL; SPRING VALLEY HOSPITAL MEDICAL CENTER; SUMMERLIN HOSPITAL MEDICAL CENTER; VALLEY HOSPITAL MEDICAL CENTER; WEST HENDERSON HOSPITAL,Health Plan of Nevada (HPN),Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+SELECT_HEALTH,MEDICARE,9871,6,CENTENNIAL HILLS HOSPITAL MEDICAL CENTER; HENDERSON HOSPITAL; SPRING VALLEY HOSPITAL MEDICAL CENTER; SUMMERLIN HOSPITAL MEDICAL CENTER; VALLEY HOSPITAL MEDICAL CENTER; WEST HENDERSON HOSPITAL,Select Health (Intermountain),Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+CAREMORE_HEALTH,MEDICARE,9871,6,CENTENNIAL HILLS HOSPITAL MEDICAL CENTER; HENDERSON HOSPITAL; SPRING VALLEY HOSPITAL MEDICAL CENTER; SUMMERLIN HOSPITAL MEDICAL CENTER; VALLEY HOSPITAL MEDICAL CENTER; WEST HENDERSON HOSPITAL,CareMore Health,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+SELECT_HEALTH,MANAGED_CARE,9871,6,CENTENNIAL HILLS HOSPITAL MEDICAL CENTER; HENDERSON HOSPITAL; SPRING VALLEY HOSPITAL MEDICAL CENTER; SUMMERLIN HOSPITAL MEDICAL CENTER; VALLEY HOSPITAL MEDICAL CENTER; WEST HENDERSON HOSPITAL,Select Health (Intermountain),All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+ALIGNMENT_HEALTH,MEDICARE,9871,6,CENTENNIAL HILLS HOSPITAL MEDICAL CENTER; HENDERSON HOSPITAL; SPRING VALLEY HOSPITAL MEDICAL CENTER; SUMMERLIN HOSPITAL MEDICAL CENTER; VALLEY HOSPITAL MEDICAL CENTER; WEST HENDERSON HOSPITAL,Alignment Health,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+TRIWEST,FEDERAL,9741,1,SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER,TRICARE,TRICARE,other,tricare,government,yes,high,TriWest runs TRICARE West
+Anthem_BCBS,All Products,9740,1,CARSON VALLEY HEALTH,Anthem Blue Cross Blue Shield (Nevada),All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+AETNA-ALL PLANS,AETNA-ALL PLANS,9714,1,MESA VIEW REGIONAL HOSPITAL,Aetna,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Sierra Health and Life,Nevada Hand,9444,1,UNIVERSITY MEDICAL CENTER,Sierra Health and Life,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Ambetter,Commercial Exchange Plan,9442,1,UNIVERSITY MEDICAL CENTER,SilverSummit Healthplan (Centene),Marketplace (exchange) plan,other,exchange,insurer,yes,high,Ambetter and Allwell are SilverSummit products
+Anthem_Pathway,All Products_HMO,9275,1,CARSON VALLEY HEALTH,Anthem Blue Cross Blue Shield (Nevada),Marketplace (exchange) plan,other,exchange,insurer,yes,high,
+UHC COMM-ALL OTHER PLANS,UHC COMM-ALL OTHER PLANS,9252,1,MESA VIEW REGIONAL HOSPITAL,UnitedHealthcare,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+ANTHEM BCBS-ALL OTHER PLANS,ANTHEM BCBS-ALL OTHER PLANS,9100,1,MESA VIEW REGIONAL HOSPITAL,Anthem Blue Cross Blue Shield (Nevada),All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+ANTHEM BCBS MCR ADV,ANTHEM BCBS MCR ADV,9100,1,MESA VIEW REGIONAL HOSPITAL,Anthem Blue Cross Blue Shield (Nevada),Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+Coventry,Workers Comp,9059,1,BANNER CHURCHILL COMMUNITY HOSPITAL,Coventry (Aetna),,other,workers_comp,exclude,no,-,workers' compensation
+Hometown Health,PPO/EPO,9059,1,BANNER CHURCHILL COMMUNITY HOSPITAL,Hometown Health,PPO / EPO,ppo,commercial,insurer,yes,high,
+Hometown Health,Lease Networks,9059,1,BANNER CHURCHILL COMMUNITY HOSPITAL,,,other,unknown,exclude,no,-,"network rental, not a plan"
+Hometown Health,HMO,9059,1,BANNER CHURCHILL COMMUNITY HOSPITAL,Hometown Health,HMO,hmo,commercial,insurer,yes,high,
+SilverSummit Healthplan,Commercial Exchange,9059,1,BANNER CHURCHILL COMMUNITY HOSPITAL,SilverSummit Healthplan (Centene),Marketplace (exchange) plan,other,exchange,insurer,yes,high,Ambetter and Allwell are SilverSummit products
+Anthem Blue Cross Blue Shield Colorado,HMO/Indemnity/PPO/Pathway/Pathway X,9059,1,BANNER CHURCHILL COMMUNITY HOSPITAL,Anthem Blue Cross Blue Shield (Colorado),,other,exchange,exclude,no,-,out-of-state Blue plan; not the Nevada plan
+Cigna Healthcare & Life Insurance Company – WY,Commercial,9059,1,BANNER CHURCHILL COMMUNITY HOSPITAL,Cigna (Wyoming company),,unknown,commercial,exclude,no,-,a Wyoming Cigna company; check before using for Nevada
+Prominence HealthFirst (fka NV Preferred Healthcare Providers),Commercial,9059,1,BANNER CHURCHILL COMMUNITY HOSPITAL,Prominence HealthFirst (formerly Nevada Preferred),,unknown,commercial,network,no,-,a provider network; your card may show its logo
+United Healthcare,Commercial,9045,1,BANNER CHURCHILL COMMUNITY HOSPITAL,UnitedHealthcare,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+SELECTHEALTH MCARE-ALL PLANS,SELECTHEALTH MCARE-ALL PLANS,9042,1,MESA VIEW REGIONAL HOSPITAL,Select Health (Intermountain),Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+CIGNA-ALL PLANS,CIGNA-ALL PLANS,8792,1,MESA VIEW REGIONAL HOSPITAL,Cigna,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+United Healthcare,All Products,8377,1,CARSON VALLEY HEALTH,UnitedHealthcare,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+SIERRA-ALL PLANS,SIERRA-ALL PLANS,8171,1,MESA VIEW REGIONAL HOSPITAL,Sierra Health (company not stated),All plans (one rate published for all),unknown,commercial,insurer,yes,low,"could be HPN, Sierra Health and Life or Sierra Health Options"
+Aetna,All Products,8166,1,CARSON VALLEY HEALTH,Aetna,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Cigna_Greatwest,All Products,8110,1,CARSON VALLEY HEALTH,Cigna,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Silver Summit,All Products _Ambetter,7918,1,CARSON VALLEY HEALTH,SilverSummit Healthplan (Centene),Marketplace (exchange) plan,other,exchange,insurer,yes,high,Ambetter and Allwell are SilverSummit products
+Silver Summit,Silver Summit Medicare,7712,2,NORTH VISTA HOSPITAL; SAINT MARY'S REGIONAL MEDICAL CENTER,SilverSummit Healthplan (Centene),Medicare Advantage,other,medicare_advantage,insurer,yes,high,Ambetter and Allwell are SilverSummit products
+Aetna,Aetna Medicare,7712,2,NORTH VISTA HOSPITAL; SAINT MARY'S REGIONAL MEDICAL CENTER,Aetna,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+Traditional Medicare,Traditional Medicare,7712,2,NORTH VISTA HOSPITAL; SAINT MARY'S REGIONAL MEDICAL CENTER,Original Medicare,Original Medicare,other,medicare_ffs,government,yes,high,
+Aetna,Medicare Advantage,7694,1,CARSON VALLEY HEALTH,Aetna,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+United Healthcare,Medicare Advantage,7406,1,CARSON VALLEY HEALTH,UnitedHealthcare,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+Prominence,All Products,7246,1,CARSON VALLEY HEALTH,Prominence Health Plan,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Alignment,Medicare Advantage,7148,1,CARSON VALLEY HEALTH,Alignment Health,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+Silver Summit,Medicare Advantage_Allwell,7148,1,CARSON VALLEY HEALTH,SilverSummit Healthplan (Centene),Medicare Advantage,other,medicare_advantage,insurer,yes,high,Ambetter and Allwell are SilverSummit products
+UHC,UHC Commercial All Payer,6912,2,NORTH VISTA HOSPITAL; SAINT MARY'S REGIONAL MEDICAL CENTER,UnitedHealthcare,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Aetna,Aetna Commercial,6700,2,NORTH VISTA HOSPITAL; SAINT MARY'S REGIONAL MEDICAL CENTER,Aetna,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+MULTIPLAN COMPLEMENTARY NETWORK,MULTIPLAN COMPLEMENTARY NETWORK,6600,1,MESA VIEW REGIONAL HOSPITAL,MultiPlan,,unknown,commercial,network,no,-,a network many employer plans rent; your card may show its logo
+MULTIPLAN PRIMARY NETWORK-ALL OTHER PLANS,MULTIPLAN PRIMARY NETWORK-ALL OTHER PLANS,6600,1,MESA VIEW REGIONAL HOSPITAL,MultiPlan,,unknown,commercial,network,no,-,a network many employer plans rent; your card may show its logo
+Anthem BCBS,Anthem PAR PPO,6200,2,NORTH VISTA HOSPITAL; SAINT MARY'S REGIONAL MEDICAL CENTER,Anthem Blue Cross Blue Shield (Nevada),PPO,ppo,commercial,insurer,yes,high,
+Anthem BCBS,Anthem Exchange,6196,2,NORTH VISTA HOSPITAL; SAINT MARY'S REGIONAL MEDICAL CENTER,Anthem Blue Cross Blue Shield (Nevada),Marketplace (exchange) plan,other,exchange,insurer,yes,high,
+Silver Summit,Silver Summit Medicaid,6160,2,NORTH VISTA HOSPITAL; SAINT MARY'S REGIONAL MEDICAL CENTER,SilverSummit Healthplan (Centene),Medicaid plan,other,medicaid_managed_care,insurer,yes,high,Ambetter and Allwell are SilverSummit products
+Anthem BCBS,Anthem Medicaid,6159,2,NORTH VISTA HOSPITAL; SAINT MARY'S REGIONAL MEDICAL CENTER,Anthem Blue Cross Blue Shield (Nevada),Medicaid plan,other,medicaid_managed_care,insurer,yes,high,
+Traditional Medicaid,Traditional Medicaid,6153,2,NORTH VISTA HOSPITAL; SAINT MARY'S REGIONAL MEDICAL CENTER,Nevada Medicaid (fee for service),Medicaid,other,medicaid_managed_care,government,yes,high,
+ANTHEM BCBS MCAID,ANTHEM BCBS MCAID,6124,1,MESA VIEW REGIONAL HOSPITAL,Anthem Blue Cross Blue Shield (Nevada),Medicaid plan,other,medicaid_managed_care,insurer,yes,high,
+Optum Transplants OON,MCR,6096,1,MOUNTAINVIEW HOSPITAL,,,other,medicare_advantage,exclude,no,-,"specialty-only contract (transplant, kidney or behavioral health), not a general plan"
+Humana National Transplant,PFFS,5335,1,MOUNTAINVIEW HOSPITAL,,,other,medicare_advantage,exclude,no,-,"specialty-only contract (transplant, kidney or behavioral health), not a general plan"
+Humana National Transplant,MCRPPO,5335,1,MOUNTAINVIEW HOSPITAL,,,other,medicare_advantage,exclude,no,-,"specialty-only contract (transplant, kidney or behavioral health), not a general plan"
+Humana National Transplant,MCRHMO,5335,1,MOUNTAINVIEW HOSPITAL,,,other,medicare_advantage,exclude,no,-,"specialty-only contract (transplant, kidney or behavioral health), not a general plan"
+BCBS of NV,BCBS of Nevada,5033,1,NORTHEASTERN NEVADA REGIONAL HOSPITAL,Anthem Blue Cross Blue Shield (Nevada),All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+UNITED_HEALTHCARE,MANAGED_CARE,4707,1,VALLEY HOSPITAL MEDICAL CENTER,UnitedHealthcare,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Aetna,Medical Rental Products,4637,1,BANNER CHURCHILL COMMUNITY HOSPITAL,,,other,unknown,exclude,no,-,"network rental, not a plan"
+Optum,Medicare,4538,1,BANNER CHURCHILL COMMUNITY HOSPITAL,,,other,medicare_advantage,provider_group,no,-,a doctor group or health system that manages care for an insurer's plans; match through the insurer instead
+Banner Health,Banner Choice Plus/Banner Select,4538,1,BANNER CHURCHILL COMMUNITY HOSPITAL,,,unknown,commercial,provider_group,no,-,a doctor group or health system that manages care for an insurer's plans; match through the insurer instead
+SilverSummit Healthplan,Medicare Advantage,4538,1,BANNER CHURCHILL COMMUNITY HOSPITAL,SilverSummit Healthplan (Centene),Medicare Advantage,other,medicare_advantage,insurer,yes,high,Ambetter and Allwell are SilverSummit products
+TriWest Healthcare Alliance Corp - VA CCN,Tricare,4538,1,BANNER CHURCHILL COMMUNITY HOSPITAL,VA Community Care,VA Community Care,other,tricare,government,yes,high,
+UHC,UHC,4529,1,NORTHEASTERN NEVADA REGIONAL HOSPITAL,UnitedHealthcare,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+First Health,First Health,4277,1,NORTHEASTERN NEVADA REGIONAL HOSPITAL,First Health (Aetna),,unknown,commercial,network,no,-,an Aetna-owned rental network
+Cigna,Cigna,4152,1,NORTHEASTERN NEVADA REGIONAL HOSPITAL,Cigna,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+UHC,UHC Options PPO,4135,1,NORTH VISTA HOSPITAL,UnitedHealthcare,Options PPO,ppo,commercial,insurer,yes,high,
+Silver Summit,Silver Summit Commercial (Insurance Exchange),3904,1,SAINT MARY'S REGIONAL MEDICAL CENTER,SilverSummit Healthplan (Centene),Marketplace (exchange) plan,other,exchange,insurer,yes,high,Ambetter and Allwell are SilverSummit products
+Health Plan of Nevada,HPN Medicare,3876,1,SAINT MARY'S REGIONAL MEDICAL CENTER,Health Plan of Nevada (HPN),Medicare Advantage,other,medicare_advantage,insurer,yes,high,plan name points to this company or product
+Saint Mary health Plan,Saint Mary Health Plan Medicare,3876,1,SAINT MARY'S REGIONAL MEDICAL CENTER,Saint Mary's Health Plan,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+Health Net Federal Services Tricare,Health Net Federal Services Tricare (1/1/2025 - 12/31/2026),3876,1,SAINT MARY'S REGIONAL MEDICAL CENTER,TRICARE,TRICARE,other,tricare,government,yes,high,TriWest runs TRICARE West
+PAM,PAM,3876,1,SAINT MARY'S REGIONAL MEDICAL CENTER,,,unknown,commercial,exclude,no,-,"not a plan a patient picks (jail, hospice, research, catch-all, out-of-state or unclear)"
+UHC,Optum Care,3876,1,SAINT MARY'S REGIONAL MEDICAL CENTER,UnitedHealthcare,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Sierra,Sierra Medicare,3876,1,SAINT MARY'S REGIONAL MEDICAL CENTER,Sierra Health (company not stated),Medicare Advantage,other,medicare_advantage,insurer,yes,low,"could be HPN, Sierra Health and Life or Sierra Health Options"
+Employer Direct,Employer Direct Surgery,3876,1,SAINT MARY'S REGIONAL MEDICAL CENTER,,,unknown,commercial,network,no,-,"a network or repricing company, not something most people see on a card"
+Home Town Test,Washoe County Medicare,3876,1,SAINT MARY'S REGIONAL MEDICAL CENTER,test entry,,other,medicare_advantage,exclude,no,-,a test row in the hospital file
+Silver Summit,Silver Summit Commercials,3876,1,SAINT MARY'S REGIONAL MEDICAL CENTER,SilverSummit Healthplan (Centene),All plans (one rate published for all),unknown,commercial,insurer,yes,medium,Ambetter and Allwell are SilverSummit products
+Imperial Insurance Company,Imperial Insurance Company Medicare,3876,1,SAINT MARY'S REGIONAL MEDICAL CENTER,Imperial Insurance Companies,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+Anthem BCBS,Anthem BCBS Medicare,3876,1,SAINT MARY'S REGIONAL MEDICAL CENTER,Anthem Blue Cross Blue Shield (Nevada),Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+Occunet,Occunet Commercial,3876,1,SAINT MARY'S REGIONAL MEDICAL CENTER,,,unknown,commercial,network,no,-,"a network or repricing company, not something most people see on a card"
+Asserta Health,Asserta Health Commercial,3876,1,SAINT MARY'S REGIONAL MEDICAL CENTER,,,unknown,commercial,network,no,-,"a network or repricing company, not something most people see on a card"
+Naphcare,Naphcare Washoe County,3876,1,SAINT MARY'S REGIONAL MEDICAL CENTER,,,unknown,commercial,exclude,no,-,"not a plan a patient picks (jail, hospice, research, catch-all, out-of-state or unclear)"
+Imperial Insurance Company,Imperial Insurance Company Commercial Ins Exchange,3876,1,SAINT MARY'S REGIONAL MEDICAL CENTER,Imperial Insurance Companies,Marketplace (exchange) plan,other,exchange,insurer,yes,high,
+NEVADA HEALTH PARTNERS,Nevada Health Partners (% of Medicare),3876,1,SAINT MARY'S REGIONAL MEDICAL CENTER,,,other,medicare_advantage,provider_group,no,-,a doctor group or health system that manages care for an insurer's plans; match through the insurer instead
+Imperial Insurance Company,Imperial Insurance Company Commercial,3876,1,SAINT MARY'S REGIONAL MEDICAL CENTER,Imperial Insurance Companies,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Renal Payor Solution Medicare,Renal Payer Solutions Medicare,3876,1,SAINT MARY'S REGIONAL MEDICAL CENTER,,,other,medicare_advantage,exclude,no,-,"specialty-only contract (transplant, kidney or behavioral health), not a general plan"
+Custom Ink,Custom Ink,3871,1,SAINT MARY'S REGIONAL MEDICAL CENTER,,,unknown,commercial,exclude,no,-,"not a plan a patient picks (jail, hospice, research, catch-all, out-of-state or unclear)"
+Alignment,Alignment Health Plan,3870,1,SAINT MARY'S REGIONAL MEDICAL CENTER,Alignment Health,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Molina Healthcare Of NV,Molina Healthcare Of NV Medicare,3870,1,SAINT MARY'S REGIONAL MEDICAL CENTER,Molina Healthcare,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+NV Preferred,NV Prefereed PHCN,3870,1,SAINT MARY'S REGIONAL MEDICAL CENTER,Prominence HealthFirst (formerly Nevada Preferred),,unknown,commercial,network,no,-,a provider network; your card may show its logo
+NV Preferred,NV Prefereed UHCN,3870,1,SAINT MARY'S REGIONAL MEDICAL CENTER,Prominence HealthFirst (formerly Nevada Preferred),,unknown,commercial,network,no,-,a provider network; your card may show its logo
+6 Degrees,6 Degrees Commercial,3870,1,SAINT MARY'S REGIONAL MEDICAL CENTER,,,unknown,commercial,network,no,-,"a network or repricing company, not something most people see on a card"
+Triwest,Triwest Medicare (1/1/2025 - 12/31/2026),3870,1,SAINT MARY'S REGIONAL MEDICAL CENTER,TRICARE,TRICARE,other,tricare,government,yes,high,TriWest runs TRICARE West
+Saint Mary health Plan,Saint Mary Health Plan Medicare Atrio,3870,1,SAINT MARY'S REGIONAL MEDICAL CENTER,Saint Mary's Health Plan,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+Silver Summit,Silver Summit Commercial Insurance Exchange,3852,1,NORTH VISTA HOSPITAL,SilverSummit Healthplan (Centene),Marketplace (exchange) plan,other,exchange,insurer,yes,high,Ambetter and Allwell are SilverSummit products
+Employer Direct Healthcare,Employer Direct Healthcare Commercial,3836,1,NORTH VISTA HOSPITAL,,,unknown,commercial,network,no,-,"a network or repricing company, not something most people see on a card"
+Intermountain Healthcare (HCP),Healthcare Partner Commercial,3836,1,NORTH VISTA HOSPITAL,Select Health (Intermountain),All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Imperial Insurance Companies,Imperial Insurance Company Exchange,3836,1,NORTH VISTA HOSPITAL,Imperial Insurance Companies,Marketplace (exchange) plan,other,exchange,insurer,yes,high,
+Imperial Insurance Companies,Imperial Insurance Company Medicare,3836,1,NORTH VISTA HOSPITAL,Imperial Insurance Companies,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+Triwest,Triwest,3836,1,NORTH VISTA HOSPITAL,TRICARE,TRICARE,unknown,tricare,government,yes,high,TriWest runs TRICARE West
+Anthem BCBS,Anthem Medicare,3836,1,NORTH VISTA HOSPITAL,Anthem Blue Cross Blue Shield (Nevada),Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+Health Services Coalition,Health Services Coalition,3836,1,NORTH VISTA HOSPITAL,Health Services Coalition,,unknown,commercial,network,no,-,Las Vegas employers' and unions' purchasing coalition; your card may show it
+Imperial Insurance Companies,Imperial Insurance Company Commercial,3836,1,NORTH VISTA HOSPITAL,Imperial Insurance Companies,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Health Net Federal Services Tricare,Health Net Federal Services Tricare (1/1/2025 - 12/31/2025),3836,1,NORTH VISTA HOSPITAL,TRICARE,TRICARE,other,tricare,government,yes,high,TriWest runs TRICARE West
+Nevada Health Partners,Nevada Health Partners (% of Medicare),3836,1,NORTH VISTA HOSPITAL,,,other,medicare_advantage,provider_group,no,-,a doctor group or health system that manages care for an insurer's plans; match through the insurer instead
+Intermountain Healthcare (HCP),Healthcare Partner SR Medicare,3836,1,NORTH VISTA HOSPITAL,Select Health (Intermountain),Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+Naphcare,Naphcare,3836,1,NORTH VISTA HOSPITAL,,,unknown,commercial,exclude,no,-,"not a plan a patient picks (jail, hospice, research, catch-all, out-of-state or unclear)"
+Renal Payor Solutions,Renal Payer Solutions Medicare,3836,1,NORTH VISTA HOSPITAL,,,other,medicare_advantage,exclude,no,-,"specialty-only contract (transplant, kidney or behavioral health), not a general plan"
+Alignment,Alignment Medicare,3834,1,NORTH VISTA HOSPITAL,Alignment Health,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+6 Degrees Health,6 Degrees Commercial,3834,1,NORTH VISTA HOSPITAL,,,unknown,commercial,network,no,-,"a network or repricing company, not something most people see on a card"
+Molina Healthcare,Molina Medicare,3834,1,NORTH VISTA HOSPITAL,Molina Healthcare,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+Universal Health Netowrk,Universal Health,3832,1,NORTHEASTERN NEVADA REGIONAL HOSPITAL,Universal Health Network,,unknown,commercial,network,no,-,
+PHCS,PHCS,3832,1,NORTHEASTERN NEVADA REGIONAL HOSPITAL,PHCS (MultiPlan),,unknown,commercial,network,no,-,a MultiPlan network; your card may show its logo
+First Choice,First Choice,3832,1,NORTHEASTERN NEVADA REGIONAL HOSPITAL,,,unknown,commercial,network,no,-,"a network or repricing company, not something most people see on a card"
+CareSource,CareSource HIX,3832,1,NORTHEASTERN NEVADA REGIONAL HOSPITAL,CareSource,Marketplace (exchange) plan,other,exchange,insurer,yes,high,
+Aetna Medicare,HMO,3818,1,BOULDER CITY HOSPITAL,Aetna,Medicare Advantage,other,medicare_advantage,insurer,yes,high,Medicare plans
+OptumCare,Commercial,3815,1,DESERT VIEW HOSPITAL,,,other,medicare_advantage,provider_group,no,-,a doctor group or health system that manages care for an insurer's plans; match through the insurer instead
+HumanaHCP,MANAGED_MEDICARE,3815,1,DESERT VIEW HOSPITAL,Humana,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+SR_CARE_PLUS,MANAGED_MEDICARE,3815,1,DESERT VIEW HOSPITAL,Health Plan of Nevada (HPN),Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+VHS_Employees_HPN,Commercial,3815,1,DESERT VIEW HOSPITAL,Health Plan of Nevada (HPN),All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Aetna,MEDICARE,3815,1,DESERT VIEW HOSPITAL,Aetna,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+UHC,HMO,3815,1,DESERT VIEW HOSPITAL,UnitedHealthcare,HMO,hmo,commercial,insurer,yes,high,
+Beechstreet,Commercial,3815,1,DESERT VIEW HOSPITAL,Beech Street,,unknown,commercial,network,no,-,a rental network
+SELECT HEALTH,MANAGED_MEDICARE,3815,1,DESERT VIEW HOSPITAL,Select Health (Intermountain),Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+BCBS,Commercial,3815,1,DESERT VIEW HOSPITAL,Blue Cross Blue Shield (state not stated),,unknown,commercial,exclude,no,-,state not given; out-of-state Blues are different payers (rule 9)
+Humana,Commercial,3815,1,DESERT VIEW HOSPITAL,Humana,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Ambetter,Commercial,3815,1,DESERT VIEW HOSPITAL,SilverSummit Healthplan (Centene),Marketplace (exchange) plan,other,exchange,insurer,yes,high,Ambetter and Allwell are SilverSummit products
+Affiliated,Commercial,3815,1,DESERT VIEW HOSPITAL,,,unknown,commercial,network,no,-,"a network or repricing company, not something most people see on a card"
+Sierra HPN,Commercial,3815,1,DESERT VIEW HOSPITAL,Health Plan of Nevada (HPN),All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Anthem Blue Cross Blue Shield Pathway X,HMO,3764,1,BOULDER CITY HOSPITAL,Anthem Blue Cross Blue Shield (Nevada),Marketplace (exchange) plan,other,exchange,insurer,yes,high,
+Great West Healthcare (Mediversal),PPO,3746,1,BOULDER CITY HOSPITAL,Cigna,PPO,ppo,commercial,insurer,yes,high,
+Coventry,PPO,3744,1,BOULDER CITY HOSPITAL,Coventry (Aetna),,ppo,commercial,network,no,-,Aetna-owned network
+Anthem Blue Cross Blue Shield Indeminity,PPO,3744,1,BOULDER CITY HOSPITAL,Anthem Blue Cross Blue Shield (Nevada),PPO,ppo,commercial,insurer,yes,high,
+UHN-Universal Health Network,PPO,3736,1,BOULDER CITY HOSPITAL,Universal Health Network,,ppo,commercial,network,no,-,
+Cigna,PPO,3730,1,BOULDER CITY HOSPITAL,Cigna,PPO,ppo,commercial,insurer,yes,high,
+Silversummit Medicare,HMO,3728,1,BOULDER CITY HOSPITAL,SilverSummit Healthplan (Centene),Medicare Advantage,other,medicare_advantage,insurer,yes,high,Ambetter and Allwell are SilverSummit products
+Select Health,HMO,3728,1,BOULDER CITY HOSPITAL,Select Health (Intermountain),HMO,hmo,commercial,insurer,yes,high,
+Teachers Trust,PPO,3724,1,BOULDER CITY HOSPITAL,Teachers Health Trust,Employee / member plan,ppo,union_trust,union,yes,high,union health trust; card usually shows the trust
+Humana-Medicare Advantage,HMO,3724,1,BOULDER CITY HOSPITAL,Humana,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+Humana-Commerical,PPO,3712,1,BOULDER CITY HOSPITAL,Humana,PPO,ppo,commercial,insurer,yes,high,
+Blue Cross Blue Shield Medicare,HMO,3710,1,BOULDER CITY HOSPITAL,Anthem Blue Cross Blue Shield (Nevada),Medicare Advantage,other,medicare_advantage,insurer,yes,low,"says Blue Cross Blue Shield, not which state: check"
+Optum Medicare,HMO,3710,1,BOULDER CITY HOSPITAL,,,other,medicare_advantage,provider_group,no,-,a doctor group or health system that manages care for an insurer's plans; match through the insurer instead
+P3,HMO,3708,1,BOULDER CITY HOSPITAL,,,hmo,commercial,provider_group,no,-,a doctor group or health system that manages care for an insurer's plans; match through the insurer instead
+Alignment Medicare,HMO,3708,1,BOULDER CITY HOSPITAL,Alignment Health,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+Sierra/HPN,HMO,3702,1,BOULDER CITY HOSPITAL,Health Plan of Nevada (HPN),HMO,hmo,commercial,insurer,yes,high,
+Sierra Healthcare Options,PPO,3688,1,BOULDER CITY HOSPITAL,Sierra Health Options,PPO,ppo,commercial,insurer,yes,high,
+Coalition,PPO,3680,1,BOULDER CITY HOSPITAL,Health Services Coalition,,ppo,commercial,network,no,-,Las Vegas employers' and unions' purchasing coalition; your card may show it
+One Health,PPO,3678,1,BOULDER CITY HOSPITAL,One Health Plan,PPO,ppo,commercial,insurer,yes,high,
+United Healthcare,PPO,3672,1,BOULDER CITY HOSPITAL,UnitedHealthcare,PPO,ppo,commercial,insurer,yes,high,
+Multiplan,PPO,3658,1,BOULDER CITY HOSPITAL,MultiPlan,,ppo,commercial,network,no,-,a network many employer plans rent; your card may show its logo
+TriWest,PPO,3648,1,BOULDER CITY HOSPITAL,TRICARE,TRICARE,ppo,tricare,government,yes,high,TriWest runs TRICARE West
+Saint Mary's Health Plan,PPO,3646,1,BOULDER CITY HOSPITAL,Saint Mary's Health Plan,PPO,ppo,commercial,insurer,yes,high,
+Southpoint (Gaghan South),PPO,3628,1,BOULDER CITY HOSPITAL,South Point Hotel & Casino,Employee / member plan,ppo,employer_self_funded,employer,yes,high,employer's own plan; card usually shows the employer
+Occunet,Occunet Workers Compensation,3550,1,SAINT MARY'S REGIONAL MEDICAL CENTER,,,other,workers_comp,exclude,no,-,workers' compensation
+UHC,UHC Options,3542,1,SAINT MARY'S REGIONAL MEDICAL CENTER,UnitedHealthcare,Options PPO,ppo,commercial,insurer,yes,high,
+UHC Adhoc,UHC Adhoc,3538,1,SAINT MARY'S REGIONAL MEDICAL CENTER,UnitedHealthcare,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+HEALTHSERVICESCOALITION,MANAGED_CARE,3293,1,VALLEY HOSPITAL MEDICAL CENTER,Health Services Coalition,,unknown,commercial,network,no,-,Las Vegas employers' and unions' purchasing coalition; your card may show it
+Access to Healthcare Network,Access to Healthcare Network,3272,1,SAINT MARY'S REGIONAL MEDICAL CENTER,,,unknown,commercial,network,no,-,"a network or repricing company, not something most people see on a card"
+Veterans Evaluation Service VES,Veterans Evaluation Service VES,3122,1,SAINT MARY'S REGIONAL MEDICAL CENTER,,,other,tricare,exclude,no,-,"not a plan a patient picks (jail, hospice, research, catch-all, out-of-state or unclear)"
+Health Plan of Nevada,HPN Medicaid,3121,1,SAINT MARY'S REGIONAL MEDICAL CENTER,Health Plan of Nevada (HPN),Medicaid plan,other,medicaid_managed_care,insurer,yes,high,plan name points to this company or product
+Molina Healthcare,Molina Medicaid,3030,1,NORTH VISTA HOSPITAL,Molina Healthcare,Medicaid plan,other,medicaid_managed_care,insurer,yes,high,
+Molina Healthcare Of NV,Molina Healthcare Of NV Medicaid,3028,1,SAINT MARY'S REGIONAL MEDICAL CENTER,Molina Healthcare,Medicaid plan,other,medicaid_managed_care,insurer,yes,high,
+Sierra (HPN) Medicaid,HPN Medicaid,3028,1,NORTH VISTA HOSPITAL,Health Plan of Nevada (HPN),Medicaid plan,other,medicaid_managed_care,insurer,yes,high,plan name points to this company or product
+BCBS of NV,Managed Medicare 100%,2877,1,NORTHEASTERN NEVADA REGIONAL HOSPITAL,Anthem Blue Cross Blue Shield (Nevada),Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+Humana,Managed Medicare 100%,2877,1,NORTHEASTERN NEVADA REGIONAL HOSPITAL,Humana,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+Senior Dimensions,Managed Medicare 100%,2877,1,NORTHEASTERN NEVADA REGIONAL HOSPITAL,UnitedHealthcare,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+Aetna,Managed Medicare 100%,2877,1,NORTHEASTERN NEVADA REGIONAL HOSPITAL,Aetna,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+Managed Medicare 100%,Managed Medicare 100%,2877,1,NORTHEASTERN NEVADA REGIONAL HOSPITAL,,,other,medicare_advantage,exclude,no,-,"not a plan a patient picks (jail, hospice, research, catch-all, out-of-state or unclear)"
+UHC,Managed Medicare 100%,2877,1,NORTHEASTERN NEVADA REGIONAL HOSPITAL,UnitedHealthcare,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+Universal Health Netowrk,Managed Medicare 100%,2877,1,NORTHEASTERN NEVADA REGIONAL HOSPITAL,Universal Health Network,,other,medicare_advantage,network,no,-,
+Kaiser,Managed Medicare 100%,2877,1,NORTHEASTERN NEVADA REGIONAL HOSPITAL,Kaiser Permanente,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+Indian Health Services,Managed Medicare 100%,2877,1,NORTHEASTERN NEVADA REGIONAL HOSPITAL,,,other,medicare_advantage,exclude,no,-,"not a plan a patient picks (jail, hospice, research, catch-all, out-of-state or unclear)"
+Cigna,all,2613,1,PERSHING GENERAL HOSPITAL,Cigna,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Ambetter,All,2613,1,PERSHING GENERAL HOSPITAL,SilverSummit Healthplan (Centene),Marketplace (exchange) plan,other,exchange,insurer,yes,high,Ambetter and Allwell are SilverSummit products
+all other,all,2613,1,PERSHING GENERAL HOSPITAL,,,unknown,commercial,exclude,no,-,"not a plan a patient picks (jail, hospice, research, catch-all, out-of-state or unclear)"
+Blue Cross Blue Shield of NV Anthem,All,2613,1,PERSHING GENERAL HOSPITAL,Anthem Blue Cross Blue Shield (Nevada),All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Healthscope,All,2613,1,PERSHING GENERAL HOSPITAL,HealthSCOPE Benefits,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,"administers employer plans (e.g. Clark County, Nevada PEBP)"
+Aetna,all,2613,1,PERSHING GENERAL HOSPITAL,Aetna,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Hometown Health Plan NV,All,2613,1,PERSHING GENERAL HOSPITAL,Hometown Health,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Sierra Health,Sierra Health HMO/SHL,2517,1,NORTH VISTA HOSPITAL,Sierra Health (company not stated),All plans (one rate published for all),unknown,commercial,insurer,yes,low,"could be HPN, Sierra Health and Life or Sierra Health Options"
+UHC MCAID,UHC MCAID,2315,1,MESA VIEW REGIONAL HOSPITAL,UnitedHealthcare,Medicaid plan,other,medicaid_managed_care,insurer,yes,high,
+Anthem Medicaid,HMO,2314,1,BOULDER CITY HOSPITAL,Anthem Blue Cross Blue Shield (Nevada),Medicaid plan,other,medicaid_managed_care,insurer,yes,high,
+Molina Medicaid,HMO,2314,1,BOULDER CITY HOSPITAL,Molina Healthcare,Medicaid plan,other,medicaid_managed_care,insurer,yes,high,
+HPN Medicaid,HMO,2314,1,BOULDER CITY HOSPITAL,Health Plan of Nevada (HPN),Medicaid plan,other,medicaid_managed_care,insurer,yes,high,
+SIERRA_SMART_CHOICE,MANAGED_MEDICAID,2230,1,DESERT VIEW HOSPITAL,Health Plan of Nevada (HPN),Medicaid plan,other,medicaid_managed_care,insurer,yes,high,
+SilverSummit,MANAGED_MEDICAID,2230,1,DESERT VIEW HOSPITAL,SilverSummit Healthplan (Centene),Medicaid plan,other,medicaid_managed_care,insurer,yes,high,Ambetter and Allwell are SilverSummit products
+MOLINA NV,MEDICAID,2226,1,DESERT VIEW HOSPITAL,Molina Healthcare,Medicaid plan,other,medicaid_managed_care,insurer,yes,high,
+Health Plan of Nevada,HPN Commercial,2047,1,SAINT MARY'S REGIONAL MEDICAL CENTER,Health Plan of Nevada (HPN),All plans (one rate published for all),unknown,commercial,insurer,yes,medium,plan name points to this company or product
+HUMANA,MEDICARE,1780,1,NORTHERN NEVADA MEDICAL CENTER,Humana,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+PROMINENCE,MEDICARE,1780,1,NORTHERN NEVADA MEDICAL CENTER,Prominence Health Plan,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+Keenan,Keenan,1764,2,NORTH VISTA HOSPITAL; SAINT MARY'S REGIONAL MEDICAL CENTER,,,unknown,commercial,network,no,-,"a network or repricing company, not something most people see on a card"
+Anthem BCBSNV Worker Comp,Anthem BCBSNV Worker Comp,1671,1,SAINT MARY'S REGIONAL MEDICAL CENTER,,,other,workers_comp,exclude,no,-,workers' compensation
+Worker Compensation,Worker Compensation,1671,1,SAINT MARY'S REGIONAL MEDICAL CENTER,,,other,workers_comp,exclude,no,-,workers' compensation
+Three Rivers,Three Rivers Worker Compensation,1662,1,SAINT MARY'S REGIONAL MEDICAL CENTER,Three Rivers Provider Network,,other,workers_comp,exclude,no,-,workers' compensation
+All other,All plans,1645,1,BATTLE MOUNTAIN GENERAL HOSPITAL,,,unknown,commercial,exclude,no,-,"not a plan a patient picks (jail, hospice, research, catch-all, out-of-state or unclear)"
+Anthem,All plans,1645,1,BATTLE MOUNTAIN GENERAL HOSPITAL,Anthem Blue Cross Blue Shield (Nevada),All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+UMR,All plans,1645,1,BATTLE MOUNTAIN GENERAL HOSPITAL,UMR (UnitedHealthcare),All plans (one rate published for all),unknown,commercial,insurer,yes,medium,UMR administers employer plans
+Aetna,All plans,1645,1,BATTLE MOUNTAIN GENERAL HOSPITAL,Aetna,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Cigna,All plans,1645,1,BATTLE MOUNTAIN GENERAL HOSPITAL,Cigna,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+UHC,PPO,1544,1,DESERT VIEW HOSPITAL,UnitedHealthcare,PPO,ppo,commercial,insurer,yes,high,
+"National Healthcare Solutions, INC",National Healthcare Solutions Commercial,1508,2,NORTH VISTA HOSPITAL; SAINT MARY'S REGIONAL MEDICAL CENTER,,,unknown,commercial,network,no,-,"a network or repricing company, not something most people see on a card"
+Worker Comp,Worker Compensation,1339,1,NORTH VISTA HOSPITAL,,,other,workers_comp,exclude,no,-,workers' compensation
+Anthem BCBS Workers Compensation,Anthem BCBS Workers Compensation,1339,1,NORTH VISTA HOSPITAL,,,other,workers_comp,exclude,no,-,workers' compensation
+Three Rivers,Three Rivers Workers Compensation,1331,1,NORTH VISTA HOSPITAL,Three Rivers Provider Network,,other,workers_comp,exclude,no,-,workers' compensation
+Provider Select,Provider Select Workers Compensation,1183,1,NORTH VISTA HOSPITAL,,,other,workers_comp,exclude,no,-,workers' compensation
+ANTHEM BLUE CROSS BLUE SHIELD,HMO,1106,1,NORTHERN NEVADA MEDICAL CENTER,Anthem Blue Cross Blue Shield (Nevada),HMO,hmo,commercial,insurer,yes,high,
+Sierra,Sierra Health HMO/PPO,999,1,SAINT MARY'S REGIONAL MEDICAL CENTER,Sierra Health (company not stated),All plans (one rate published for all),unknown,commercial,insurer,yes,low,"could be HPN, Sierra Health and Life or Sierra Health Options"
+UNITED_HEALTHCARE,MEDICARE,971,1,VALLEY HOSPITAL MEDICAL CENTER,UnitedHealthcare,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+Sierra Health,Sierra Health PPO,917,1,NORTH VISTA HOSPITAL,Sierra Health (company not stated),PPO,ppo,commercial,insurer,yes,low,"could be HPN, Sierra Health and Life or Sierra Health Options"
+ProCare,MCR,772,1,MOUNTAINVIEW HOSPITAL,,,other,medicare_advantage,exclude,no,-,"not a plan a patient picks (jail, hospice, research, catch-all, out-of-state or unclear)"
+Unified Care Hospice,MCR,772,1,SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER,,,other,medicare_advantage,exclude,no,-,"not a plan a patient picks (jail, hospice, research, catch-all, out-of-state or unclear)"
+ProCare Hospice,COMM,772,1,SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER,,,unknown,commercial,exclude,no,-,"not a plan a patient picks (jail, hospice, research, catch-all, out-of-state or unclear)"
+MULTIPLAN,MULTIPLAN COMMERCIAL,480,1,SAINT MARY'S REGIONAL MEDICAL CENTER,MultiPlan,,unknown,commercial,network,no,-,a network many employer plans rent; your card may show its logo
+Prominence Health First,Prominence Health First Commercial HMO,384,1,NORTH VISTA HOSPITAL,Prominence HealthFirst (formerly Nevada Preferred),,unknown,commercial,network,no,-,a provider network; your card may show its logo
+NV Preferred,NV Preferred Coaliation,260,1,SAINT MARY'S REGIONAL MEDICAL CENTER,Prominence HealthFirst (formerly Nevada Preferred),,unknown,commercial,network,no,-,a provider network; your card may show its logo
+Centene,Centene,226,1,NORTHEASTERN NEVADA REGIONAL HOSPITAL,SilverSummit Healthplan (Centene),All plans (one rate published for all),unknown,commercial,insurer,yes,medium,Ambetter and Allwell are SilverSummit products
+Sierra,Sierra Health Fully Insured,224,1,SAINT MARY'S REGIONAL MEDICAL CENTER,Sierra Health (company not stated),All plans (one rate published for all),unknown,commercial,insurer,yes,low,"could be HPN, Sierra Health and Life or Sierra Health Options"
+Sierra,Sierra Health Self Funded,198,1,SAINT MARY'S REGIONAL MEDICAL CENTER,Sierra Health (company not stated),All plans (one rate published for all),unknown,commercial,insurer,yes,low,"could be HPN, Sierra Health and Life or Sierra Health Options"
+Silversummit Medicare,PPO,40,1,BOULDER CITY HOSPITAL,SilverSummit Healthplan (Centene),Medicare Advantage,other,medicare_advantage,insurer,yes,high,Ambetter and Allwell are SilverSummit products
+Triwest,Triwest (TRICARE)(1/1/2025 - 12/31/2026),36,1,NORTH VISTA HOSPITAL,TRICARE,TRICARE,other,tricare,government,yes,high,TriWest runs TRICARE West
+Humana Behavioral Health,Humana Behavioral Health,31,1,NORTH VISTA HOSPITAL,,,unknown,commercial,exclude,no,-,"specialty-only contract (transplant, kidney or behavioral health), not a general plan"
+Emerging Therapy Solutions,MGMCD,29,1,MOUNTAINVIEW HOSPITAL,,,other,medicaid_managed_care,network,no,-,"a network or repricing company, not something most people see on a card"
+ANTHEM_BCBS,MEDICAID,26,1,DESERT VIEW HOSPITAL,Anthem Blue Cross Blue Shield (Nevada),Medicaid plan,other,medicaid_managed_care,insurer,yes,high,
+[payer_AETNA MEDICARE],[plan_MANAGED MEDICARE],23,1,SEVEN HILLS HOSPITAL,Aetna,Medicare Advantage,other,medicare_advantage,insurer,yes,high,Medicare plans
+Blue Cross Blue Shield Medicare,PPO,20,1,BOULDER CITY HOSPITAL,Anthem Blue Cross Blue Shield (Nevada),Medicare Advantage,other,medicare_advantage,insurer,yes,low,"says Blue Cross Blue Shield, not which state: check"
+Alignment Medicare,PPO,20,1,BOULDER CITY HOSPITAL,Alignment Health,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+[payer_CAREMORE],[plan_MANAGED MEDICARE],20,1,SEVEN HILLS HOSPITAL,CareMore Health,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+Select Health,PPO,20,1,BOULDER CITY HOSPITAL,Select Health (Intermountain),PPO,ppo,commercial,insurer,yes,high,
+[payer_MEDICAID],[plan_MEDICAID],19,1,SEVEN HILLS HOSPITAL,Nevada Medicaid (fee for service),Medicaid,other,medicaid_managed_care,government,yes,high,
+Saint Mary's Health Plan,HMO,18,1,BOULDER CITY HOSPITAL,Saint Mary's Health Plan,HMO,hmo,commercial,insurer,yes,high,
+Molina Medicaid,PPO,18,1,BOULDER CITY HOSPITAL,Molina Healthcare,Medicaid plan,other,medicaid_managed_care,insurer,yes,high,
+OPTUM-US BEHAV HLTH,All,18,1,"DESERT PARKWAY BEHAVIORAL HEALTHCARE HOSPITAL, LLC",,,unknown,commercial,exclude,no,-,"specialty-only contract (transplant, kidney or behavioral health), not a general plan"
+Cigna_Behavioral Health,All Products,18,1,CARSON VALLEY HEALTH,,,unknown,commercial,exclude,no,-,"specialty-only contract (transplant, kidney or behavioral health), not a general plan"
+MAGELLAN,All,18,1,"DESERT PARKWAY BEHAVIORAL HEALTHCARE HOSPITAL, LLC",,,unknown,commercial,exclude,no,-,"specialty-only contract (transplant, kidney or behavioral health), not a general plan"
+CIGNA,All,18,1,"DESERT PARKWAY BEHAVIORAL HEALTHCARE HOSPITAL, LLC",Cigna,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+[payer_TRICARE],[plan_TRICARE],18,1,SEVEN HILLS HOSPITAL,TRICARE,TRICARE,other,tricare,government,yes,high,TriWest runs TRICARE West
+[payer_AETNA],[plan_HMO/PPO],17,1,SEVEN HILLS HOSPITAL,Aetna,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+[payer_SILVERSUMMIT HEALTHPLAN],[plan_MANAGED MEDICAID],17,1,SEVEN HILLS HOSPITAL,SilverSummit Healthplan (Centene),Medicaid plan,other,medicaid_managed_care,insurer,yes,high,Ambetter and Allwell are SilverSummit products
+[payer_MOLINA MEDICAID NV],[plan_MANAGED MEDICAID],17,1,SEVEN HILLS HOSPITAL,Molina Healthcare,Medicaid plan,other,medicaid_managed_care,insurer,yes,high,
+PROVIDENCE HLTH,All,16,1,"DESERT PARKWAY BEHAVIORAL HEALTHCARE HOSPITAL, LLC",,,unknown,commercial,exclude,no,-,"specialty-only contract (transplant, kidney or behavioral health), not a general plan"
+[payer_BEACON HEALTH OPTIONS],[plan_HMO/PPO],16,1,SEVEN HILLS HOSPITAL,,,unknown,commercial,exclude,no,-,"specialty-only contract (transplant, kidney or behavioral health), not a general plan"
+[payer_BLUE CROSS OF NV],[plan_BLUE CROSS],16,1,SEVEN HILLS HOSPITAL,Anthem Blue Cross Blue Shield (Nevada),All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+BLUE CROSS,All,16,1,"DESERT PARKWAY BEHAVIORAL HEALTHCARE HOSPITAL, LLC",Blue Cross Blue Shield (state not stated),,unknown,commercial,exclude,no,-,state not given; out-of-state Blues are different payers (rule 9)
+[payer_GOLDEN RULE],[plan_HMO/PPO],16,1,SEVEN HILLS HOSPITAL,Golden Rule (UnitedHealthcare),All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+[payer_BLUE CROSS OF NV HMO],[plan_BLUE CROSS],16,1,SEVEN HILLS HOSPITAL,Anthem Blue Cross Blue Shield (Nevada),All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+[payer_HEALTHSCOPE-CLARK COUNTY],[plan_HMO/PPO],16,1,SEVEN HILLS HOSPITAL,HealthSCOPE Benefits,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,"administers employer plans (e.g. Clark County, Nevada PEBP)"
+[payer_HOMETOWN HEALTH],[plan_HMO/PPO],16,1,SEVEN HILLS HOSPITAL,Hometown Health,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+[payer_MINES & ASSOCIATES],[plan_HMO/PPO],16,1,SEVEN HILLS HOSPITAL,,,unknown,commercial,exclude,no,-,"specialty-only contract (transplant, kidney or behavioral health), not a general plan"
+[payer_GEHA UBH],[plan_HMO/PPO],16,1,SEVEN HILLS HOSPITAL,,,unknown,commercial,exclude,no,-,"specialty-only contract (transplant, kidney or behavioral health), not a general plan"
+[payer_BCBS FEDERAL EMPLOYEE],[plan_BLUE CROSS],16,1,SEVEN HILLS HOSPITAL,Blue Cross Blue Shield Federal Employee Program,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+[payer_EBMS LOCAL 1908],[plan_HMO/PPO],16,1,SEVEN HILLS HOSPITAL,Clark County Firefighters Local 1908,Employee / member plan,unknown,union_trust,union,yes,high,union health trust; card usually shows the trust
+[payer_COMMUNITY CARE HEALTH PLA],[plan_MANAGED MEDICAID],16,1,SEVEN HILLS HOSPITAL,,,other,medicaid_managed_care,network,no,-,"a network or repricing company, not something most people see on a card"
+[payer_UMR BHO],[plan_HMO/PPO],16,1,SEVEN HILLS HOSPITAL,,,unknown,commercial,exclude,no,-,"specialty-only contract (transplant, kidney or behavioral health), not a general plan"
+[payer_LAS VEGAS JUSTICE COURT],[plan_HMO/PPO],16,1,SEVEN HILLS HOSPITAL,,,unknown,commercial,exclude,no,-,"not a plan a patient picks (jail, hospice, research, catch-all, out-of-state or unclear)"
+[payer_LOCAL 357],[plan_HMO/PPO],16,1,SEVEN HILLS HOSPITAL,IBEW Local 357,Employee / member plan,unknown,union_trust,union,yes,high,union health trust; card usually shows the trust
+[payer_TEACHERS HEALTH TRUST],[plan_HMO/PPO],16,1,SEVEN HILLS HOSPITAL,Teachers Health Trust,Employee / member plan,unknown,union_trust,union,yes,high,union health trust; card usually shows the trust
+[payer_LOCAL 631],[plan_HMO/PPO],16,1,SEVEN HILLS HOSPITAL,Teamsters Local 631,Employee / member plan,unknown,union_trust,union,yes,high,union health trust; card usually shows the trust
+[payer_SIERRA HEALTH & LIFE],[plan_HMO/PPO],16,1,SEVEN HILLS HOSPITAL,Sierra Health and Life,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+HMC,All,16,1,"DESERT PARKWAY BEHAVIORAL HEALTHCARE HOSPITAL, LLC",,,unknown,commercial,exclude,no,-,"specialty-only contract (transplant, kidney or behavioral health), not a general plan"
+[payer_MANAGED HEALTH NETWORK],[plan_HMO/PPO],16,1,SEVEN HILLS HOSPITAL,,,unknown,commercial,exclude,no,-,"specialty-only contract (transplant, kidney or behavioral health), not a general plan"
+[payer_PLUMBERS/PIPEFITTERS 525],[plan_HMO/PPO],16,1,SEVEN HILLS HOSPITAL,Plumbers & Pipefitters Local 525,Employee / member plan,unknown,union_trust,union,yes,high,union health trust; card usually shows the trust
+AETNA,All,16,1,"DESERT PARKWAY BEHAVIORAL HEALTHCARE HOSPITAL, LLC",Aetna,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+[payer_MERITAIN HEALTH],[plan_HMO/PPO],16,1,SEVEN HILLS HOSPITAL,Meritain Health,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,administers employer plans
+[payer_PEBP HEALTHSCOPE],[plan_HMO/PPO],16,1,SEVEN HILLS HOSPITAL,HealthSCOPE Benefits,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,"administers employer plans (e.g. Clark County, Nevada PEBP)"
+[payer_CIGNA],[plan_HMO/PPO],16,1,SEVEN HILLS HOSPITAL,Cigna,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+[payer_HPN MEDICAID],[plan_MANAGED MEDICAID],15,1,SEVEN HILLS HOSPITAL,Health Plan of Nevada (HPN),Medicaid plan,other,medicaid_managed_care,insurer,yes,high,
+MHN,All,15,1,"DESERT PARKWAY BEHAVIORAL HEALTHCARE HOSPITAL, LLC",,,unknown,commercial,exclude,no,-,"specialty-only contract (transplant, kidney or behavioral health), not a general plan"
+[payer_LOCAL 986],[plan_HMO/PPO],14,1,SEVEN HILLS HOSPITAL,Teamsters Local 986,Employee / member plan,unknown,union_trust,union,yes,high,union health trust; card usually shows the trust
+[payer_MGM MIRAGE],[plan_HMO/PPO],14,1,SEVEN HILLS HOSPITAL,MGM Resorts,Employee / member plan,unknown,employer_self_funded,employer,yes,high,employer's own plan; card usually shows the employer
+[payer_HR NEVADA UMR],[plan_HMO/PPO],14,1,SEVEN HILLS HOSPITAL,UMR (UnitedHealthcare),All plans (one rate published for all),unknown,commercial,insurer,yes,medium,UMR administers employer plans
+[payer_CULINARY HEALTH PLAN],[plan_HMO/PPO],14,1,SEVEN HILLS HOSPITAL,Culinary Health Fund,Employee / member plan,unknown,union_trust,union,yes,high,
+[payer_UNITED BEHAVIORAL HEALTH],[plan_HMO/PPO],14,1,SEVEN HILLS HOSPITAL,,,unknown,commercial,exclude,no,-,"specialty-only contract (transplant, kidney or behavioral health), not a general plan"
+[payer_UMR VENETIAN],[plan_HMO/PPO],14,1,SEVEN HILLS HOSPITAL,UMR (UnitedHealthcare),All plans (one rate published for all),unknown,commercial,insurer,yes,medium,UMR administers employer plans
+[payer_UMR PPO],[plan_HMO/PPO],14,1,SEVEN HILLS HOSPITAL,UMR (UnitedHealthcare),All plans (one rate published for all),unknown,commercial,insurer,yes,medium,UMR administers employer plans
+[payer_AMBETTER SILVERSUMMIT],[plan_HMO/PPO],14,1,SEVEN HILLS HOSPITAL,SilverSummit Healthplan (Centene),Marketplace (exchange) plan,other,exchange,insurer,yes,high,Ambetter and Allwell are SilverSummit products
+[payer_PROMINENCE HEALTH PLAN],[plan_HMO/PPO],14,1,SEVEN HILLS HOSPITAL,Prominence Health Plan,All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+[payer_CHAMPVA],[plan_VETERANS ADMIN],14,1,SEVEN HILLS HOSPITAL,CHAMPVA,CHAMPVA,other,tricare,government,yes,high,
+[payer_LOCAL 14],[plan_HMO/PPO],14,1,SEVEN HILLS HOSPITAL,Teamsters Local 14,Employee / member plan,unknown,union_trust,union,yes,high,union health trust; card usually shows the trust
+[payer_HPN COMMERCIAL],[plan_HMO/PPO],14,1,SEVEN HILLS HOSPITAL,Health Plan of Nevada (HPN),All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+Optum Health,COMM,13,1,MOUNTAINVIEW HOSPITAL,,,unknown,commercial,provider_group,no,-,a doctor group or health system that manages care for an insurer's plans; match through the insurer instead
+[payer_CONSTRUCTION/LABORERS 872],[plan_HMO/PPO],12,1,SEVEN HILLS HOSPITAL,Laborers Health & Welfare Trust (Nevada),Employee / member plan,unknown,union_trust,union,yes,high,union health trust; card usually shows the trust
+[payer_MAGELLAN],[plan_HMO/PPO],12,1,SEVEN HILLS HOSPITAL,,,unknown,commercial,exclude,no,-,"specialty-only contract (transplant, kidney or behavioral health), not a general plan"
+Multiplan,HMO,10,1,BOULDER CITY HOSPITAL,MultiPlan,,hmo,commercial,network,no,-,a network many employer plans rent; your card may show its logo
+[payer_ONECARE],[plan_MANAGED MEDICARE],10,1,SEVEN HILLS HOSPITAL,,,other,medicare_advantage,exclude,no,-,"not a plan a patient picks (jail, hospice, research, catch-all, out-of-state or unclear)"
+[payer_MEDICARE],[plan_MEDICARE],10,1,SEVEN HILLS HOSPITAL,Original Medicare,Original Medicare,other,medicare_ffs,government,yes,high,
+[payer_HUMANA MEDICARE],[plan_MANAGED MEDICARE],10,1,SEVEN HILLS HOSPITAL,Humana,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+[payer_P3 HEALTH PARTNERS IHC],[plan_HMO/PPO],8,1,SEVEN HILLS HOSPITAL,,,unknown,commercial,provider_group,no,-,a doctor group or health system that manages care for an insurer's plans; match through the insurer instead
+Southpoint (Gaghan South),HMO,8,1,BOULDER CITY HOSPITAL,South Point Hotel & Casino,Employee / member plan,hmo,employer_self_funded,employer,yes,high,employer's own plan; card usually shows the employer
+[payer_PENDING NV MEDICAID],[plan_MEDICAID],8,1,SEVEN HILLS HOSPITAL,,,other,medicaid_managed_care,exclude,no,-,"not a plan a patient picks (jail, hospice, research, catch-all, out-of-state or unclear)"
+[payer_MEDICIAD OUT OF STATE],[plan_MCAID: OUT-OF-STATE],8,1,SEVEN HILLS HOSPITAL,,,other,medicaid_managed_care,exclude,no,-,"not a plan a patient picks (jail, hospice, research, catch-all, out-of-state or unclear)"
+[payer_SCAN HEALTH PLAN],[plan_MANAGED MEDICARE],8,1,SEVEN HILLS HOSPITAL,SCAN Health Plan,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+[payer_SELECT HEALTH],[plan_HMO/PPO],8,1,SEVEN HILLS HOSPITAL,Select Health (Intermountain),All plans (one rate published for all),unknown,commercial,insurer,yes,medium,
+[payer_SELECT HEALTH IHC],[plan_MANAGED MEDICARE],8,1,SEVEN HILLS HOSPITAL,Select Health (Intermountain),Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+[payer_UHC MEDICARE],[plan_MANAGED MEDICARE],8,1,SEVEN HILLS HOSPITAL,UnitedHealthcare,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+[payer_UHC MEDICARE SOLUTIONS],[plan_MANAGED MEDICARE],8,1,SEVEN HILLS HOSPITAL,UnitedHealthcare,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+[payer_HUMANA GOLD],[plan_MANAGED MEDICARE],8,1,SEVEN HILLS HOSPITAL,Humana,Medicare Advantage,other,medicare_advantage,insurer,yes,high,
+TriWest,HMO,8,1,BOULDER CITY HOSPITAL,TRICARE,TRICARE,hmo,tricare,government,yes,high,TriWest runs TRICARE West
+[payer_ALLWELL SILVERSUMMIT],[plan_MANAGED MEDICARE],8,1,SEVEN HILLS HOSPITAL,SilverSummit Healthplan (Centene),Medicare Advantage,other,medicare_advantage,insurer,yes,high,Ambetter and Allwell are SilverSummit products
+United Behavioral Health,COMM,7,1,SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER,,,unknown,commercial,exclude,no,-,"specialty-only contract (transplant, kidney or behavioral health), not a general plan"
+UNITED BH,MCR,7,1,SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER,,,other,medicare_advantage,exclude,no,-,"specialty-only contract (transplant, kidney or behavioral health), not a general plan"
+UNITED BH,COMM,7,1,SOUTHERN HILLS HOSPITAL AND MEDICAL CENTER,,,unknown,commercial,exclude,no,-,"specialty-only contract (transplant, kidney or behavioral health), not a general plan"
+[payer_P3 HEALTH PARTNERS],[plan_HMO/PPO],7,1,SEVEN HILLS HOSPITAL,,,unknown,commercial,provider_group,no,-,a doctor group or health system that manages care for an insurer's plans; match through the insurer instead
+[payer_CARE 1ST HEALTH PLAN AZ],[plan_MCAID: OUT-OF-STATE],6,1,SEVEN HILLS HOSPITAL,,,other,medicaid_managed_care,exclude,no,-,"not a plan a patient picks (jail, hospice, research, catch-all, out-of-state or unclear)"
+[payer_DCFS],[plan_MEDICAID],6,1,SEVEN HILLS HOSPITAL,,,other,medicaid_managed_care,exclude,no,-,"not a plan a patient picks (jail, hospice, research, catch-all, out-of-state or unclear)"
+[payer_COMMERCIAL GENERIC],[plan_COMMERCIAL],6,1,SEVEN HILLS HOSPITAL,,,unknown,commercial,exclude,no,-,"not a plan a patient picks (jail, hospice, research, catch-all, out-of-state or unclear)"
+[payer_STEWARD HEALTH CHOICE GEN],[plan_MCAID: OUT-OF-STATE],6,1,SEVEN HILLS HOSPITAL,,,other,medicaid_managed_care,exclude,no,-,"not a plan a patient picks (jail, hospice, research, catch-all, out-of-state or unclear)"
+[payer_ALTEA RESEARCH],[plan_HMO/PPO],6,1,SEVEN HILLS HOSPITAL,,,unknown,commercial,exclude,no,-,"not a plan a patient picks (jail, hospice, research, catch-all, out-of-state or unclear)"
+Barinet,Barinet,4,1,NORTH VISTA HOSPITAL,,,unknown,commercial,network,no,-,"a network or repricing company, not something most people see on a card"
+One Health,HMO,4,1,BOULDER CITY HOSPITAL,One Health Plan,HMO,hmo,commercial,insurer,yes,high,
+[payer_DPBH RAWSON NEAL],[plan_MEDICAID],3,1,SEVEN HILLS HOSPITAL,,,other,medicaid_managed_care,exclude,no,-,"not a plan a patient picks (jail, hospice, research, catch-all, out-of-state or unclear)"

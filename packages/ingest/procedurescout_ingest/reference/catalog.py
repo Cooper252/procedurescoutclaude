@@ -146,12 +146,13 @@ def load_services(conn: Connection, csv_text: str) -> LoadStats:
                 text(
                     """
                     INSERT INTO ref.procedure (consumer_name, category, description_plain, slug,
-                        unit, source, review_state, reviewed_by, reviewed_at)
+                        unit, source, review_state, reviewed_by, reviewed_at, includes)
                     VALUES (:n, :c, :d, :slug, :u, CAST(:s AS ref.suggestion_source),
-                            CAST(:st AS ref.review_state), :rb, CAST(:ra AS timestamptz))
+                            CAST(:st AS ref.review_state), :rb, CAST(:ra AS timestamptz), :inc)
                     ON CONFLICT (slug) DO UPDATE SET consumer_name = EXCLUDED.consumer_name,
                         category = EXCLUDED.category,
                         description_plain = EXCLUDED.description_plain,
+                        includes = EXCLUDED.includes,
                         unit = EXCLUDED.unit, source = EXCLUDED.source,
                         review_state = EXCLUDED.review_state, reviewed_by = EXCLUDED.reviewed_by,
                         reviewed_at = EXCLUDED.reviewed_at
@@ -168,8 +169,22 @@ def load_services(conn: Connection, csv_text: str) -> LoadStats:
                     "st": state,
                     "rb": who,
                     "ra": when,
+                    "inc": (row.get("includes") or "").strip() or None,
                 },
             ).scalar_one()
+            # which kinds of provider offer it (optional column; codes from provider_types.csv)
+            types = [t for t in (row.get("provider_types") or "").split("|") if t.strip()]
+            conn.execute(
+                text("DELETE FROM ref.procedure_provider_type WHERE procedure_id = :p"), {"p": pid}
+            )
+            for ptype in types:
+                conn.execute(
+                    text(
+                        "INSERT INTO ref.procedure_provider_type (procedure_id, provider_type) "
+                        "VALUES (:p, :t)"
+                    ),
+                    {"p": pid, "t": ptype.strip()},
+                )
             for system, code, version in codes:
                 conn.execute(
                     text(
@@ -520,6 +535,7 @@ def load_payer_aliases(conn: Connection, csv_text: str) -> LoadStats:
     if not rows:
         return stats
     require_columns(rows, ALIAS_COLUMNS, "payer aliases CSV")
+    payer_of: dict[str, object] = {}
     for i, row in enumerate(rows, start=2):
         stats.rows_in += 1
         ref = f"line:{i}"
@@ -535,27 +551,14 @@ def load_payer_aliases(conn: Connection, csv_text: str) -> LoadStats:
             stats.reject(ref, "plan_not_found", f"{row['payer']} / {row['plan']} not in payers.csv")
             continue
         raw_payer, raw_plan = row["raw_payer"], row["raw_plan"]
-        conn.execute(
-            text(
-                """
-                INSERT INTO ref.payer_alias (raw_text, raw_normalized, payer_id, match_type,
-                    review_state, reviewed_by, reviewed_at)
-                VALUES (:r, :k, :p, 'manual', CAST(:st AS ref.review_state), :rb,
-                        CAST(:ra AS timestamptz))
-                ON CONFLICT (raw_normalized) DO UPDATE SET payer_id = EXCLUDED.payer_id,
-                    match_type = 'manual', review_state = EXCLUDED.review_state,
-                    reviewed_by = EXCLUDED.reviewed_by, reviewed_at = EXCLUDED.reviewed_at
-                """
-            ),
-            {
-                "r": raw_payer,
-                "k": normalize_name(raw_payer),
-                "p": plan[1],
-                "st": state,
-                "rb": who,
-                "ra": when,
-            },
-        )
+        # one hospital payer spelling can hold plans of several companies (e.g.
+        # "Sierra Health and Life" | "HPN Medicaid"); matching uses the plan
+        # alias below, so the payer alias keeps the first company and says so
+        payer_key = normalize_name(raw_payer)
+        if payer_of.setdefault(payer_key, plan[1]) != plan[1]:
+            stats.count("payer_spelling_shared")
+        else:
+            _payer_alias(conn, raw_payer, payer_key, plan[1], state, who, when)
         conn.execute(
             text(
                 """
@@ -571,7 +574,7 @@ def load_payer_aliases(conn: Connection, csv_text: str) -> LoadStats:
                 """
             ),
             {
-                "rp": normalize_name(raw_payer),
+                "rp": payer_key,
                 "t": raw_plan,
                 "k": normalize_name(raw_plan),
                 "pl": plan[0],
@@ -583,6 +586,38 @@ def load_payer_aliases(conn: Connection, csv_text: str) -> LoadStats:
         stats.rows_loaded += 1
         stats.count(state)
     return stats
+
+
+def _payer_alias(
+    conn: Connection,
+    raw_payer: str,
+    key: str,
+    payer_id: object,
+    state: str,
+    who: object,
+    when: object,
+) -> None:
+    conn.execute(
+        text(
+            """
+                INSERT INTO ref.payer_alias (raw_text, raw_normalized, payer_id, match_type,
+                    review_state, reviewed_by, reviewed_at)
+                VALUES (:r, :k, :p, 'manual', CAST(:st AS ref.review_state), :rb,
+                        CAST(:ra AS timestamptz))
+                ON CONFLICT (raw_normalized) DO UPDATE SET payer_id = EXCLUDED.payer_id,
+                    match_type = 'manual', review_state = EXCLUDED.review_state,
+                    reviewed_by = EXCLUDED.reviewed_by, reviewed_at = EXCLUDED.reviewed_at
+                """
+        ),
+        {
+            "r": raw_payer,
+            "k": key,
+            "p": payer_id,
+            "st": state,
+            "rb": who,
+            "ra": when,
+        },
+    )
 
 
 def collect_unmapped_plans(conn: Connection) -> int:
@@ -665,6 +700,80 @@ def load_synonyms(conn: Connection, csv_text: str) -> LoadStats:
                 "ra": when,
             },
         )
+        stats.rows_loaded += 1
+        stats.count(state)
+    return stats
+
+
+COVERAGE_COLUMNS = (
+    "state",
+    "program",
+    "group",
+    "min_percent_fpg",
+    "max_percent_fpg",
+    "label",
+    "apply_url",
+    "source_url",
+    "effective_from",
+    "notes",
+    "reviewed_by",
+    "reviewed_at",
+)
+
+
+def load_coverage_limits(conn: Connection, csv_text: str) -> LoadStats:
+    """Medicaid, CHIP and marketplace-savings income limits (percent of the
+    poverty guideline) with their official sources; proposed until reviewed."""
+    stats = LoadStats()
+    rows = read_delimited(csv_text, ",")
+    if not rows:
+        return stats
+    require_columns(rows, COVERAGE_COLUMNS, "coverage limits CSV")
+    for i, row in enumerate(rows, start=2):
+        stats.rows_in += 1
+        ref = f"line:{i}"
+        state, who, when = _review(row, ref, stats)
+        savepoint = conn.begin_nested()
+        try:
+            conn.execute(
+                text(
+                    """
+                    INSERT INTO ref.coverage_limit (state_code, program, group_code,
+                        min_percent_fpg, max_percent_fpg, label, apply_url, source_url,
+                        effective_from, notes, review_state, reviewed_by, reviewed_at)
+                    VALUES (:s, :p, :g, CAST(:mn AS numeric), CAST(:mx AS numeric), :l, :a, :src,
+                        CAST(:e AS date), :n, CAST(:st AS ref.review_state), :rb,
+                        CAST(:ra AS timestamptz))
+                    ON CONFLICT (state_code, program, group_code) DO UPDATE SET
+                        min_percent_fpg = EXCLUDED.min_percent_fpg,
+                        max_percent_fpg = EXCLUDED.max_percent_fpg, label = EXCLUDED.label,
+                        apply_url = EXCLUDED.apply_url, source_url = EXCLUDED.source_url,
+                        effective_from = EXCLUDED.effective_from, notes = EXCLUDED.notes,
+                        review_state = EXCLUDED.review_state, reviewed_by = EXCLUDED.reviewed_by,
+                        reviewed_at = EXCLUDED.reviewed_at
+                    """
+                ),
+                {
+                    "s": row["state"].strip().upper(),
+                    "p": row["program"].strip(),
+                    "g": row["group"].strip(),
+                    "mn": row["min_percent_fpg"].strip() or "0",
+                    "mx": row["max_percent_fpg"].strip(),
+                    "l": row["label"].strip(),
+                    "a": row["apply_url"].strip(),
+                    "src": row["source_url"].strip(),
+                    "e": row["effective_from"].strip(),
+                    "n": row["notes"].strip() or None,
+                    "st": state,
+                    "rb": who,
+                    "ra": when,
+                },
+            )
+        except Exception as exc:
+            savepoint.rollback()
+            stats.reject(ref, "refused_by_database", str(exc).splitlines()[0][:300])
+            continue
+        savepoint.commit()
         stats.rows_loaded += 1
         stats.count(state)
     return stats

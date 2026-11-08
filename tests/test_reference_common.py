@@ -173,7 +173,15 @@ def test_cli_parser_defaults() -> None:
     assert json.dumps(vars(cli.build_parser().parse_args(["hospitals", "--state", "nv"])))
 
 
-OFFLINE_STEPS = ("catalog", "aliases", "websites", "discover", "manual_sources", "probe")
+OFFLINE_STEPS = (
+    "catalog",
+    "health_centers",
+    "aliases",
+    "websites",
+    "discover",
+    "manual_sources",
+    "probe",
+)
 
 
 def test_nv_all_continues_after_a_failed_step(
@@ -214,6 +222,7 @@ def test_nv_all_continues_after_a_failed_step(
         "msdrg",
         "aliases",
         "catalog",
+        "health_centers",
         "websites",
         "discover",
         "manual_sources",

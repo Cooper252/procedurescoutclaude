@@ -93,7 +93,17 @@ class FacilityAssistanceOut(BaseModel):
     message: str
 
 
+class CoverageOut(BaseModel):
+    program: str
+    group: str
+    label: str
+    limit: str
+    apply_url: str
+    source_url: str
+
+
 class CheckOut(BaseModel):
+    coverage: list[CoverageOut] = []
     message: str
     guideline_year: int
     guideline_amount: str
@@ -125,7 +135,27 @@ def assistance_check(body: CheckIn, conn: Conn) -> CheckOut:
         )
     except assistance.AssistanceError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+    try:
+        matches = assistance.coverage(
+            conn,
+            state_code=body.state.upper(),
+            household_size=body.household_size,
+            annual_income=body.annual_income,
+        )
+    except assistance.AssistanceError:
+        matches = []
     return CheckOut(
+        coverage=[
+            CoverageOut(
+                program=m.program,
+                group=m.group,
+                label=m.label,
+                limit=m.limit_text,
+                apply_url=m.apply_url,
+                source_url=m.source_url,
+            )
+            for m in matches
+        ],
         message=result.message,
         guideline_year=result.guideline_year,
         guideline_amount=format(result.guideline_amount, "f"),
@@ -299,3 +329,45 @@ def bundle_estimate(
         complete=est.complete,
         explanation=explanation,
     )
+
+
+class HealthCenterOut(BaseModel):
+    name: str
+    organization: str | None
+    address: str | None
+    city: str | None
+    state: str
+    zip: str | None
+    phone: str | None
+    website: str | None
+    distance_miles: str
+
+
+@router.get("/health-centers/near", response_model=list[HealthCenterOut])
+def health_centers_near(
+    conn: Conn,
+    lat: Annotated[Decimal, Query(ge=-90, le=90)],
+    lng: Annotated[Decimal, Query(ge=-180, le=180)],
+    radius_miles: Annotated[Decimal, Query(ge=1, le=100)] = Decimal(25),
+) -> list[HealthCenterOut]:
+    """Community health centers (HRSA) near a place; they charge by income."""
+    try:
+        rows = assistance.health_centers_near(
+            conn, latitude=lat, longitude=lng, radius_miles=radius_miles
+        )
+    except assistance.AssistanceError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return [
+        HealthCenterOut(
+            name=h.name,
+            organization=h.organization,
+            address=h.address,
+            city=h.city,
+            state=h.state_code,
+            zip=h.zip5,
+            phone=h.phone,
+            website=h.website,
+            distance_miles=format(h.distance_miles, "f"),
+        )
+        for h in rows
+    ]

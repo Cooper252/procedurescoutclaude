@@ -1,31 +1,162 @@
 slug,term,source,reviewed_by,reviewed_at
-knee-arthroscopy-meniscus,knee scope,ai_suggested,,
-knee-arthroscopy-meniscus,knee arthroscopy,ai_suggested,,
-knee-arthroscopy-meniscus,torn meniscus surgery,ai_suggested,,
-mri-brain-without-contrast,head mri,ai_suggested,,
-mri-brain-without-contrast,brain scan,ai_suggested,,
-mri-lower-back-without-contrast,back mri,ai_suggested,,
-mri-lower-back-without-contrast,lumbar mri,ai_suggested,,
-colonoscopy-diagnostic,colonoscopy,ai_suggested,,
-colonoscopy-diagnostic,colonscopy,ai_suggested,,
-cataract-surgery,cataracts,ai_suggested,,
-cataract-surgery,eye surgery for cataracts,ai_suggested,,
-hip-or-knee-replacement-hospital-stay,knee replacement,ai_suggested,,
-hip-or-knee-replacement-hospital-stay,hip replacement,ai_suggested,,
-blood-panel-comprehensive,blood work,ai_suggested,,
-blood-panel-comprehensive,cmp,ai_suggested,,
-complete-blood-count,cbc,ai_suggested,,
-cholesterol-panel,cholesterol test,ai_suggested,,
-ekg,ecg,ai_suggested,,
-ekg,heart test,ai_suggested,,
-botox-per-unit,botox,ai_suggested,,
-botox-per-unit,wrinkle injections,ai_suggested,,
-dermal-filler-per-syringe,lip filler,ai_suggested,,
-dermal-filler-per-syringe,fillers,ai_suggested,,
-weight-loss-program-monthly,semaglutide,ai_suggested,,
-weight-loss-program-monthly,weight loss shots,ai_suggested,,
-teeth-cleaning-adult,dental cleaning,ai_suggested,,
-teeth-cleaning-adult,teeth cleaning,ai_suggested,,
-chest-x-ray-two-views,chest xray,ai_suggested,,
-ct-head-without-contrast,head ct,ai_suggested,,
-ct-head-without-contrast,cat scan head,ai_suggested,,
+knee-arthroscopy-meniscus,knee scope,ai_suggested,Cooper,2026-11-08
+knee-arthroscopy-meniscus,knee arthroscopy,ai_suggested,Cooper,2026-11-08
+knee-arthroscopy-meniscus,torn meniscus surgery,ai_suggested,Cooper,2026-11-08
+mri-brain-without-contrast,head mri,ai_suggested,Cooper,2026-11-08
+mri-brain-without-contrast,brain scan,ai_suggested,Cooper,2026-11-08
+mri-lower-back-without-contrast,back mri,ai_suggested,Cooper,2026-11-08
+mri-lower-back-without-contrast,lumbar mri,ai_suggested,Cooper,2026-11-08
+colonoscopy-diagnostic,colonoscopy,ai_suggested,Cooper,2026-11-08
+colonoscopy-diagnostic,colonscopy,ai_suggested,Cooper,2026-11-08
+cataract-surgery,cataracts,ai_suggested,Cooper,2026-11-08
+cataract-surgery,eye surgery for cataracts,ai_suggested,Cooper,2026-11-08
+hip-or-knee-replacement-hospital-stay,knee replacement,ai_suggested,Cooper,2026-11-08
+hip-or-knee-replacement-hospital-stay,hip replacement,ai_suggested,Cooper,2026-11-08
+blood-panel-comprehensive,blood work,ai_suggested,Cooper,2026-11-08
+blood-panel-comprehensive,cmp,ai_suggested,Cooper,2026-11-08
+complete-blood-count,cbc,ai_suggested,Cooper,2026-11-08
+cholesterol-panel,cholesterol test,ai_suggested,Cooper,2026-11-08
+ekg,ecg,ai_suggested,Cooper,2026-11-08
+ekg,heart test,ai_suggested,Cooper,2026-11-08
+botox-per-unit,botox,ai_suggested,Cooper,2026-11-08
+botox-per-unit,wrinkle injections,ai_suggested,Cooper,2026-11-08
+dermal-filler-per-syringe,lip filler,ai_suggested,Cooper,2026-11-08
+dermal-filler-per-syringe,fillers,ai_suggested,Cooper,2026-11-08
+weight-loss-program-monthly,semaglutide,ai_suggested,Cooper,2026-11-08
+weight-loss-program-monthly,weight loss shots,ai_suggested,Cooper,2026-11-08
+teeth-cleaning-adult,dental cleaning,ai_suggested,Cooper,2026-11-08
+teeth-cleaning-adult,teeth cleaning,ai_suggested,Cooper,2026-11-08
+chest-x-ray-two-views,chest xray,ai_suggested,Cooper,2026-11-08
+ct-head-without-contrast,head ct,ai_suggested,Cooper,2026-11-08
+ct-head-without-contrast,cat scan head,ai_suggested,Cooper,2026-11-08
+dental-exam-new-patient,new patient dental exam,ai_suggested,Cooper,2026-11-08
+dental-exam-new-patient,first dentist visit,ai_suggested,Cooper,2026-11-08
+dental-exam-checkup,dental checkup,ai_suggested,Cooper,2026-11-08
+dental-exam-checkup,periodic exam,ai_suggested,Cooper,2026-11-08
+dental-exam-emergency,toothache visit,ai_suggested,Cooper,2026-11-08
+dental-exam-emergency,emergency dentist,ai_suggested,Cooper,2026-11-08
+dental-xrays-bitewing-4,bitewings,ai_suggested,Cooper,2026-11-08
+dental-xrays-full-mouth,fmx,ai_suggested,Cooper,2026-11-08
+dental-xrays-full-mouth,full mouth x-rays,ai_suggested,Cooper,2026-11-08
+dental-xray-panoramic,panorex,ai_suggested,Cooper,2026-11-08
+dental-xray-panoramic,pano,ai_suggested,Cooper,2026-11-08
+teeth-cleaning-child,kids teeth cleaning,ai_suggested,Cooper,2026-11-08
+dental-sealant,sealants,ai_suggested,Cooper,2026-11-08
+deep-cleaning-quadrant,scaling and root planing,ai_suggested,Cooper,2026-11-08
+deep-cleaning-quadrant,srp,ai_suggested,Cooper,2026-11-08
+periodontal-maintenance,perio maintenance,ai_suggested,Cooper,2026-11-08
+filling-front-1-surface,white filling front,ai_suggested,Cooper,2026-11-08
+filling-back-1-surface,white filling,ai_suggested,Cooper,2026-11-08
+filling-back-1-surface,composite filling,ai_suggested,Cooper,2026-11-08
+filling-back-1-surface,cavity filling,ai_suggested,Cooper,2026-11-08
+filling-silver-1-surface,amalgam filling,ai_suggested,Cooper,2026-11-08
+dental-crown-ceramic,cap,ai_suggested,Cooper,2026-11-08
+dental-crown-ceramic,tooth crown,ai_suggested,Cooper,2026-11-08
+dental-crown-ceramic,porcelain crown,ai_suggested,Cooper,2026-11-08
+dental-crown-ceramic,zirconia crown,ai_suggested,Cooper,2026-11-08
+dental-crown-porcelain-metal,pfm crown,ai_suggested,Cooper,2026-11-08
+tooth-extraction-simple,pull a tooth,ai_suggested,Cooper,2026-11-08
+tooth-extraction-simple,tooth pulled,ai_suggested,Cooper,2026-11-08
+dental-implant-post,tooth implant,ai_suggested,Cooper,2026-11-08
+denture-full-upper,false teeth upper,ai_suggested,Cooper,2026-11-08
+denture-full-lower,false teeth lower,ai_suggested,Cooper,2026-11-08
+denture-partial-upper,partial,ai_suggested,Cooper,2026-11-08
+dental-veneer-porcelain,veneers,ai_suggested,Cooper,2026-11-08
+night-guard,bite guard,ai_suggested,Cooper,2026-11-08
+night-guard,mouth guard for grinding,ai_suggested,Cooper,2026-11-08
+night-guard,occlusal guard,ai_suggested,Cooper,2026-11-08
+teeth-whitening-in-office,teeth bleaching,ai_suggested,Cooper,2026-11-08
+teeth-whitening-in-office,zoom whitening,ai_suggested,Cooper,2026-11-08
+braces-full-adult,orthodontics adult,ai_suggested,Cooper,2026-11-08
+braces-full-teen,orthodontics teen,ai_suggested,Cooper,2026-11-08
+clear-aligners-full,invisalign,ai_suggested,Cooper,2026-11-08
+clear-aligners-full,clear braces,ai_suggested,Cooper,2026-11-08
+nitrous-oxide,laughing gas,ai_suggested,Cooper,2026-11-08
+chiropractic-new-patient-exam,chiropractor consultation,ai_suggested,Cooper,2026-11-08
+chiropractic-adjustment-spine,back adjustment,ai_suggested,Cooper,2026-11-08
+chiropractic-adjustment-spine,back alignment,ai_suggested,Cooper,2026-11-08
+chiropractic-adjustment-spine,spinal adjustment,ai_suggested,Cooper,2026-11-08
+chiropractic-adjustment-spine,neck adjustment,ai_suggested,Cooper,2026-11-08
+chiropractic-adjustment-spine,chiropractic adjustment,ai_suggested,Cooper,2026-11-08
+chiropractic-adjustment-spine,crack my back,ai_suggested,Cooper,2026-11-08
+chiropractic-adjustment-full-spine,full spine adjustment,ai_suggested,Cooper,2026-11-08
+spinal-decompression,decompression,ai_suggested,Cooper,2026-11-08
+massage-relaxation-30,swedish massage 30,ai_suggested,Cooper,2026-11-08
+massage-relaxation-60,full body massage,ai_suggested,Cooper,2026-11-08
+massage-relaxation-60,relaxation massage,ai_suggested,Cooper,2026-11-08
+massage-prenatal-60,pregnancy massage,ai_suggested,Cooper,2026-11-08
+massage-lymphatic-60,lymphatic drainage,ai_suggested,Cooper,2026-11-08
+massage-lymphatic-60,lymphatic massage,ai_suggested,Cooper,2026-11-08
+pt-evaluation,pt eval,ai_suggested,Cooper,2026-11-08
+dry-needling-1-2-muscles,dry needling,ai_suggested,Cooper,2026-11-08
+occupational-therapy-evaluation,ot eval,ai_suggested,Cooper,2026-11-08
+kybella-per-vial,double chin injection,ai_suggested,Cooper,2026-11-08
+microneedling,collagen induction,ai_suggested,Cooper,2026-11-08
+microneedling-prp,vampire facial,ai_suggested,Cooper,2026-11-08
+hydradermabrasion-facial,hydrafacial,ai_suggested,Cooper,2026-11-08
+ipl-photofacial,photofacial,ai_suggested,Cooper,2026-11-08
+cryolipolysis-per-area,coolsculpting,ai_suggested,Cooper,2026-11-08
+cryolipolysis-per-area,fat freezing,ai_suggested,Cooper,2026-11-08
+iv-hydration,iv drip,ai_suggested,Cooper,2026-11-08
+iv-hydration,iv fluids,ai_suggested,Cooper,2026-11-08
+iv-vitamin-infusion,myers cocktail,ai_suggested,Cooper,2026-11-08
+iv-vitamin-infusion,vitamin drip,ai_suggested,Cooper,2026-11-08
+b12-injection,b12 shot,ai_suggested,Cooper,2026-11-08
+weight-loss-program-glp1-monthly,semaglutide,ai_suggested,Cooper,2026-11-08
+weight-loss-program-glp1-monthly,tirzepatide,ai_suggested,Cooper,2026-11-08
+weight-loss-program-glp1-monthly,ozempic,ai_suggested,Cooper,2026-11-08
+weight-loss-program-glp1-monthly,wegovy,ai_suggested,Cooper,2026-11-08
+weight-loss-program-glp1-monthly,zepbound,ai_suggested,Cooper,2026-11-08
+weight-loss-program-glp1-monthly,glp-1,ai_suggested,Cooper,2026-11-08
+doctor-visit-new-patient,new patient visit,ai_suggested,Cooper,2026-11-08
+doctor-visit-established,office visit,ai_suggested,Cooper,2026-11-08
+doctor-visit-established,sick visit,ai_suggested,Cooper,2026-11-08
+urgent-care-visit,urgent care,ai_suggested,Cooper,2026-11-08
+urgent-care-visit,walk-in clinic,ai_suggested,Cooper,2026-11-08
+telehealth-visit,virtual visit,ai_suggested,Cooper,2026-11-08
+telehealth-visit,online doctor,ai_suggested,Cooper,2026-11-08
+annual-physical-18-39,physical,ai_suggested,Cooper,2026-11-08
+annual-physical-18-39,checkup,ai_suggested,Cooper,2026-11-08
+annual-physical-18-39,wellness exam,ai_suggested,Cooper,2026-11-08
+dot-physical,cdl physical,ai_suggested,Cooper,2026-11-08
+stitches-simple,stitches,ai_suggested,Cooper,2026-11-08
+stitches-simple,sutures,ai_suggested,Cooper,2026-11-08
+flu-shot,flu vaccine,ai_suggested,Cooper,2026-11-08
+tdap-shot,tetanus shot,ai_suggested,Cooper,2026-11-08
+shingles-shot,shingrix,ai_suggested,Cooper,2026-11-08
+tb-skin-test,ppd test,ai_suggested,Cooper,2026-11-08
+rapid-strep-test,strep test,ai_suggested,Cooper,2026-11-08
+allergy-skin-testing-per-test,allergy test,ai_suggested,Cooper,2026-11-08
+basic-metabolic-panel,bmp,ai_suggested,Cooper,2026-11-08
+hemoglobin-a1c,a1c,ai_suggested,Cooper,2026-11-08
+tsh,thyroid test,ai_suggested,Cooper,2026-11-08
+urinalysis,urine test,ai_suggested,Cooper,2026-11-08
+chlamydia-gonorrhea-test,std test,ai_suggested,Cooper,2026-11-08
+chlamydia-gonorrhea-test,sti test,ai_suggested,Cooper,2026-11-08
+drug-screen,drug test,ai_suggested,Cooper,2026-11-08
+mri-neck-spine-without-contrast,neck mri,ai_suggested,Cooper,2026-11-08
+mri-shoulder-without-contrast,shoulder mri,ai_suggested,Cooper,2026-11-08
+ct-abdomen-pelvis-with-contrast,ct abdomen,ai_suggested,Cooper,2026-11-08
+echocardiogram,echo,ai_suggested,Cooper,2026-11-08
+mammogram-screening,mammogram,ai_suggested,Cooper,2026-11-08
+dexa-bone-density,dexa,ai_suggested,Cooper,2026-11-08
+dexa-bone-density,bone density,ai_suggested,Cooper,2026-11-08
+sleep-study-in-lab,sleep study,ai_suggested,Cooper,2026-11-08
+hearing-test,audiogram,ai_suggested,Cooper,2026-11-08
+eye-exam-routine,eye exam,ai_suggested,Cooper,2026-11-08
+eye-exam-routine,vision exam,ai_suggested,Cooper,2026-11-08
+lasik-per-eye,lasik,ai_suggested,Cooper,2026-11-08
+lasik-per-eye,laser eye surgery,ai_suggested,Cooper,2026-11-08
+upper-endoscopy,egd,ai_suggested,Cooper,2026-11-08
+upper-endoscopy,upper gi scope,ai_suggested,Cooper,2026-11-08
+acl-reconstruction,acl surgery,ai_suggested,Cooper,2026-11-08
+gallbladder-removal,cholecystectomy,ai_suggested,Cooper,2026-11-08
+hernia-repair-inguinal-lap,hernia surgery,ai_suggested,Cooper,2026-11-08
+appendectomy-lap,appendectomy,ai_suggested,Cooper,2026-11-08
+tonsillectomy-12-plus,tonsillectomy,ai_suggested,Cooper,2026-11-08
+c-section-hospital-stay,cesarean,ai_suggested,Cooper,2026-11-08
+c-section-hospital-stay,c section,ai_suggested,Cooper,2026-11-08
+therapy-session-45,counseling,ai_suggested,Cooper,2026-11-08
+therapy-session-45,talk therapy,ai_suggested,Cooper,2026-11-08
+psychiatric-evaluation,mental health evaluation,ai_suggested,Cooper,2026-11-08
+couples-therapy,marriage counseling,ai_suggested,Cooper,2026-11-08
