@@ -23,7 +23,9 @@ JSON_FILE = (
 )
 
 
-def stage(conn: Connection, tmp_path: Path, content: bytes | None = None) -> None:
+def stage(
+    conn: Connection, tmp_path: Path, content: bytes | None = None, skip_unchanged: bool = False
+) -> None:
     data = content or JSON_FILE.read_bytes()
 
     def downloader(url: str, dest: Path) -> Download:
@@ -31,7 +33,14 @@ def stage(conn: Connection, tmp_path: Path, content: bytes | None = None) -> Non
         return Download(url, dest, hashlib.sha256(data).hexdigest(), len(data), 200, url)
 
     check_price_files(
-        conn, "NV", downloader, tmp_path / "w", today=date(2026, 11, 8), load=True, min_free_bytes=0
+        conn,
+        "NV",
+        downloader,
+        tmp_path / "w",
+        today=date(2026, 11, 8),
+        load=True,
+        min_free_bytes=0,
+        skip_unchanged=skip_unchanged,
     )
 
 
@@ -174,3 +183,18 @@ def test_api_role_sees_current_files_but_not_the_manifest_table(api_engine: Engi
         c.execute(text("SELECT count(*) FROM price.published_file"))
     with api_engine.connect() as c, pytest.raises(ProgrammingError, match="permission denied"):
         c.execute(text("SELECT count(*) FROM src.published_file"))
+
+
+def test_refresh_skips_a_file_with_the_same_content(
+    conn: Connection, staged: publish.Pending, tmp_path: Path
+) -> None:
+    """National refreshes (D-048): once a facility's prices are published, the
+    same file again is not loaded again."""
+    store = LocalStore(tmp_path / "store")
+    publish.approve(conn, uuid.UUID(staged.dataset_version_id), "Synthetic Reviewer", store)
+    before = conn.execute(text("SELECT count(*) FROM src.dataset_version")).scalar_one()
+    stage(conn, tmp_path, skip_unchanged=True)
+    after = conn.execute(text("SELECT count(*) FROM src.dataset_version")).scalar_one()
+    assert after == before
+    stage(conn, tmp_path, skip_unchanged=False)  # forced: loaded again
+    assert conn.execute(text("SELECT count(*) FROM src.dataset_version")).scalar_one() > before

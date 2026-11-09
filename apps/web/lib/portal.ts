@@ -108,6 +108,67 @@ export type ProviderReview = {
   reply_body: string | null;
   reply_status: string | null;
 };
+export type PublicSpecial = { price: string; who: string; percent_off: string | null; ends_on: string | null; terms: string | null };
+export type PublicListing = {
+  service_slug: string | null;
+  service_name: string | null;
+  unit: string | null;
+  code: string | null;
+  quantity: number;
+  regular_price: string;
+  updated_at: string | null;
+  special: PublicSpecial | null;
+};
+export type PackageItem = { service_name: string | null; code: string | null; quantity: number };
+export type PublicPackage = { name: string; description: string | null; price: string; items: PackageItem[] };
+export type ProviderPrices = { listings: PublicListing[]; packages: PublicPackage[] };
+export type MyOffer = {
+  id: string;
+  kind: "special_price" | "percent_off" | "amount_off";
+  who: "new_patients" | "everyone";
+  offer_price: string | null;
+  percent_off: string | null;
+  amount_off: string | null;
+  starts_on: string;
+  ends_on: string | null;
+  terms: string | null;
+  status: string;
+  review_note: string | null;
+};
+export type MyListing = {
+  id: string;
+  service_slug: string | null;
+  service_name: string | null;
+  unit: string | null;
+  code_system: string | null;
+  code: string | null;
+  quantity: number;
+  regular_price: string;
+  proposed_price: string | null;
+  status: string;
+  review_note: string | null;
+  offers: MyOffer[];
+};
+export type MyPackage = { id: string; name: string; description: string | null; price: string; status: string; review_note: string | null; items: PackageItem[] };
+export type MyPrices = { listings: MyListing[]; packages: MyPackage[] };
+export type ListingIn = { service_slug?: string | null; code_system?: string | null; code?: string | null; quantity: number; regular_price: string };
+export type OfferIn = { kind: string; who: string; value: string; starts_on: string; ends_on: string | null; terms: string | null };
+export type PackageIn = {
+  name: string;
+  description: string | null;
+  price: string;
+  items: { service_slug?: string | null; code_system?: string | null; code?: string | null; quantity: number }[];
+};
+export type Billing = {
+  payments_on: boolean;
+  fee_starts_on: string | null;
+  fee_in_force: boolean;
+  content_shown: boolean;
+  listing_status: string | null;
+  sponsored_status: string | null;
+  plans: { code: string; name: string; kind: "listing" | "sponsored"; amount: string; interval: string; can_buy: boolean }[];
+  slots: { service_key: string; ring_miles: number }[];
+};
 export type FacilityHit = { facility_id: string; name: string; city: string | null; state: string; claimed: boolean };
 
 const H = { "Content-Type": "application/json", Accept: "application/json", "X-ProcedureScout": "1" };
@@ -166,7 +227,35 @@ export const portal = {
     independent: boolean;
   }): Promise<{ id: string }> => (DEMO ? later({ id: "preview" }) : call("POST", "/v1/reviews", r)),
 
+  reportPrice: (r: { facility_id: string; problem: string; service_key: string | null; price_shown: string | null; details: string | null }): Promise<{ status: string }> =>
+    DEMO ? later({ status: "received" }) : call("POST", "/v1/price-reports", r),
+  providerTypesAll: (): Promise<{ code: string; name: string }[]> =>
+    DEMO ? later([{ code: "medical_spa", name: "Medical spa" }, { code: "dental_office", name: "Dental office" }]) : call("GET", "/v1/provider-types/all"),
+  requestListing: (f: Record<string, string | null>): Promise<{ id: string }> =>
+    DEMO ? later({ id: "preview" }) : call("POST", "/v1/portal/listing-requests", f),
+  myListingRequests: (): Promise<{ id: string; name: string; status: string; review_note: string | null }[]> =>
+    DEMO ? later([]) : call("GET", "/v1/portal/listing-requests"),
+  billing: (id: string): Promise<Billing> => (DEMO ? later(demo.demoBilling()) : call("GET", `/v1/portal/facilities/${id}/billing`)),
+  checkout: (id: string, plan: string): Promise<{ url: string }> =>
+    call("POST", `/v1/portal/facilities/${id}/billing/checkout`, { plan_code: plan }),
+  billingPortal: (id: string): Promise<{ url: string }> => call("POST", `/v1/portal/facilities/${id}/billing/portal`),
+  providerPrices: (id: string): Promise<ProviderPrices> =>
+    DEMO ? later(demo.demoProviderPrices(id)) : call("GET", `/v1/facilities/${id}/provider-prices`),
+
   // ---------------------------------------------------------------- portal
+  myPrices: (id: string): Promise<MyPrices> => (DEMO ? later(demo.demoMyPrices()) : call("GET", `/v1/portal/facilities/${id}/prices`)),
+  savePrice: (id: string, body: ListingIn): Promise<{ id: string }> =>
+    DEMO ? later({ id: "preview" }) : call("POST", `/v1/portal/facilities/${id}/prices`, body),
+  withdrawPrice: (id: string, listingId: string): Promise<void> =>
+    DEMO ? later(undefined) : call("DELETE", `/v1/portal/facilities/${id}/prices/${listingId}`),
+  addSpecial: (id: string, listingId: string, body: OfferIn): Promise<{ id: string }> =>
+    DEMO ? later({ id: "preview" }) : call("POST", `/v1/portal/facilities/${id}/prices/${listingId}/specials`, body),
+  withdrawSpecial: (id: string, offerId: string): Promise<void> =>
+    DEMO ? later(undefined) : call("DELETE", `/v1/portal/facilities/${id}/specials/${offerId}`),
+  addPackage: (id: string, body: PackageIn): Promise<{ id: string }> =>
+    DEMO ? later({ id: "preview" }) : call("POST", `/v1/portal/facilities/${id}/packages`, body),
+  withdrawPackage: (id: string, packageId: string): Promise<void> =>
+    DEMO ? later(undefined) : call("DELETE", `/v1/portal/facilities/${id}/packages/${packageId}`),
   signIn: (email: string): Promise<{ ok: boolean; dev_link: string | null }> =>
     DEMO ? later({ ok: true, dev_link: "/providers/sign-in/verify#preview" }) : call("POST", "/v1/portal/sign-in", { email }),
   verify: (token: string): Promise<Me> => (DEMO ? later(demo.demoMe(false)) : call("POST", "/v1/portal/sign-in/verify", { token })),

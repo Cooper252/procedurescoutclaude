@@ -74,7 +74,17 @@ export interface Facility {
   badge_notes: string[];
   change_percent_since_last_file: string | null;
   plan_rate_is_all_plans?: boolean;
-  special?: { price: string; who: "new_patients" | "everyone"; ends_on: string | null; terms: string | null } | null;
+  special?: {
+    price: string;
+    regular?: string;
+    who: "new_patients" | "everyone" | string;
+    kind?: string;
+    percent_off?: string | null;
+    ends_on: string | null;
+    terms: string | null;
+  } | null;
+  rating_average?: string | null;
+  rating_count?: number;
   prices: Price[];
 }
 
@@ -88,6 +98,7 @@ export interface SearchResult {
   code_description?: string | null;
   typical: { low: string; middle: string; high: string; count: number } | null;
   facilities: Facility[];
+  sponsored?: { facility_id: string; name: string; city: string | null; state: string }[];
 }
 
 export interface NearbyFacility {

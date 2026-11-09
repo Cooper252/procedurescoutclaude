@@ -66,6 +66,11 @@ def client(
         get_settings.cache_clear()
 
 
+def _admin() -> TestClient:
+    """A separate browser for the review page (shared password, development only)."""
+    return TestClient(app, base_url="https://testserver")
+
+
 def _facility(conn: Connection) -> str:
     fid = make_facility(conn, "Synthetic Portal Clinic")
     conn.execute(
@@ -141,14 +146,14 @@ def test_full_provider_journey(client: TestClient, conn: Connection) -> None:
     assert bad.status_code == 422
 
     # a person approves on the review page
-    admin = client.get("/admin/providers", headers=ADMIN)
+    admin = _admin().get("/admin/providers", headers=ADMIN)
     assert admin.status_code == 200 and "Synthetic clinic." in admin.text
     pid = conn.execute(
         text("SELECT id FROM prov.profile WHERE facility_id = :f"), {"f": fid}
     ).scalar_one()
     for kind, item in (("profile", str(pid)), ("media", media_id)):
         tok = admin_routes.form_token(f"{kind}:{item}")
-        r = client.post(
+        r = _admin().post(
             f"/admin/providers/{kind}/{item}/approve",
             data={"form_token": tok},
             headers=ADMIN,
@@ -182,7 +187,7 @@ def test_full_provider_journey(client: TestClient, conn: Connection) -> None:
     assert r.status_code == 201, r.text
     rid = r.json()["id"]
     tok = admin_routes.form_token(f"review:{rid}")
-    client.post(f"/admin/providers/review/{rid}/approve", data={"form_token": tok}, headers=ADMIN)
+    _admin().post(f"/admin/providers/review/{rid}/approve", data={"form_token": tok}, headers=ADMIN)
     page = client.get(f"/v1/facilities/{fid}/page").json()
     assert page["reviews"]["count"] == 1 and page["reviews"]["average"] == "5.0"
     r = client.post(
@@ -229,3 +234,74 @@ def test_unpublished_images_are_not_served(client: TestClient, conn: Connection)
     r = client.get(f"/v1/media/media/{fid}/{fid}.png")
     assert r.status_code == 404
     assert client.get("/v1/media/../../etc/passwd").status_code == 404
+
+
+def test_provider_prices_over_http(client: TestClient, conn: Connection) -> None:
+    from tests.test_catalog_offers import load_all
+
+    load_all(conn)
+    fid = _facility(conn)
+    _sign_in(client, "owner@synthetic-clinic.test")
+    client.post("/v1/portal/claims", json={"facility_id": fid}, headers=H)
+    r = client.post(
+        f"/v1/portal/facilities/{fid}/prices",
+        json={"service_slug": "teeth-cleaning-adult", "regular_price": "129.5"},
+        headers=H,
+    )
+    assert r.status_code == 201, r.text
+    lid = r.json()["id"]
+    bad = client.post(
+        f"/v1/portal/facilities/{fid}/prices",
+        json={"service_slug": "teeth-cleaning-adult", "regular_price": "1.234"},
+        headers=H,
+    )
+    assert bad.status_code == 422
+    r = client.post(
+        f"/v1/portal/facilities/{fid}/prices/{lid}/specials",
+        json={
+            "kind": "amount_off",
+            "who": "new_patients",
+            "value": "30",
+            "starts_on": "2026-01-01",
+            "ends_on": None,
+            "terms": None,
+        },
+        headers=H,
+    )
+    assert r.status_code == 201, r.text
+    oid = r.json()["id"]
+    assert client.get(f"/v1/facilities/{fid}/provider-prices").json()["listings"] == []
+    page = _admin().get("/admin/providers", headers=ADMIN).text
+    assert "New: <strong>$129.50</strong>" in page
+    for kind, item in (("listing", lid), ("offer", oid)):
+        tok = admin_routes.form_token(f"{kind}:{item}")
+        r = _admin().post(
+            f"/admin/providers/{kind}/{item}/approve",
+            data={"form_token": tok},
+            headers=ADMIN,
+            follow_redirects=False,
+        )
+        assert r.status_code == 303, r.text
+    pub = client.get(f"/v1/facilities/{fid}/provider-prices").json()["listings"]
+    assert pub[0]["regular_price"] == "129.5" and pub[0]["special"]["price"] == "99.5"
+    mine = client.get(f"/v1/portal/facilities/{fid}/prices").json()
+    assert mine["listings"][0]["status"] == "published"
+    assert client.delete(f"/v1/portal/facilities/{fid}/prices/{lid}", headers=H).status_code == 204
+    assert client.get(f"/v1/facilities/{fid}/provider-prices").json()["listings"] == []
+
+
+def test_review_pages_need_staff_with_authenticator(
+    client: TestClient, conn: Connection, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from procedurescout_core.portal_auth import add_staff
+
+    _sign_in(client, "notstaff@synthetic.test")
+    assert client.get("/admin/providers").status_code == 403  # signed in, not staff
+    staff = _admin()
+    add_staff(conn, "reviewer@synthetic.test", "reviewer", "Synthetic Admin")
+    _sign_in(staff, "reviewer@synthetic.test")
+    page = staff.get("/admin/providers")
+    assert page.status_code == 200 and "reviewer@synthetic.test" in page.text
+    monkeypatch.setenv("ENVIRONMENT", "production")
+    get_settings.cache_clear()
+    assert _admin().get("/admin/providers", headers=ADMIN).status_code == 401  # no shared password

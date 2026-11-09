@@ -7,6 +7,7 @@ import { useApp } from "@/components/AppState";
 import { Heart } from "@/components/Icons";
 import { PayerAsWritten } from "@/components/PayerAsWritten";
 import { ResultCard } from "@/components/ResultCard";
+import { portalText } from "@/lib/i18n_portal";
 import { SearchForm } from "@/components/SearchForm";
 import { api } from "@/lib/api";
 import { fill, SERVICE_ES, TYPE_ES } from "@/lib/i18n";
@@ -291,6 +292,20 @@ function Results() {
                   </button>
                 )}
               </div>
+            )}
+            {result.sponsored && result.sponsored.length > 0 && (
+              <aside className="sponsored" aria-label={portalText(lang).sponsored}>
+                <span className="badge sponsored-tag">{portalText(lang).sponsored}</span>
+                <ul>
+                  {result.sponsored.map((s) => (
+                    <li key={s.facility_id}>
+                      <Link href={`/facility/${s.facility_id}${service ? `?service=${service}` : ""}`}>{s.name}</Link>
+                      {s.city && <span className="muted"> · {s.city}</span>}
+                    </li>
+                  ))}
+                </ul>
+                <p className="fine">{portalText(lang).sponsoredNote}</p>
+              </aside>
             )}
             <div className="results-list">
               {priced.map((f) => (

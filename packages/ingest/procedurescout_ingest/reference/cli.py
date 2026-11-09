@@ -17,6 +17,7 @@ import sys
 import uuid
 from collections.abc import Callable
 from datetime import date
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -407,6 +408,131 @@ def _store() -> Any:
     )
 
 
+def cmd_send_email(args: argparse.Namespace, engine: Engine) -> None:
+    """Send emails waiting in prov.outbox with the configured service (Q26)."""
+    from procedurescout_core.mailer import send_pending, sender_from
+
+    sender = sender_from(
+        os.environ.get("EMAIL_PROVIDER", ""),
+        os.environ.get("EMAIL_FROM", ""),
+        os.environ.get("RESEND_API_KEY", ""),
+        os.environ.get("SMTP_HOST", ""),
+        int(os.environ.get("SMTP_PORT", "587")),
+        os.environ.get("SMTP_USERNAME", ""),
+        os.environ.get("SMTP_PASSWORD", ""),
+    )
+    if sender is None:
+        print("no email service is set up (EMAIL_PROVIDER, EMAIL_FROM and keys); nothing sent")
+        return
+    with engine.begin() as conn:
+        out = send_pending(conn, sender, limit=args.limit)
+    print(f"sent {out.sent}, failed {out.failed}, still waiting {out.waiting}")
+
+
+def _local(source: str, folder: Path) -> Path:
+    """A local copy of a path or https URL (streamed to disk; never held in memory)."""
+    if not source.startswith("https://"):
+        return Path(source)
+    dest = folder / source.rsplit("/", 1)[-1]
+    with new_client() as client, client.stream("GET", source) as r:
+        r.raise_for_status()
+        with dest.open("wb") as fh:
+            for chunk in r.iter_bytes(1 << 20):
+                fh.write(chunk)
+    return dest
+
+
+def cmd_nppes_offices(args: argparse.Namespace, engine: Engine) -> None:
+    import tempfile
+
+    from . import nppes_offices as no
+
+    with tempfile.TemporaryDirectory() as tmp:
+        npi_file = _local(args.file, Path(tmp))
+        nucc = _local(args.nucc, Path(tmp)).read_text(encoding="utf-8", errors="replace")
+        map_text = Path(args.map).read_text()
+        states = {s.upper() for s in args.state}
+
+        def work(conn: Connection) -> LoadStats:
+            stats = LoadStats()
+            mapping = no.read_map(map_text, stats)
+            if not mapping:
+                stats.summary["note"] = "no reviewed taxonomy rows; nothing loaded"
+                return stats
+            code_types = no.codes_for(nucc, mapping, stats)
+            return no.load(
+                conn, no.offices(no.open_npi_csv(npi_file), states, code_types, stats), stats
+            )
+
+        _run(
+            engine,
+            no.DATASET,
+            work,
+            source_url=args.file if args.file.startswith("https://") else None,
+            source_file=None if args.file.startswith("https://") else args.file,
+            nbytes=npi_file.stat().st_size,
+            parameters={"states": sorted(states)},
+        )
+
+
+def cmd_verify_websites(args: argparse.Namespace, engine: Engine) -> None:
+    from .. import website_verify
+
+    csv_text = Path(args.file).read_text()
+    with new_client() as client:
+
+        def fetch(url: str) -> tuple[int, str]:
+            r = client.get(url, timeout=30)
+            return r.status_code, r.text[:2_000_000]
+
+        _run(
+            engine,
+            "facility_websites",
+            lambda c: website_verify.verify(c, csv_text, fetch, LoadStats()),
+            source_file=args.file,
+        )
+
+
+def cmd_set_plan(args: argparse.Namespace, engine: Engine) -> None:
+    from decimal import Decimal
+
+    from procedurescout_core import billing
+
+    with engine.begin() as conn:
+        billing.set_plan(
+            conn,
+            code=args.code,
+            name=args.name,
+            kind=args.kind,
+            amount=Decimal(args.amount),
+            provider_type=args.provider_type,
+            stripe_price_id=args.stripe_price,
+            approved_by=args.by,
+        )
+    print(f"plan {args.code} saved")
+
+
+def cmd_set_fee_start(args: argparse.Namespace, engine: Engine) -> None:
+    from datetime import date as _date
+
+    from procedurescout_core import billing
+
+    with engine.begin() as conn:
+        billing.set_fee_start(conn, _date.fromisoformat(args.date) if args.date else None, args.by)
+    print("listing fee starts " + args.date if args.date else "listing is free (no fee date)")
+
+
+def cmd_add_staff(args: argparse.Namespace, engine: Engine) -> None:
+    from procedurescout_core.portal_auth import add_staff
+
+    with engine.begin() as conn:
+        add_staff(conn, args.email, args.role, args.by)
+    print(
+        f"{args.email} can now use the review pages as {args.role} (after signing in with "
+        "the email link and an authenticator app)"
+    )
+
+
 def cmd_auto_publish(args: argparse.Namespace, engine: Engine) -> None:
     """Publish refreshes of already-approved facilities that pass every check (D-035)."""
     from .. import publish
@@ -759,6 +885,35 @@ def build_parser() -> argparse.ArgumentParser:
         "catalog", help="provider types, services, bundles, poverty guidelines, policies"
     )
     sub.add_parser("auto-publish", help="publish clean refreshes of approved facilities (D-035)")
+    sp = sub.add_parser("send-email", help="send emails waiting in prov.outbox")
+    sp.add_argument("--limit", type=int, default=200)
+    sp = sub.add_parser("nppes-offices", help="offices from the national provider list (D-052)")
+    sp.add_argument("--file", required=True, help="NPPES zip or CSV (path or https URL)")
+    sp.add_argument("--nucc", required=True, help="NUCC taxonomy CSV (path or https URL)")
+    sp.add_argument("--state", action="append", required=True, help="repeat for several")
+    sp.add_argument(
+        "--map",
+        default=str(Path(__file__).resolve().parents[4] / "data/reference/nppes_taxonomy_map.csv"),
+    )
+    sp = sub.add_parser(
+        "verify-websites", help="accept proposed hospital websites whose cms-hpt.txt names them"
+    )
+    sp.add_argument("--file", required=True, help="CSV with ccn,url,source")
+    sp = sub.add_parser("set-plan", help="add or change a paid plan (Cooper's decision, D-051)")
+    sp.add_argument("--code", required=True)
+    sp.add_argument("--name", required=True)
+    sp.add_argument("--kind", choices=["listing", "sponsored"], required=True)
+    sp.add_argument("--amount", required=True, help="dollars per month, e.g. 250")
+    sp.add_argument("--provider-type", help="e.g. dental_office; leave out for any business")
+    sp.add_argument("--stripe-price", help="Stripe price id (price_...)")
+    sp.add_argument("--by", required=True)
+    sp = sub.add_parser("set-fee-start", help="when the listing fee starts (default: free)")
+    sp.add_argument("--date", help="YYYY-MM-DD; leave out to make listing free again")
+    sp.add_argument("--by", required=True)
+    sp = sub.add_parser("add-staff", help="let a person use the review pages (ADM-02)")
+    sp.add_argument("--email", required=True)
+    sp.add_argument("--role", choices=["reviewer", "admin"], default="reviewer")
+    sp.add_argument("--by", required=True, help="who is granting access")
     sub.add_parser("review-list", help="staged price datasets waiting for a person's review")
     sp = sub.add_parser("approve", help="publish a reviewed dataset (writes its Parquet file)")
     sp.add_argument("--dataset", required=True, help="dataset version id from review-list")
@@ -826,6 +981,12 @@ def main(argv: list[str] | None = None) -> None:
             "code-index": lambda: cmd_code_index(args, engine),
             "resolve-plans": lambda: cmd_resolve_plans(args, engine),
             "auto-publish": lambda: cmd_auto_publish(args, engine),
+            "send-email": lambda: cmd_send_email(args, engine),
+            "add-staff": lambda: cmd_add_staff(args, engine),
+            "set-plan": lambda: cmd_set_plan(args, engine),
+            "nppes-offices": lambda: cmd_nppes_offices(args, engine),
+            "verify-websites": lambda: cmd_verify_websites(args, engine),
+            "set-fee-start": lambda: cmd_set_fee_start(args, engine),
             "approve": lambda: cmd_approve(args, engine),
             "reject": lambda: cmd_reject(args, engine),
             "msdrg": lambda: cmd_msdrg(args, engine),

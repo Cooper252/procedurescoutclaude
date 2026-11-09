@@ -7,12 +7,15 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useApp } from "@/components/AppState";
+import { AddPractice } from "@/components/AddPractice";
+import { PortalPlan } from "@/components/PortalPlan";
+import { PortalPrices } from "@/components/PortalPrices";
 import { Stars } from "@/components/ProviderHome";
 import { fill } from "@/lib/i18n";
 import { portalText, type PortalDict } from "@/lib/i18n_portal";
 import { portal, type Dashboard, type FacilityHit, type Me, type Num, type Profile, type ProfileEdit, type ProviderReview } from "@/lib/portal";
 
-type Tab = "overview" | "page" | "reviews";
+type Tab = "overview" | "prices" | "page" | "reviews" | "plan";
 
 export default function Account() {
   const { lang } = useApp();
@@ -94,19 +97,25 @@ export default function Account() {
                 {(
                   [
                     ["overview", p.tabOverview],
+                    ["prices", p.tabPrices],
                     ["page", p.tabPage],
                     ["reviews", p.tabReviews],
+                    ["plan", p.tabPlan],
                   ] as const
                 ).map(([k, label]) => (
                   <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? "on" : undefined} onClick={() => setTab(k)}>
                     {label}
                   </button>
                 ))}
+              </nav>
+              <p className="acct-public-row">
                 <Link className="acct-public" href={`/facility/${current.facility_id}`}>
                   {p.viewPage} →
                 </Link>
-              </nav>
+              </p>
               {tab === "overview" && <Overview fid={current.facility_id} p={p} />}
+              {tab === "plan" && <PortalPlan fid={current.facility_id} isOwner={current.role === "owner"} />}
+              {tab === "prices" && <PortalPrices fid={current.facility_id} canEdit={current.role !== "viewer"} />}
               {tab === "page" && <PageEditor fid={current.facility_id} p={p} canEdit={current.role !== "viewer"} />}
               {tab === "reviews" && <ReviewsTab fid={current.facility_id} p={p} canEdit={current.role !== "viewer"} />}
             </>
@@ -213,7 +222,7 @@ function Claim({ p, onClaimed }: { p: PortalDict; onClaimed: () => void }) {
         </>
       )}
       {err && <p className="form-error">{err}</p>}
-      <p className="fine">{p.notListed}</p>
+      <AddPractice />
     </section>
   );
 }

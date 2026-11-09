@@ -2,7 +2,22 @@
 
 Newest first. Each entry: decision, reason, consequences.
 
-## 2026-11-08 — D-050: Provider homepages, dashboard and reviews built
+## 2026-11-09 — D-053: Email by Resend (switchable); per-person review logins
+- Email: Cooper chose Resend (free up to 3,000 emails a month, 100 a day; then $20 a month), on the condition it can be changed later. The sender is generic: Resend's API or any SMTP service (Amazon SES and others) by settings, no code change (`procedurescout_core/mailer.py`). Sent emails have their one-time link removed; sent rows are deleted after 30 days.
+- Review pages: each reviewer has their own account (email link + authenticator app), added with `add-staff`; decisions are recorded under their email. The shared password works only outside production (ADM-02).
+
+## 2026-11-09 — D-052: Offices from the national provider list; practices can ask to be added
+- Cooper approved downloading the NPPES monthly file (about 1.1 GB) in the free GitHub run. Organizations (entity type 2) with an active NPI in the chosen state are loaded when one of their taxonomy codes maps to one of our provider types (`data/reference/nppes_taxonomy_map.csv`, by NUCC classification name, checked against the NUCC list at run time). The map was Claude's proposal; Cooper approved it as is on 2026-11-09 (rule 10).
+- An NPI already belonging to a hospital or surgery center never creates a second listing. Deactivated NPIs become inactive.
+- Practices not in public records (for example med spas) can ask to be added from their account; a person checks each one; on approval the requester owns the new page.
+
+## 2026-11-09 — D-051: Monthly listing fee and Sponsored spots, built but free for now
+Cooper: providers will eventually pay a monthly fee to be listed, priced by kind of business (his rough ideas: hospitals about $999, surgery centers about $500, dentists about $250, chiropractors about $150; not decided), plus Sponsored spots. For now the site says listing is free, and nothing is charged; he doesn't know when charging will start and doesn't want providers with few visitors to expect a fee.
+- Built switched off: plans by provider type (`bill.plan.provider_type`), Stripe Checkout and customer portal, signed webhooks, Sponsored spots (labeled, at most 2 per search, never change order or labels, only for services the provider has a published price for).
+- Turning it on needs, each by Cooper: plan prices (`set-plan`), a start date (`set-fee-start`), and Stripe keys.
+- Once a fee is in force, an unpaid provider's own content (prices, specials, packages, homepage, photos) is hidden. Public-record listings, hospital price-file prices and reviews never depend on payment (FTC rule on reviews; price files are public by law).
+
+: Provider homepages, dashboard and reviews built
 Cooper asked for provider homepages (logo, links, photos, more information), a provider account with numbers (views, nearby demand, what a boost would do) and reviews, all built before paying for hosting. Decisions:
 - **Review verification (Q31, Cooper):** no receipts. A visit is confirmed by a one-time link, either emailed by us after the person asks ("Did you visit…?", shown as "Visit confirmed by email") or given by the provider ("Invited by the provider"). Reviewers confirm they visited and are not staff, family or paid. One review per person per provider.
 - **Unclaimed providers can be reviewed (Q32, Cooper)**, labeled "Not claimed by the provider yet".

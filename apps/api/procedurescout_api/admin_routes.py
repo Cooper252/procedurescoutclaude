@@ -53,13 +53,14 @@ def get_admin_store() -> ObjectStore:
     return open_store(*get_settings().store_args())
 
 
-def reviewer(request: Request) -> str:
-    """The signed-in reviewer's name, or a 401 asking the browser to sign in."""
-    token = get_settings().admin_token
-    if not token:
-        raise HTTPException(status_code=404)
-    header = request.headers.get("authorization", "")
+def _basic_reviewer(request: Request) -> str:
+    """Development only: name + shared password (HTTP Basic). Never in production."""
+    settings = get_settings()
+    token = settings.admin_token
     challenge = {"WWW-Authenticate": 'Basic realm="ProcedureScout review"'}
+    header = request.headers.get("authorization", "")
+    if not token or settings.environment == "production":
+        raise HTTPException(status_code=401, detail="Sign in at /providers/sign-in first.")
     if not header.lower().startswith("basic "):
         raise HTTPException(status_code=401, headers=challenge)
     try:
@@ -71,13 +72,31 @@ def reviewer(request: Request) -> str:
     return name.strip()
 
 
+def reviewer(request: Request, conn: Annotated[Connection, Depends(get_admin_conn)]) -> str:
+    """The signed-in reviewer (ADM-02): a staff member signed in with the email
+    link and authenticator app, recorded by email on every decision. The shared
+    password works only outside production, for local development."""
+    from procedurescout_core.portal_auth import session_account, staff_role
+
+    account = session_account(conn, request.cookies.get("ps_session"))
+    if account is not None:
+        role = staff_role(conn, account)
+        if role is not None:
+            return account.email
+        if not account.mfa_passed:
+            raise HTTPException(status_code=401, detail="Enter your authenticator code first.")
+        raise HTTPException(status_code=403, detail="This account can't use the review pages.")
+    return _basic_reviewer(request)
+
+
 Reviewer = Annotated[str, Depends(reviewer)]
 AdminConn = Annotated[Connection, Depends(get_admin_conn)]
 AdminStore = Annotated[ObjectStore, Depends(get_admin_store)]
 
 
 def form_token(dataset_id: str) -> str:
-    key = get_settings().admin_token.encode()
+    settings = get_settings()
+    key = (settings.portal_secret or settings.admin_token).encode()
     return hmac.new(key, dataset_id.encode(), hashlib.sha256).hexdigest()
 
 

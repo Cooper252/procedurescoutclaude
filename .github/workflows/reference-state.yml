@@ -1,0 +1,198 @@
+name: Reference data — any state (manual)
+
+# The national version of reference-nv.yml (D-048): pick a state. Runs the
+# real reference load and price-file discovery for that state, and optionally
+# loads offices from the national provider list (NPPES, D-052; about 1.1 GB
+# download, approved by Cooper 2026-11-08), against a throwaway PostGIS
+# database, and uploads the report. Nothing is kept or
+# deployed. Start it from the Actions tab.
+#
+# Optional first job: fetch every approved hospital's /cms-hpt.txt live from
+# Cooper's own computer (a GitHub self-hosted runner labeled
+# "procedurescout-home"), because some hospital sites refuse GitHub's servers.
+# Untick "use_home_computer" when that computer is off, or the run will wait.
+#
+# Optional: "download_price_files" downloads every assigned Nevada price file
+# (about 5.5 GB in total, approved by Cooper 2026-11-06), checks what is inside,
+# reads every price into a staged (never published) dataset in this throwaway
+# database to measure how much room they take, and deletes the file. Nothing
+# is kept; the results are in price-files.csv and price-load.csv.
+
+on:
+  workflow_dispatch:
+    inputs:
+      state:
+        description: "Two-letter state code, e.g. NV, CA, TX"
+        required: true
+        default: "NV"
+      load_offices:
+        description: "Load offices from the national provider list (downloads about 1.1 GB)"
+        type: boolean
+        default: false
+      nppes_url:
+        description: "NPPES monthly file (see download.cms.gov/nppes/NPI_Files.html)"
+        required: false
+        default: "https://download.cms.gov/nppes/NPPES_Data_Dissemination_November_2026_V2.zip"
+      nucc_url:
+        description: "NUCC taxonomy CSV (see nucc.org)"
+        required: false
+        default: "https://www.nucc.org/images/stories/CSV/nucc_taxonomy_261.csv"
+      use_home_computer:
+        description: "Also fetch hospital index files live from Cooper's computer (it must be on)"
+        type: boolean
+        default: true
+      download_price_files:
+        description: "Download and read the state's price files (Nevada about 5.5 GB; large states much more)"
+        type: boolean
+        default: false
+      ahrq_url:
+        description: "AHRQ Compendium hospital linkage CSV URL (optional; leave blank to skip)"
+        required: false
+        default: ""
+      ahrq_year:
+        description: "Compendium year of that file"
+        required: false
+        default: "2023"
+
+permissions:
+  contents: read
+
+jobs:
+  home-fetch:
+    if: ${{ inputs.use_home_computer }}
+    runs-on: [self-hosted, windows, procedurescout-home]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Fetch cms-hpt.txt files live from this computer
+        shell: cmd
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\fetch_hpt_home.ps1 -OutDir hpt-home
+      - name: Download price files from sites that refuse GitHub (live, from this computer)
+        if: ${{ inputs.download_price_files }}
+        continue-on-error: true
+        shell: cmd
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\fetch_prices_home.ps1 -HptDir hpt-home -OutDir prices-home
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hpt-home
+          path: hpt-home
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: ${{ inputs.download_price_files }}
+        with:
+          name: prices-home
+          path: prices-home
+          retention-days: 1
+          if-no-files-found: ignore
+
+  load:
+    needs: [home-fetch]
+    if: ${{ always() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+    services:
+      db:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_PASSWORD: postgres_ci_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql+psycopg://ps_owner:ps_owner_dev@localhost:5432/procedurescout
+      PS_API_ROLE: ps_api
+      PYTHONPATH: packages/core:packages/ingest
+    steps:
+      - name: Make room on the disk for the price database
+        if: ${{ inputs.download_price_files }}
+        run: |
+          df -h /
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost
+          df -h /
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Create roles and databases
+        env:
+          PGPASSWORD: postgres_ci_only
+        run: psql -h localhost -U postgres -v ON_ERROR_STOP=1 -f scripts/db_init.sql
+      - name: Migrate
+        run: python -m alembic upgrade head
+      - name: Get the files fetched from Cooper's computer
+        if: ${{ needs.home-fetch.result == 'success' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: hpt-home
+          path: hpt-home
+      - name: Get the price files downloaded on Cooper's computer
+        if: ${{ needs.home-fetch.result == 'success' && inputs.download_price_files }}
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: prices-home
+          path: prices-home
+      - name: Load reference data and discover price files
+        env:
+          AHRQ_URL: ${{ inputs.ahrq_url }}
+          AHRQ_YEAR: ${{ inputs.ahrq_year }}
+          HPT_HOME_DIR: ${{ needs.home-fetch.result == 'success' && 'hpt-home' || '' }}
+          STATE_IN: ${{ inputs.state }}
+          PRICE_FILE_DOWNLOADS: ${{ inputs.download_price_files && '1' || '0' }}
+          PRICE_LOAD: ${{ inputs.download_price_files && '1' || '0' }}
+          HOME_PRICE_DIR: ${{ needs.home-fetch.result == 'success' && inputs.download_price_files && 'prices-home' || '' }}
+        run: |
+          set -o pipefail
+          echo "home computer job: ${{ needs.home-fetch.result }}"
+          STATE=$(printf '%s' "$STATE_IN" | tr '[:lower:]' '[:upper:]' | tr -cd 'A-Z' | cut -c1-2)
+          args=(nv-all --state "$STATE")
+          if [ -n "$AHRQ_URL" ]; then args+=(--ahrq-file "$AHRQ_URL" --ahrq-year "$AHRQ_YEAR"); fi
+          python -m procedurescout_ingest.reference.cli "${args[@]}" | tee reference-nv-report.txt
+      - name: Load offices from the national provider list
+        if: ${{ inputs.load_offices }}
+        env:
+          NPPES_URL: ${{ inputs.nppes_url }}
+          NUCC_URL: ${{ inputs.nucc_url }}
+          STATE_IN: ${{ inputs.state }}
+        run: |
+          STATE=$(printf '%s' "$STATE_IN" | tr '[:lower:]' '[:upper:]' | tr -cd 'A-Z' | cut -c1-2)
+          python -m procedurescout_ingest.reference.cli nppes-offices --file "$NPPES_URL" --nucc "$NUCC_URL" --state "$STATE"
+          python -m procedurescout_ingest.reference.cli geocode --state "$STATE"
+      - name: Export load lineage and rejects
+        if: always()
+        env:
+          PGPASSWORD: ps_owner_dev
+        run: |
+          psql -h localhost -U ps_owner procedurescout -c "\copy (SELECT dataset, status, source_url, source_modified, sha256, rows_in, rows_loaded, rows_rejected, summary, error FROM src.reference_load ORDER BY started_at) TO 'reference-loads.csv' CSV HEADER"
+          psql -h localhost -U ps_owner procedurescout -c "\copy (SELECT l.dataset, r.row_ref, r.severity, r.rule, r.message FROM src.reference_reject r JOIN src.reference_load l ON l.id = r.load_id ORDER BY l.started_at, r.id) TO 'reference-rejects.csv' CSV HEADER"
+          psql -h localhost -U ps_owner procedurescout -c "\copy (SELECT fac.ccn, fac.name, t.format, t.schema_version, t.last_updated_raw, t.reported_last_updated, t.bytes, t.sha256, t.server_last_modified, t.read_summary->>'rows' AS csv_rows, t.read_summary->>'charge_items' AS json_items, t.read_summary->>'payer_names_distinct' AS payer_names, t.read_summary->>'seconds' AS seconds, t.read_error AS problems, t.attester_name, t.fetched_via, s.url FROM src.transparency_file t JOIN src.transparency_source s ON s.id = t.source_id JOIN src.file_facility ff ON ff.file_id = t.id JOIN ref.facility fac ON fac.id = ff.facility_id ORDER BY fac.ccn) TO 'price-files.csv' CSV HEADER"
+          psql -h localhost -U ps_owner procedurescout -c "\copy (SELECT fac.ccn, fac.name, t.format, t.read_summary->'load'->>'rows_loaded' AS prices_staged, t.read_summary->'load'->>'rows_rejected' AS prices_refused, t.read_summary->'load'->>'seconds' AS seconds, t.read_summary->'load'->'by_price_type' AS by_price_type, t.read_summary->'load'->'rejects_by_rule' AS refused_by_rule, t.read_summary->'load'->'quality_flags' AS flags, t.read_summary->'load'->>'payer_plan_names' AS payer_plan_names FROM src.transparency_file t JOIN src.file_facility ff ON ff.file_id = t.id JOIN ref.facility fac ON fac.id = ff.facility_id ORDER BY fac.ccn) TO 'price-load.csv' CSV HEADER"
+          psql -h localhost -U ps_owner procedurescout -c "\copy (SELECT payer_name_raw, plan_name_raw, count(*) AS prices, count(DISTINCT facility_id) AS facilities, string_agg(DISTINCT f.name, '; ') AS facility_names FROM price.price_nv p JOIN ref.facility f ON f.id = p.facility_id WHERE payer_name_raw IS NOT NULL GROUP BY 1, 2 ORDER BY 4 DESC, 3 DESC) TO 'payer-plan-names.csv' CSV HEADER"
+          psql -h localhost -U ps_owner procedurescout -c "SELECT pg_size_pretty(pg_total_relation_size('price.price_nv')) AS prices_with_indexes, pg_size_pretty(pg_relation_size('price.price_nv')) AS prices_table_only, (SELECT count(*) FROM price.price_nv) AS price_rows, pg_size_pretty(pg_database_size('procedurescout')) AS whole_database" | tee price-size.txt
+          psql -h localhost -U ps_owner procedurescout -c "\copy (SELECT t.provider_type, count(*) AS places, count(f.geom) AS with_location FROM ref.facility_provider_type t JOIN ref.facility f ON f.id = t.facility_id GROUP BY 1 ORDER BY 2 DESC) TO 'provider-types.csv' CSV HEADER"
+          psql -h localhost -U ps_owner procedurescout -c "\copy (SELECT ccn, name, facility_type, cms_facility_type_raw, city, zip5, county_fips, geocode_precision, geocode_source, health_system_source, cms_overall_rating, cms_rating_as_of FROM ref.facility ORDER BY facility_type, ccn) TO 'reference-facilities.csv' CSV HEADER"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: reference-nv
+          path: |
+            reference-nv-report.txt
+            reference-loads.csv
+            reference-rejects.csv
+            reference-facilities.csv
+            provider-types.csv
+            price-files.csv
+            price-load.csv
+            price-size.txt
+            payer-plan-names.csv
+            storage-experiment.json
+          if-no-files-found: warn

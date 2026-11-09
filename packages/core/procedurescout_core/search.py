@@ -31,6 +31,7 @@ from .pricing import (
     percent_change,
     typical,
 )
+from .provider_prices import Special, search_prices
 
 MAX_RADIUS_MILES = 100
 MAX_FACILITIES = 50
@@ -59,6 +60,7 @@ class FacilityResult:
     badges: Badges = field(default_factory=Badges)
     change_percent: Decimal | None = None  # headline vs the previous published file
     all_plans_rate: bool = False  # plan rates here are the insurer's one rate for all plans
+    special: Special | None = None  # provider special on its own regular price (D-042)
 
 
 @dataclass(frozen=True, slots=True)
@@ -249,6 +251,20 @@ def search(
         for system, value in codes:
             for p in find_prices(conn, store, [uuid.UUID(i) for i in with_files], system, value):
                 by_facility.setdefault(p.facility_id, []).append(p)
+    # provider-entered regular prices (reviewed, published), labeled by price_source;
+    # their specials are kept apart and never used in comparisons (D-042)
+    from datetime import UTC, datetime
+
+    provider, specials = search_prices(
+        conn,
+        ids,
+        service_slug,
+        None if service_slug else codes[0][0] if codes else None,
+        None if service_slug else codes[0][1] if codes else None,
+        datetime.now(UTC).date(),
+    )
+    for fid, p in provider.items():
+        by_facility.setdefault(fid, []).append(p)
     uses_all_plans: set[str] = set()
     if plan_id is not None:
         # only this plan's negotiated rates (by approved spellings) plus cash and
@@ -327,6 +343,7 @@ def search(
             badges=badges(heads.get(str(f[0])), present, typ, cash_heads.get(str(f[0]))),
             change_percent=change(str(f[0])),
             all_plans_rate=str(f[0]) in uses_all_plans,
+            special=specials.get(str(f[0])),
         )
         for f in facilities
     )

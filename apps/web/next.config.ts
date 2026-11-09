@@ -12,7 +12,13 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   env: { NEXT_PUBLIC_DEMO: apiUrl ? "0" : "1" },
   async rewrites() {
-    return apiUrl ? [{ source: "/api/:path*", destination: `${apiUrl}/:path*` }] : [];
+    return apiUrl
+      ? [
+          { source: "/api/:path*", destination: `${apiUrl}/:path*` },
+          // review pages for staff (signed in with the email link + authenticator)
+          { source: "/admin/:path*", destination: `${apiUrl}/admin/:path*` },
+        ]
+      : [];
   },
   async headers() {
     return [

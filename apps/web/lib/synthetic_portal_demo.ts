@@ -5,7 +5,7 @@
 // sample on screen, and every page shows the "Preview: sample data" banner.
 // Nothing here is saved or sent anywhere.
 
-import type { Dashboard, FacilityHit, Me, Membership, ProfileEdit, ProviderPage, ProviderReview } from "./portal";
+import type { Billing, Dashboard, FacilityHit, Me, Membership, MyPrices, ProfileEdit, ProviderPage, ProviderPrices, ProviderReview } from "./portal";
 
 const IMAGING = "d0000000-0000-4000-8000-000000000003";
 
@@ -201,4 +201,33 @@ export function demoProviderReviews(): { summary: { average: string | null; coun
       reply_status: r.reply_body ? "published" : null,
     })),
   };
+}
+
+export function demoProviderPrices(id: string): ProviderPrices {
+  if (id !== IMAGING) return { listings: [], packages: [] };
+  return {
+    listings: [
+      { service_slug: "mri-brain", service_name: "MRI of the brain", unit: "per_service", code: null, quantity: 1, regular_price: "425", updated_at: "2026-11-01", special: { price: "375", who: "new_patients", percent_off: null, ends_on: "2026-12-31", terms: "Sample special" } },
+      { service_slug: "x-ray-chest", service_name: "Chest X-ray", unit: "per_service", code: null, quantity: 1, regular_price: "65", updated_at: "2026-11-01", special: null },
+      { service_slug: null, service_name: null, unit: null, code: "CPT 76700", quantity: 1, regular_price: "180", updated_at: "2026-10-20", special: null },
+    ],
+    packages: [
+      { name: "Sample screening pair", description: "A made-up package used only in preview.", price: "220", items: [{ service_name: "Chest X-ray", code: null, quantity: 1 }, { service_name: null, code: "CPT 76700", quantity: 1 }] },
+    ],
+  };
+}
+
+export function demoMyPrices(): MyPrices {
+  return {
+    listings: [
+      { id: "l1", service_slug: "mri-brain", service_name: "MRI of the brain", unit: "per_service", code_system: null, code: null, quantity: 1, regular_price: "425", proposed_price: null, status: "published", review_note: null, offers: [{ id: "o1", kind: "amount_off", who: "new_patients", offer_price: null, percent_off: null, amount_off: "50", starts_on: "2026-11-01", ends_on: "2026-12-31", terms: "Sample special", status: "published", review_note: null }] },
+      { id: "l2", service_slug: "x-ray-chest", service_name: "Chest X-ray", unit: "per_service", code_system: null, code: null, quantity: 1, regular_price: "65", proposed_price: "59", status: "published", review_note: null, offers: [] },
+      { id: "l3", service_slug: null, service_name: null, unit: null, code_system: "CPT", code: "76700", quantity: 1, regular_price: "180", proposed_price: null, status: "pending_review", review_note: null, offers: [] },
+    ],
+    packages: [{ id: "k1", name: "Sample screening pair", description: "Made up for preview.", price: "220", status: "published", review_note: null, items: [{ service_name: "Chest X-ray", code: null, quantity: 1 }, { service_name: null, code: "CPT 76700", quantity: 1 }] }],
+  };
+}
+
+export function demoBilling(): Billing {
+  return { payments_on: false, fee_starts_on: null, fee_in_force: false, content_shown: true, listing_status: null, sponsored_status: null, plans: [], slots: [] };
 }

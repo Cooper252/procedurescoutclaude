@@ -37,4 +37,9 @@ Cooper's computer runs a GitHub self-hosted runner for the manual Nevada workflo
 - Images: only real PNG/JPEG/WebP (checked by file signature) up to 2 MB, served with `nosniff` and a `default-src 'none'` policy, and only after a person approves them.
 - Reviews: reviewer emails are never stored with reviews; a keyed fingerprint (HMAC with `PORTAL_SECRET`) stops duplicates. Outgoing emails wait in `prov.outbox` (they contain the address and link) until an email service is chosen (Q26); clear sent rows regularly.
 - Counts: daily totals only. Searches are stored on a 0.1° grid (about 7 miles) with no IP, device, account or search text; requests with Do Not Track or bot user agents are not counted; providers see "fewer than 10" for small numbers.
-- Known gaps: authenticator secrets are stored unencrypted in the database (protected by database access only); review-page sign-in is still the interim shared password (ADM-02).
+- Known gaps: authenticator secrets are stored unencrypted in the database (protected by database access only); review pages now use per-person accounts with the authenticator app (D-053); the shared password works only outside production.
+
+## Billing, reports and staff (D-051 to D-053)
+- Card details never reach our servers (Stripe Checkout and customer portal). Stripe webhooks are checked with the endpoint secret (HMAC-SHA256, 5-minute window) and each event is applied once.
+- Wrong-price reports store no information about the person; free-text is limited to 500 characters and junk in optional fields is dropped.
+- Staff are listed in `prov.staff`; the review pages need a signed-in staff session that passed the authenticator step.

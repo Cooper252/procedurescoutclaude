@@ -584,9 +584,15 @@ def check_price_files(
     today: date | None = None,
     load: bool = False,
     min_free_bytes: int = DEFAULT_MIN_FREE_BYTES,
+    skip_unchanged: bool = True,
 ) -> LoadStats:
     """Download, check and delete each file; with `load`, also read its prices
-    into a staged dataset (price_load) before deleting it."""
+    into a staged dataset (price_load) before deleting it.
+
+    National refreshes (D-048): a file whose server date and size match the
+    last file we read from that link, for a facility whose prices are already
+    published, is not downloaded again; a downloaded file whose SHA-256 equals
+    the last one read is not loaded again."""
     stats = LoadStats()
     today = today or datetime.now().astimezone().date()
     chosen, skipped = choose_per_facility(candidates(conn, state_code))
@@ -604,6 +610,32 @@ def check_price_files(
     for c in chosen:
         stats.rows_in += 1
         who = f"ccn:{c.ccn}"
+        last = (
+            conn.execute(
+                text(
+                    """
+                    SELECT t.server_last_modified, t.bytes, t.sha256,
+                           EXISTS (SELECT 1 FROM price.published_file p
+                                   WHERE p.facility_id = CAST(:f AS uuid))
+                    FROM src.transparency_file t WHERE t.source_id = CAST(:s AS uuid)
+                    ORDER BY t.downloaded_at DESC LIMIT 1
+                    """
+                ),
+                {"s": c.source_id, "f": c.facility_id},
+            ).first()
+            if skip_unchanged
+            else None
+        )
+        if (
+            last is not None
+            and last[3]
+            and c.last_modified
+            and c.reported_bytes is not None
+            and last[0] == c.last_modified
+            and last[1] == c.reported_bytes
+        ):
+            stats.count("unchanged_skipped")
+            continue
         dest = workdir / f"price-file-{c.ccn}-{c.source_id[:8]}"
         started = time.monotonic()
         d = downloader(c.url, dest)
@@ -624,6 +656,9 @@ def check_price_files(
             seconds = round(time.monotonic() - started)
             total += d.nbytes
             file_id = _record(conn, c, d, check, today, stats, seconds)
+            if load and last is not None and last[3] and last[2] == d.sha256:
+                stats.count("same_content_not_reloaded")
+                continue
             if load:
                 _load(conn, c, d.path, check, file_id, state_code, stats, min_free_bytes, workdir)
         finally:

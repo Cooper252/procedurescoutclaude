@@ -7,7 +7,9 @@ import { useApp } from "@/components/AppState";
 import { FileCheck, Heart, Phone, Pin, Globe, Alert } from "@/components/Icons";
 import { ProviderHome, ProviderReviews, Stars } from "@/components/ProviderHome";
 import { api } from "@/lib/api";
-import { portal, track, type ProviderPage } from "@/lib/portal";
+import { ProviderPrices } from "@/components/ProviderPrices";
+import { ReportPrice } from "@/components/ReportPrice";
+import { portal, track, type ProviderPage, type ProviderPrices as PP } from "@/lib/portal";
 import { fill, SERVICE_ES, TYPE_ES } from "@/lib/i18n";
 import { formatMoney, unitLabel } from "@/lib/money";
 import type { Bundle, FacilityDetail, FacilityPrices, Price, Service } from "@/lib/types";
@@ -40,10 +42,12 @@ function Facility() {
   const [prices, setPrices] = useState<FacilityPrices | null>(null);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState<ProviderPage | null>(null);
+  const [own, setOwn] = useState<PP | null>(null);
 
   useEffect(() => {
     api.facility(id).then(setF).catch(() => setMissing(true));
     portal.page(id).then(setPage).catch(() => setPage(null));
+    portal.providerPrices(id).then(setOwn).catch(() => setOwn(null));
     track(id, "page_view");
     api.services().then(setServices).catch(() => setServices([]));
     api.bundles().then(setBundles).catch(() => setBundles([]));
@@ -154,6 +158,8 @@ function Facility() {
         </section>
       )}
 
+      {own && <ProviderPrices data={own} />}
+
       <section className="fac-prices card">
         <h2>{t.facPricesTitle}</h2>
         <div className="field">
@@ -203,6 +209,7 @@ function Facility() {
           ))}
         {prices && prices.prices.some((p) => formatMoney(p.amount)?.rounded) && <p className="fine">* {t.roundedNote}</p>}
         {prices && prices.codes[0] && <p className="tip">{fill(t.askTip, { c: prices.codes[0] })}</p>}
+        <ReportPrice facilityId={f.facility_id} serviceKey={service ? `svc:${service}` : undefined} />
       </section>
 
       {page && <ProviderReviews page={page} facilityName={f.name} />}

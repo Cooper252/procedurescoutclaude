@@ -361,3 +361,38 @@ def decide_membership(
             "f": facility_id,
         },
     )
+
+
+# ------------------------------------------------------------------- staff
+def add_staff(conn: Connection, email: str, role: str, granted_by: str) -> None:
+    """Let a person use the review pages (ADM-02). They sign in like providers:
+    email link plus authenticator app."""
+    if role not in ("reviewer", "admin"):
+        raise AuthError("Role must be reviewer or admin.")
+    e = normalize_email(email)
+    aid = conn.execute(
+        text(
+            "INSERT INTO prov.account (email) VALUES (:e) "
+            "ON CONFLICT (email) DO UPDATE SET email = EXCLUDED.email RETURNING id"
+        ),
+        {"e": e},
+    ).scalar_one()
+    conn.execute(
+        text(
+            "INSERT INTO prov.staff (account_id, role, added_by) VALUES (:a, :r, :b) "
+            "ON CONFLICT (account_id) DO UPDATE SET role = EXCLUDED.role, "
+            "added_by = EXCLUDED.added_by"
+        ),
+        {"a": aid, "r": role, "b": granted_by},
+    )
+
+
+def staff_role(conn: Connection, account: Account | None) -> str | None:
+    """'reviewer' or 'admin' for a signed-in staff member who passed the
+    authenticator step; otherwise None."""
+    if account is None or not account.mfa_passed:
+        return None
+    role = conn.execute(
+        text("SELECT role FROM prov.staff WHERE account_id = :a"), {"a": account.id}
+    ).scalar()
+    return None if role is None else str(role)

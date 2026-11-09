@@ -48,6 +48,18 @@ services:
         generateValue: true
       - key: SITE_URL
         sync: false
+      # Email through Resend (D-053); switch EMAIL_PROVIDER to smtp for Amazon SES etc.
+      - key: EMAIL_PROVIDER
+        value: resend
+      - key: EMAIL_FROM
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      # Billing stays off until Cooper adds Stripe keys (D-051)
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
       - key: DUCKDB_EXTENSION_DIRECTORY
         value: .duckdb_extensions
       # Cloudflare R2 (READ-ONLY key for the API). Entered by hand at setup.

@@ -13,12 +13,25 @@ from sqlalchemy import text
 
 from procedurescout_core import portal_auth as auth
 from procedurescout_core import provider_pages as pages
+from procedurescout_core import provider_prices as prices
 from procedurescout_core import reviews
 
 from .admin_routes import AdminConn, AdminStore, Reviewer, _esc, _form, form_token
 
 router = APIRouter(prefix="/admin/providers", tags=["admin"], include_in_schema=False)
-KINDS = ("claim", "profile", "media", "review", "reply", "report")
+KINDS = (
+    "listingrequest",
+    "pricereport",
+    "claim",
+    "profile",
+    "media",
+    "review",
+    "reply",
+    "report",
+    "listing",
+    "offer",
+    "package",
+)
 _ID = re.compile(r"^[0-9a-f-]{36}(\.[0-9a-f-]{36})?$")
 
 PAGE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
@@ -37,7 +50,16 @@ pre{{white-space:pre-wrap;margin:0;font:inherit}}
 <p class="muted">Signed in as {who}. Nothing here shows on the site until approved.
 <a href="/admin/reviews">Hospital price review</a></p>
 {message}
+<h2>Practices asking to be added</h2>
+<p class="muted">Check the practice is real (website, phone, state license) before approving.
+Approving creates its page and makes the requester its owner.</p>{listingrequests}
+<h2>Wrong-price reports</h2>{pricereports}
 <h2>People asking to manage a page</h2>{claims}
+<h2>Provider prices</h2>
+<p class="muted">New prices and changes to live prices (the live price stays until you approve).
+Check that the price is believable for the service.</p>{listings}
+<h2>Specials</h2>{offers}
+<h2>Packages</h2>{packages}
 <h2>Homepage changes</h2>{profiles}
 <h2>Logos and photos</h2>{media}
 <h2>New reviews</h2>
@@ -70,6 +92,18 @@ def _buttons(
         f"<button>{approve}</button></form> "
         f"<form method=post action='/admin/providers/{kind}/{item}/reject'>{hidden}{field} "
         f"<button>{reject}</button></form>"
+    )
+
+
+def _report_buttons(item: str) -> str:
+    token = form_token(f"pricereport:{item}")
+    return (
+        f"<form method=post action='/admin/providers/pricereport/{item}/approve'>"
+        f"<input type=hidden name=form_token value='{token}'>"
+        "<select name=reason><option value=fixed>fixed</option>"
+        "<option value=sent_to_provider>sent to provider</option>"
+        "<option value=no_change>no change needed</option></select> "
+        "<button>Done</button></form>"
     )
 
 
@@ -171,8 +205,110 @@ def page(who: Reviewer, conn: AdminConn, done: str | None = None) -> HTMLRespons
             )
         ).all()
     ]
+
+    def dollars(v: object) -> str:
+        return "" if v is None else f"${v:,.2f}"
+
+    listings = []
+    for r in conn.execute(
+        text(
+            "SELECT lp.id, f.name, "
+            "coalesce(p.consumer_name, lp.code_system::text || ' ' || lp.code), "
+            "lp.quantity, lp.regular_price, lp.proposed_price, lp.status "
+            "FROM prov.listing_price lp "
+            "JOIN ref.facility f ON f.id = lp.facility_id LEFT JOIN ref.procedure p "
+            "ON p.id = lp.procedure_id WHERE lp.status = 'pending_review' "
+            "OR lp.proposed_price IS NOT NULL ORDER BY coalesce(lp.proposed_at, lp.updated_at)"
+        )
+    ).all():
+        if r[5] is not None:
+            big = r[4] and (r[5] > r[4] * 2 or r[5] * 2 < r[4])
+            what = f"Change: {dollars(r[4])} → <strong>{dollars(r[5])}</strong>" + (
+                " <span class=warn>(more than doubles or halves)</span>" if big else ""
+            )
+        else:
+            what = f"New: <strong>{dollars(r[4])}</strong>"
+        sessions = f" · {r[3]} sessions" if r[3] > 1 else ""
+        listings.append(
+            f"<tr><td>{_esc(r[1])}</td><td>{_esc(r[2])}{sessions}</td><td>{what}</td>"
+            f"<td>{_buttons('listing', str(r[0]))}</td></tr>"
+        )
+    offers = [
+        f"<tr><td>{_esc(r[1])}</td><td>{_esc(r[2])}</td><td>Regular {dollars(r[3])} · "
+        f"{_esc(r[4].replace('_', ' '))} {dollars(r[5]) or ''}{'' if r[6] is None else f'{r[6]}%'}"
+        f"{dollars(r[7])} · {_esc(r[8].replace('_', ' '))} · {r[9]} to {r[10] or 'no end'}"
+        f"<br><span class=muted>{_esc(r[11])}</span></td>"
+        f"<td>{_buttons('offer', str(r[0]))}</td></tr>"
+        for r in conn.execute(
+            text(
+                "SELECT o.id, f.name, coalesce(p.consumer_name, lp.code), lp.regular_price, "
+                "o.kind, o.offer_price, o.percent_off, o.amount_off, o.who, o.starts_on, "
+                "o.ends_on, o.terms "
+                "FROM prov.offer o JOIN prov.listing_price lp ON lp.id = o.listing_price_id "
+                "JOIN ref.facility f ON f.id = lp.facility_id LEFT JOIN ref.procedure p "
+                "ON p.id = lp.procedure_id WHERE o.status = 'pending_review' ORDER BY o.created_at"
+            )
+        ).all()
+    ]
+    packages = []
+    for r in conn.execute(
+        text(
+            "SELECT k.id, f.name, k.name, k.price, k.description FROM prov.package k "
+            "JOIN ref.facility f ON f.id = k.facility_id WHERE k.status = 'pending_review' "
+            "ORDER BY k.created_at"
+        )
+    ).all():
+        items = ", ".join(
+            f"{_esc(i[0])}{' x' + str(i[1]) if i[1] > 1 else ''}"
+            for i in conn.execute(
+                text(
+                    "SELECT coalesce(p.consumer_name, i.code_system::text || ' ' || i.code), "
+                    "i.quantity FROM prov.package_item i LEFT JOIN ref.procedure p "
+                    "ON p.id = i.procedure_id WHERE i.package_id = :k"
+                ),
+                {"k": r[0]},
+            ).all()
+        )
+        packages.append(
+            f"<tr><td>{_esc(r[1])}</td><td><strong>{_esc(r[2])}</strong> {dollars(r[3])}"
+            f"<br>{items}<br><span class=muted>{_esc(r[4])}</span></td>"
+            f"<td>{_buttons('package', str(r[0]))}</td></tr>"
+        )
+    listingrequests = [
+        f"<tr><td><strong>{_esc(r[1])}</strong><br>{_esc(r[2])}, {_esc(r[3])}, {_esc(r[4])} "
+        f"{_esc(r[5])}<br><span class=muted>{_esc(r[6])} · {_esc(r[7])} · NPI {_esc(r[8] or '—')}"
+        f"</span></td><td>{_esc(r[9])}<br><span class=muted>{_esc(r[10])} · {_esc(r[11])}</span>"
+        f"</td><td>{_buttons('listingrequest', str(r[0]))}</td></tr>"
+        for r in conn.execute(
+            text(
+                "SELECT q.id, q.name, q.address_line1, q.city, q.state_code, q.zip5, q.phone, "
+                "q.website, q.npi, t.name, a.email, q.note FROM prov.listing_request q "
+                "JOIN ref.provider_type t ON t.code = q.provider_type "
+                "JOIN prov.account a ON a.id = q.account_id WHERE q.status = 'pending' "
+                "ORDER BY q.created_at"
+            )
+        ).all()
+    ]
+    pricereports = [
+        f"<tr><td>{_esc(r[1])}</td><td>{_esc(r[2].replace('_', ' '))}"
+        f"{' · ' + _esc(r[3]) if r[3] else ''}{' · shown $' + _esc(r[4]) if r[4] else ''}"
+        f"<br><span class=muted>{_esc(r[5])}</span></td>"
+        f"<td>{_report_buttons(str(r[0]))}</td></tr>"
+        for r in conn.execute(
+            text(
+                "SELECT p.id, f.name, p.problem, p.service_key, p.price_shown, p.details "
+                "FROM prov.price_report p JOIN ref.facility f ON f.id = p.facility_id "
+                "WHERE p.resolved_at IS NULL ORDER BY p.created_at LIMIT 200"
+            )
+        ).all()
+    ]
     return HTMLResponse(
         PAGE.format(
+            listingrequests=_table(["Practice", "Type and requester", "Decision"], listingrequests),
+            pricereports=_table(["Provider", "Report", "Decision"], pricereports),
+            listings=_table(["Provider", "Service", "Price", "Decision"], listings),
+            offers=_table(["Provider", "Service", "Special", "Decision"], offers),
+            packages=_table(["Provider", "Package", "Decision"], packages),
             who=_esc(who),
             message=f"<p><strong>{_esc(done)}</strong></p>" if done else "",
             claims=_table(["Email", "Page", "Role", "Note", "Decision"], claims),
@@ -217,7 +353,15 @@ async def decide(
     ok = action == "approve"
     reason = (form.get("reason") or "").strip() or None
     try:
-        if kind == "claim":
+        if kind == "listingrequest":
+            from procedurescout_core import listing_requests
+
+            listing_requests.decide(conn, item, who, ok, reason)
+        elif kind == "pricereport":
+            from procedurescout_core import price_reports
+
+            price_reports.resolve(conn, item, who, reason or "no_change")
+        elif kind == "claim":
             account_id, facility_id = item.split(".")
             auth.decide_membership(conn, account_id, facility_id, who, ok)
         elif kind == "profile":
@@ -226,11 +370,17 @@ async def decide(
             pages.review_media(conn, item, who, ok)
         elif kind == "review":
             reviews.moderate(conn, item, who, publish=ok, reason=reason)
+        elif kind == "listing":
+            prices.review_listing(conn, item, who, ok, reason)
+        elif kind == "offer":
+            prices.review_offer(conn, item, who, ok, reason)
+        elif kind == "package":
+            prices.review_package(conn, item, who, ok, reason)
         elif kind == "reply":
             reviews.review_reply(conn, item, who, ok)
         else:
             reviews.resolve_report(conn, item, who, None if ok else reason)
-    except (pages.PageError, reviews.ReviewError, ValueError) as exc:
+    except (pages.PageError, reviews.ReviewError, prices.ProviderPriceError, ValueError) as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     return RedirectResponse(
         f"/admin/providers?done={kind}+{'approved' if ok else 'rejected'}", status_code=303

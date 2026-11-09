@@ -7,6 +7,8 @@ import { formatMoney, money, subtractDecimal, unitLabel } from "@/lib/money";
 import type { Facility, Mode } from "@/lib/types";
 import { useApp } from "./AppState";
 import { Alert, Chevron, Heart, Pin, TrendDown, TrendUp } from "./Icons";
+import { Stars } from "./ProviderHome";
+import { ReportPrice } from "./ReportPrice";
 
 const PRICE_TYPE: Record<string, [string, string]> = {
   discounted_cash: ["Cash price", "Precio en efectivo"],
@@ -64,6 +66,11 @@ export function ResultCard({
               {f.name}
             </Link>
           </h3>
+          {f.rating_average && f.rating_count ? (
+            <p className="result-rating">
+              <Stars value={Number(f.rating_average)} size={14} /> {f.rating_average} ({f.rating_count})
+            </p>
+          ) : null}
           <p className="meta">
             <span>{f.provider_types.map(typeName).join(" · ")}</span>
             <span aria-hidden="true">•</span>
@@ -92,7 +99,7 @@ export function ResultCard({
         </div>
       </div>
 
-      {f.special && f.headline && (
+      {f.special && (f.special.regular ?? f.headline) && (
         <div className="special">
           <span className="badge special-tag">{t.specialTag}</span>
           <div>
@@ -101,8 +108,8 @@ export function ResultCard({
             </strong>
             <span className="special-meta">
               {fill(t.specialSave, {
-                save: money(subtractDecimal(f.headline, f.special.price)),
-                regular: money(f.headline),
+                save: money(subtractDecimal(f.special.regular ?? f.headline ?? "0", f.special.price)),
+                regular: money(f.special.regular ?? f.headline ?? "0"),
               })}
               {f.special.ends_on && <> · {fill(t.specialEnds, { d: date(f.special.ends_on, lang) })}</>}
               {f.special.terms && <> · {f.special.terms}</>}
@@ -204,6 +211,7 @@ export function ResultCard({
           </div>
           {f.prices.some((p) => formatMoney(p.amount)?.rounded) && <p className="fine">* {t.roundedNote}</p>}
           {firstCode && <p className="tip">{fill(t.askTip, { c: firstCode })}</p>}
+          <ReportPrice facilityId={f.facility_id} serviceKey={service ? `svc:${service}` : undefined} priceShown={f.headline} />
         </div>
       )}
     </article>

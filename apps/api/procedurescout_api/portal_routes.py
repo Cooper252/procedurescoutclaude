@@ -15,10 +15,20 @@ from __future__ import annotations
 import logging
 import re
 from collections.abc import Iterator
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    Header,
+    HTTPException,
+    Query,
+    Request,
+    Response,
+)
 from fastapi import Path as PathParam
 from pydantic import BaseModel, Field
 from sqlalchemy import Connection, create_engine, text
@@ -26,6 +36,7 @@ from sqlalchemy.engine import Engine
 
 from procedurescout_core import portal_auth as auth
 from procedurescout_core import provider_pages as pages
+from procedurescout_core import provider_prices as prices
 from procedurescout_core import provider_stats as stats
 from procedurescout_core import reviews
 from procedurescout_core.db_url import sqlalchemy_url
@@ -262,6 +273,22 @@ def count_search(
         log.exception("could not count a search")
 
 
+def send_mail_soon() -> None:
+    """Send waiting emails right after a request (background); never raises.
+    The `send-email` command retries anything left over."""
+    engine = portal_engine()
+    sender = get_settings().mail_sender()
+    if engine is None or sender is None:
+        return
+    from procedurescout_core.mailer import send_pending
+
+    try:
+        with engine.begin() as conn:
+            send_pending(conn, sender, limit=10)
+    except Exception:
+        log.exception("could not send email")
+
+
 # =========================================================== public: reviews
 class ReviewRequestIn(BaseModel):
     facility_id: str = Field(pattern=_UUID)
@@ -274,7 +301,7 @@ class LinkOut(BaseModel):
 
 
 @router.post("/reviews/request", response_model=LinkOut, status_code=202)
-def review_request(body: ReviewRequestIn, conn: PortalConn) -> LinkOut:
+def review_request(body: ReviewRequestIn, conn: PortalConn, background: BackgroundTasks) -> LinkOut:
     """Email a 'Did you visit?' link. The answer is the same whether or not an
     email was queued."""
     settings = get_settings()
@@ -285,6 +312,8 @@ def review_request(body: ReviewRequestIn, conn: PortalConn) -> LinkOut:
     except reviews.ReviewError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     dev = f"{settings.site_url}/review#{token}" if token and settings.show_dev_links else None
+    if token:
+        background.add_task(send_mail_soon)
     return LinkOut(ok=True, dev_link=dev)
 
 
@@ -343,7 +372,7 @@ class EmailIn(BaseModel):
 
 
 @router.post("/portal/sign-in", response_model=LinkOut, status_code=202)
-def sign_in(body: EmailIn, conn: PortalConn, _: Guard) -> LinkOut:
+def sign_in(body: EmailIn, conn: PortalConn, _: Guard, background: BackgroundTasks) -> LinkOut:
     settings = get_settings()
     try:
         token = auth.request_sign_in(conn, body.email, settings.site_url)
@@ -354,6 +383,8 @@ def sign_in(body: EmailIn, conn: PortalConn, _: Guard) -> LinkOut:
         if token and settings.show_dev_links
         else None
     )
+    if token:
+        background.add_task(send_mail_soon)
     return LinkOut(ok=True, dev_link=dev)
 
 
@@ -722,3 +753,366 @@ def portal_report(
     except reviews.ReviewError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return {"status": "received"}
+
+
+# ============================================== provider prices (PRV-02/08/09)
+@router.get("/facilities/{facility_id}/provider-prices")
+def facility_provider_prices(
+    facility_id: Annotated[str, PathParam(pattern=_UUID)], conn: Conn
+) -> dict[str, Any]:
+    """Reviewed prices, active specials and packages entered by the provider."""
+    try:
+        return prices.public_prices(conn, facility_id, _today())
+    except prices.ProviderPriceError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+def _today() -> date:
+    return datetime.now(UTC).date()
+
+
+@router.get("/portal/facilities/{facility_id}/prices")
+def portal_prices(facility_id: FID, conn: PortalConn, account: Me) -> dict[str, Any]:
+    _role(conn, account, facility_id, VIEW)
+    return prices.for_provider(conn, facility_id)
+
+
+class ListingIn(BaseModel):
+    service_slug: str | None = Field(default=None, max_length=80)
+    code_system: str | None = Field(default=None, max_length=20)
+    code: str | None = Field(default=None, max_length=12)
+    quantity: int = Field(default=1, ge=1, le=100)
+    regular_price: str = Field(max_length=20)
+
+
+@router.post("/portal/facilities/{facility_id}/prices", status_code=201)
+def portal_price_save(
+    facility_id: FID, body: ListingIn, conn: PortalConn, account: Me, _: Guard
+) -> dict[str, str]:
+    _role(conn, account, facility_id, EDIT)
+    try:
+        lid = prices.save_listing(
+            conn,
+            facility_id,
+            account.id,
+            service_slug=body.service_slug or None,
+            code_system=body.code_system or None,
+            code=body.code or None,
+            quantity=body.quantity,
+            regular_price=body.regular_price,
+        )
+    except prices.ProviderPriceError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"id": lid}
+
+
+@router.delete("/portal/facilities/{facility_id}/prices/{listing_id}", status_code=204)
+def portal_price_withdraw(
+    facility_id: FID,
+    listing_id: Annotated[str, PathParam(pattern=_UUID)],
+    conn: PortalConn,
+    account: Me,
+    _: Guard,
+) -> Response:
+    _role(conn, account, facility_id, EDIT)
+    try:
+        prices.withdraw_listing(conn, facility_id, listing_id)
+    except prices.ProviderPriceError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return Response(status_code=204)
+
+
+class OfferIn(BaseModel):
+    kind: str = Field(pattern="^(special_price|percent_off|amount_off)$")
+    who: str = Field(pattern="^(new_patients|everyone)$")
+    value: str = Field(max_length=20)
+    starts_on: date
+    ends_on: date | None = None
+    terms: str | None = Field(default=None, max_length=300)
+
+
+@router.post("/portal/facilities/{facility_id}/prices/{listing_id}/specials", status_code=201)
+def portal_offer_add(
+    facility_id: FID,
+    listing_id: Annotated[str, PathParam(pattern=_UUID)],
+    body: OfferIn,
+    conn: PortalConn,
+    account: Me,
+    _: Guard,
+) -> dict[str, str]:
+    _role(conn, account, facility_id, EDIT)
+    try:
+        oid = prices.add_offer(
+            conn,
+            facility_id,
+            listing_id,
+            kind=body.kind,
+            who=body.who,
+            value=body.value,
+            starts_on=body.starts_on,
+            ends_on=body.ends_on,
+            terms=body.terms,
+        )
+    except prices.ProviderPriceError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"id": oid}
+
+
+@router.delete("/portal/facilities/{facility_id}/specials/{offer_id}", status_code=204)
+def portal_offer_withdraw(
+    facility_id: FID,
+    offer_id: Annotated[str, PathParam(pattern=_UUID)],
+    conn: PortalConn,
+    account: Me,
+    _: Guard,
+) -> Response:
+    _role(conn, account, facility_id, EDIT)
+    try:
+        prices.withdraw_offer(conn, facility_id, offer_id)
+    except prices.ProviderPriceError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return Response(status_code=204)
+
+
+class PackageItemIn(BaseModel):
+    service_slug: str | None = Field(default=None, max_length=80)
+    code_system: str | None = Field(default=None, max_length=20)
+    code: str | None = Field(default=None, max_length=12)
+    quantity: int = Field(default=1, ge=1, le=100)
+
+
+class PackageIn(BaseModel):
+    name: str = Field(max_length=80)
+    description: str | None = Field(default=None, max_length=500)
+    price: str = Field(max_length=20)
+    items: list[PackageItemIn] = Field(max_length=12)
+
+
+@router.post("/portal/facilities/{facility_id}/packages", status_code=201)
+def portal_package_add(
+    facility_id: FID, body: PackageIn, conn: PortalConn, account: Me, _: Guard
+) -> dict[str, str]:
+    _role(conn, account, facility_id, EDIT)
+    try:
+        pid = prices.save_package(
+            conn,
+            facility_id,
+            name=body.name,
+            description=body.description,
+            price=body.price,
+            items=[i.model_dump() for i in body.items],
+        )
+    except prices.ProviderPriceError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"id": pid}
+
+
+@router.delete("/portal/facilities/{facility_id}/packages/{package_id}", status_code=204)
+def portal_package_withdraw(
+    facility_id: FID,
+    package_id: Annotated[str, PathParam(pattern=_UUID)],
+    conn: PortalConn,
+    account: Me,
+    _: Guard,
+) -> Response:
+    _role(conn, account, facility_id, EDIT)
+    try:
+        prices.withdraw_package(conn, facility_id, package_id)
+    except prices.ProviderPriceError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return Response(status_code=204)
+
+
+# ========================================================= wrong-price reports
+class PriceReportIn(BaseModel):
+    facility_id: str = Field(pattern=_UUID)
+    problem: str = Field(max_length=30)
+    service_key: str | None = Field(default=None, max_length=120)
+    price_shown: str | None = Field(default=None, max_length=30)
+    details: str | None = Field(default=None, max_length=500)
+
+
+@router.post("/price-reports", status_code=202)
+def price_report(body: PriceReportIn, conn: PortalConn) -> dict[str, str]:
+    """Report a wrong price. Nothing about the person is stored."""
+    from procedurescout_core import price_reports
+
+    try:
+        price_reports.submit(
+            conn, body.facility_id, body.problem, body.service_key, body.price_shown, body.details
+        )
+    except price_reports.ReportError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"status": "received"}
+
+
+@router.get("/portal/facilities/{facility_id}/price-reports")
+def portal_price_reports(facility_id: FID, conn: PortalConn, account: Me) -> list[dict[str, Any]]:
+    from procedurescout_core import price_reports
+
+    _role(conn, account, facility_id, VIEW)
+    return price_reports.for_facility(conn, facility_id)
+
+
+# ================================================================ billing (D-051)
+@router.get("/portal/facilities/{facility_id}/billing")
+def portal_billing(facility_id: FID, conn: PortalConn, account: Me) -> dict[str, Any]:
+    from procedurescout_core import billing
+
+    _role(conn, account, facility_id, VIEW)
+    st = billing.status(conn, facility_id)
+    return {
+        "payments_on": bool(get_settings().stripe_secret_key),
+        "fee_starts_on": None if st.fee_starts_on is None else st.fee_starts_on.isoformat(),
+        "fee_in_force": st.fee_in_force,
+        "content_shown": st.content_shown,
+        "listing_status": st.listing_status,
+        "sponsored_status": st.sponsored_status,
+        "plans": [
+            {
+                "code": p.code,
+                "name": p.name,
+                "kind": p.kind,
+                "amount": format(p.amount.normalize(), "f"),
+                "interval": p.interval,
+                "can_buy": p.can_buy and bool(get_settings().stripe_secret_key),
+            }
+            for p in st.plans
+        ],
+        "slots": [{"service_key": k, "ring_miles": r} for k, r in st.slots],
+    }
+
+
+class CheckoutIn(BaseModel):
+    plan_code: str = Field(pattern="^[a-z0-9_]{2,40}$")
+
+
+@router.post("/portal/facilities/{facility_id}/billing/checkout")
+def portal_checkout(
+    facility_id: FID, body: CheckoutIn, conn: PortalConn, account: Me, _: Guard
+) -> dict[str, str]:
+    from procedurescout_core import billing
+
+    _role(conn, account, facility_id, ("owner",))
+    s = get_settings()
+    try:
+        url = billing.checkout_url(
+            conn,
+            s.stripe_secret_key,
+            facility_id=facility_id,
+            account_id=account.id,
+            email=account.email,
+            plan_code=body.plan_code,
+            site_url=s.site_url,
+        )
+    except billing.BillingError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return {"url": url}
+
+
+@router.post("/portal/facilities/{facility_id}/billing/portal")
+def portal_billing_portal(
+    facility_id: FID, conn: PortalConn, account: Me, _: Guard
+) -> dict[str, str]:
+    from procedurescout_core import billing
+
+    _role(conn, account, facility_id, ("owner",))
+    s = get_settings()
+    try:
+        return {"url": billing.portal_url(conn, s.stripe_secret_key, facility_id, s.site_url)}
+    except billing.BillingError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+class SlotIn(BaseModel):
+    service_key: str = Field(max_length=120)
+    ring_miles: int
+
+
+@router.put("/portal/facilities/{facility_id}/billing/sponsored")
+def portal_sponsored(
+    facility_id: FID, body: SlotIn, conn: PortalConn, account: Me, _: Guard
+) -> dict[str, str]:
+    from procedurescout_core import billing
+
+    _role(conn, account, facility_id, EDIT)
+    try:
+        billing.set_slot(conn, facility_id, body.service_key, body.ring_miles)
+    except billing.BillingError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return {"status": "saved"}
+
+
+@router.post("/stripe/webhook", include_in_schema=False)
+async def stripe_webhook(request: Request, conn: PortalConn) -> dict[str, bool]:
+    """Stripe tells us about subscription changes. Signed; applied once."""
+    import json
+
+    from procedurescout_core import billing
+
+    payload = await request.body()
+    try:
+        billing.verify_webhook(
+            payload,
+            request.headers.get("stripe-signature", ""),
+            get_settings().stripe_webhook_secret,
+        )
+        event = json.loads(payload)
+        if not isinstance(event, dict):
+            raise billing.BillingError("bad event")
+        fresh = billing.handle_event(conn, event)
+    except (billing.BillingError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail="invalid webhook") from exc
+    return {"received": True, "applied": fresh}
+
+
+# ================================================== practices not in public records
+class ListingRequestIn(BaseModel):
+    name: str = Field(max_length=120)
+    address_line1: str = Field(max_length=120)
+    city: str = Field(max_length=60)
+    state_code: str = Field(max_length=2)
+    zip5: str = Field(max_length=5)
+    phone: str | None = Field(default=None, max_length=25)
+    website: str | None = Field(default=None, max_length=300)
+    provider_type: str = Field(max_length=40)
+    npi: str | None = Field(default=None, max_length=10)
+    note: str | None = Field(default=None, max_length=500)
+
+
+@router.post("/portal/listing-requests", status_code=201)
+def listing_request(
+    body: ListingRequestIn, conn: PortalConn, account: Me, _: Guard
+) -> dict[str, str]:
+    from procedurescout_core import listing_requests
+
+    if not account.mfa_passed:
+        raise HTTPException(
+            status_code=403, detail="Enter the code from your authenticator app first."
+        )
+    try:
+        rid = listing_requests.request(conn, account.id, body.model_dump())
+    except listing_requests.ListingError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"id": rid, "status": "pending"}
+
+
+@router.get("/portal/listing-requests")
+def listing_requests_mine(conn: PortalConn, account: Me) -> list[dict[str, Any]]:
+    from procedurescout_core import listing_requests
+
+    return listing_requests.mine(conn, account.id)
+
+
+@router.get("/provider-types/all")
+def provider_types_all(conn: Conn) -> list[dict[str, str]]:
+    """Approved kinds of practice, for the 'add your practice' form."""
+    return [
+        {"code": str(r[0]), "name": str(r[1])}
+        for r in conn.execute(
+            text(
+                "SELECT code, name FROM ref.provider_type WHERE review_state = 'approved' "
+                "ORDER BY name"
+            )
+        ).all()
+    ]

@@ -85,6 +85,18 @@ class Price(BaseModel):
     plan_match: str | None = None  # "plan" or "all_plans" (insurer's one rate for all plans)
 
 
+class SpecialOut(BaseModel):
+    """A provider special on its own regular price; never used in comparisons."""
+
+    price: str
+    regular: str
+    who: str
+    kind: str
+    percent_off: str | None
+    ends_on: str | None
+    terms: str | None
+
+
 class FacilityOut(BaseModel):
     facility_id: str
     name: str
@@ -104,6 +116,9 @@ class FacilityOut(BaseModel):
     badge_notes: list[str]
     change_percent_since_last_file: str | None
     plan_rate_is_all_plans: bool = False
+    special: SpecialOut | None = None
+    rating_average: str | None = None  # patient reviews (D-050), never affects order
+    rating_count: int = 0
     prices: list[Price]
 
 
@@ -112,6 +127,16 @@ class TypicalOut(BaseModel):
     middle: str
     high: str
     count: int
+
+
+class SponsoredOut(BaseModel):
+    """A paid "Sponsored" spot (D-051). Shown apart from the results and labeled;
+    never changes their order or labels (PRV-06)."""
+
+    facility_id: str
+    name: str
+    city: str | None
+    state: str
 
 
 class SearchOut(BaseModel):
@@ -124,6 +149,7 @@ class SearchOut(BaseModel):
     code_description: str | None = None
     typical: TypicalOut | None
     facilities: list[FacilityOut]
+    sponsored: list[SponsoredOut] = []
 
 
 class SuggestionOut(BaseModel):
@@ -365,9 +391,41 @@ def search_endpoint(
 
     from .portal_routes import count_search
 
+    ids = [f.facility_id for f in result.facilities]
+    ratings = {
+        str(r[0]): (format(r[1], "f"), int(r[2]))
+        for r in (
+            conn.execute(
+                text(
+                    "SELECT facility_id, round(avg(rating), 1), count(*) "
+                    "FROM prov.published_review "
+                    "WHERE facility_id = ANY(CAST(:ids AS uuid[])) GROUP BY facility_id"
+                ),
+                {"ids": ids},
+            ).all()
+            if ids
+            else []
+        )
+    }
+    key = service_key(result.service_slug, code_system, code)
+    sponsored = (
+        [
+            SponsoredOut(facility_id=str(r[0]), name=r[1], city=r[2], state=r[3])
+            for r in conn.execute(
+                text(
+                    "SELECT f.id, f.name, f.city, f.state_code "
+                    "FROM bill.sponsored_for(:k, :lat, :lng) s "
+                    "JOIN ref.facility f ON f.id = s.facility_id ORDER BY random()"
+                ),
+                {"k": key, "lat": lat, "lng": lng},
+            ).all()
+        ]
+        if key
+        else []
+    )
     background.add_task(
         count_search,
-        service_key(result.service_slug, code_system, code),
+        key,
         lat,
         lng,
         [f.facility_id for f in result.facilities],
@@ -411,10 +469,24 @@ def search_endpoint(
                 if f.change_percent is None
                 else format(f.change_percent, "f"),
                 plan_rate_is_all_plans=f.all_plans_rate,
+                rating_average=ratings.get(f.facility_id, (None, 0))[0],
+                rating_count=ratings.get(f.facility_id, (None, 0))[1],
+                special=None
+                if f.special is None
+                else SpecialOut(
+                    price=_s(f.special.price) or "",
+                    regular=_s(f.special.regular) or "",
+                    who=f.special.who,
+                    kind=f.special.kind,
+                    percent_off=_s(f.special.percent_off),
+                    ends_on=None if f.special.ends_on is None else f.special.ends_on.isoformat(),
+                    terms=f.special.terms,
+                ),
                 prices=[_plan_match(_price(p), p, result) for p in f.prices],
             )
             for f in result.facilities
         ],
+        sponsored=sponsored,
     )
 
 
