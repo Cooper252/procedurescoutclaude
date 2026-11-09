@@ -83,6 +83,7 @@ export const api = {
     code?: string | null;
     mode: Mode;
     planId?: string | null;
+    payerRaw?: string | null;
     providerType?: string | null;
     radius?: string;
   }): Promise<SearchResult> =>
@@ -96,6 +97,7 @@ export const api = {
           code: p.code,
           mode: p.mode,
           plan_id: p.mode === "plan" ? p.planId : null,
+          payer: p.mode === "plan" && !p.planId ? p.payerRaw : null,
           provider_type: p.providerType,
           radius_miles: p.radius ?? "25",
         }),
@@ -131,6 +133,8 @@ export const api = {
     DEMO
       ? later(demo.demoFacilityAssistance(id))
       : get(`/v1/facilities/${encodeURIComponent(id)}/assistance`, { state }),
+  payerSuggest: (q: string): Promise<{ name: string; facilities: number }[]> =>
+    DEMO ? later(demo.demoPayerSuggest(q)) : get("/v1/payers/suggest", { q }),
   healthCenters: (lat: string, lng: string): Promise<HealthCenter[]> =>
     DEMO ? later(demo.demoHealthCenters()) : get("/v1/health-centers/near", { lat, lng }),
   bundles: (): Promise<Bundle[]> => (DEMO ? later(demo.DEMO_BUNDLES) : get("/v1/bundles")),

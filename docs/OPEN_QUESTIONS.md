@@ -19,12 +19,16 @@
 | Q20 | Review the 13 proposed hospital financial assistance policies on the review page (UMC, 3 HCA, 3 St. Rose, 2 Renown, Carson Tahoe, North Vista, Saint Mary's, Banner Churchill); still to find: the Valley Health System (UHS) Las Vegas hospitals, Northern Nevada Medical Center, rural hospitals. | Cooper | Before launch |
 | Q22 | Confirm NRS 439B.260 (30% off billed charges for uninsured patients at certain Nevada hospitals) applies as North Vista's policy says, before it is shown (SITE_DESIGN §4.9). | Engineering + counsel | Before launch |
 | Q25 | Have a lawyer review the draft disclaimer, terms of use and privacy notice (`apps/web/lib/legal.ts`), and the Spanish versions, before launch. | Cooper (counsel) | Before launch |
-| Q26 | How providers sign in: one-time email link plus a second step (proposed), or passwords; and which email service sends the links (may cost money). | Cooper | Before Phase 9 |
+| Q26 | Which email service sends sign-in and review links (may cost a few dollars a month). Sign-in itself is built as proposed: one-time email link plus an authenticator app (D-050). Until a service is chosen, emails wait in `prov.outbox`. | Cooper | Before launch |
 | Q24 | Plan names approved (D-041). Still open: the low-confidence spellings (plain "Sierra", "Blue Cross Blue Shield Medicare", Cigna Wyoming) in `data/reference/proposed/plan_names_proposed.csv`. | Cooper | Before launch |
 | Q10 | NUBC revenue code descriptions: licence or code-only display? | Cooper (counsel) | Phase 3 |
+| Q30 | Paid features (Sponsored spots, Pro dashboard): go-ahead to build payments with Stripe, and the prices. Nothing is charged until Cooper approves (`PROVIDER_PAGES_SPEC.md` §4). | Cooper | When ready to earn money |
 
 ## Resolved
 
+- Q31 (2026-11-08): Cooper: no receipts; visits are confirmed by a link from us (email) or from the provider (D-050).
+- Q32 (2026-11-08): Cooper: yes, unclaimed providers can be reviewed (D-050).
+- Q29 (2026-11-08): Cooper chose to make the GitHub repository public so national downloads run on free GitHub runners (D-049).
 - Q27 (2026-11-08): Cooper approved the standard service list, synonyms, provider types and dental packages. Still open: a clinician check of the 3 medical bundles; "what's included" lines for the first 18 services.
 - Q28 (2026-11-08): Cooper approved the 4 Nevada coverage limits.
 

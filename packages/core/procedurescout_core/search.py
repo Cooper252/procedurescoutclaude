@@ -129,6 +129,7 @@ def search(
     max_facilities: int = MAX_FACILITIES,
     mode: str = "cash",
     plan_id: str | None = None,
+    payer_raw: str | None = None,
 ) -> SearchResult:
     if (service_slug is None) == (code is None):
         raise SearchError("give either a service or a code, not both")
@@ -140,8 +141,23 @@ def search(
         raise SearchError(f"radius must be 1 to {MAX_RADIUS_MILES} miles")
     if mode not in MODE_PRICE_TYPE:
         raise SearchError("mode must be cash, list or plan")
-    if (mode == "plan") != (plan_id is not None):
+    if (mode == "plan") != (plan_id is not None or payer_raw is not None):
         raise SearchError("a plan is needed for plan prices (and only for them)")
+    if plan_id is not None and payer_raw is not None:
+        raise SearchError("give a plan or an insurer name as written, not both")
+    payer_key: str | None = None
+    if payer_raw is not None:
+        from .matching import normalize_name
+
+        payer_key = normalize_name(payer_raw)
+        known = (
+            0 < len(payer_key) <= 200
+            and conn.execute(
+                text("SELECT 1 FROM ref.payer_index WHERE raw_normalized = :k"), {"k": payer_key}
+            ).first()
+        )
+        if not known:
+            raise SearchError("unknown insurer name")
     spellings: set[tuple[str, str]] = set()
     fallback: set[tuple[str, str]] = set()
     if plan_id is not None:
@@ -249,6 +265,19 @@ def search(
                 uses_all_plans.add(fid)
             filtered[fid] = [p for p in rows if p.price_type != "negotiated"] + pool
         by_facility = filtered
+    if payer_key is not None:
+        # rates published under exactly this insurer spelling, shown as written (D-046)
+        from .matching import normalize_name
+
+        by_facility = {
+            fid: [
+                p
+                for p in rows
+                if p.price_type != "negotiated"
+                or (p.payer_name_raw is not None and normalize_name(p.payer_name_raw) == payer_key)
+            ]
+            for fid, rows in by_facility.items()
+        }
     heads = {fid: headline(rows, mode) for fid, rows in by_facility.items()}
     cash_heads = {fid: headline(rows, "cash") for fid, rows in by_facility.items()}
     present = [h for h in heads.values() if h is not None]
@@ -267,6 +296,15 @@ def search(
         if plan_id is not None:
             wanted = fallback if fid in uses_all_plans else spellings
             rows = [p for p in rows if p.price_type != "negotiated" or matches(p, wanted)]
+        if payer_key is not None:
+            from .matching import normalize_name
+
+            rows = [
+                p
+                for p in rows
+                if p.price_type != "negotiated"
+                or (p.payer_name_raw is not None and normalize_name(p.payer_name_raw) == payer_key)
+            ]
         before = headline(rows, mode) if rows else None
         if now is None or before is None or now.possible_error or before.possible_error:
             return None
@@ -475,3 +513,20 @@ def _code_suggestions(conn: Connection, raw: str, normalized: str, n: int) -> li
         )
         for r in rows
     ]
+
+
+def payer_suggestions(conn: Connection, query: str, limit: int = 10) -> list[tuple[str, int]]:
+    """Insurer names exactly as hospitals wrote them (raw text, number of places)."""
+    from .matching import normalize_name
+
+    q = normalize_name(query)
+    if len(q) < 2 or len(q) > 60:
+        return []
+    rows = conn.execute(
+        text(
+            "SELECT raw_text, facilities FROM ref.payer_index WHERE raw_normalized LIKE :p "
+            "ORDER BY facilities DESC, prices DESC LIMIT :n"
+        ),
+        {"p": "%" + q.replace("%", "").replace("_", "") + "%", "n": max(1, min(limit, 20))},
+    ).all()
+    return [(str(r[0]), int(r[1])) for r in rows]

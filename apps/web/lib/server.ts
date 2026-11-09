@@ -6,7 +6,9 @@ import "server-only";
 import * as demo from "./synthetic_demo";
 import type { Place, SearchResult, Service } from "./types";
 
-const API = process.env.API_URL?.replace(/\/$/, "");
+// A bare "host:port" (how Render passes a private service address) means http://.
+const RAW_API = process.env.API_URL?.trim().replace(/\/$/, "");
+const API = RAW_API && !/^https?:\/\//.test(RAW_API) ? `http://${RAW_API}` : RAW_API;
 export const PREVIEW = !API;
 export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
 

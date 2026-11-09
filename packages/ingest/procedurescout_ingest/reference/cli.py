@@ -82,6 +82,7 @@ STEP_DATASETS = {
     "price_files": "price_file_check",
     "catalog": "service_catalog",
     "health_centers": "hrsa_health_center_sites",
+    "resolve_plans": "price_file_check",
 }
 
 
@@ -89,7 +90,9 @@ def _engine() -> Engine:
     url = os.environ.get("DATABASE_URL")
     if not url:
         sys.exit("DATABASE_URL is not set (see .env.example)")
-    return create_engine(url)
+    from procedurescout_core.db_url import sqlalchemy_url
+
+    return create_engine(sqlalchemy_url(url))
 
 
 def _run(
@@ -392,11 +395,16 @@ def cmd_storage_experiment(args: argparse.Namespace, engine: Engine) -> None:
 
 
 def _store() -> Any:
-    from pathlib import Path
+    """Folder by default; s3://<bucket> with PRICE_STORE_ENDPOINT, PRICE_STORE_KEY_ID
+    and PRICE_STORE_SECRET (a key that can write) for Cloudflare R2 (D-048)."""
+    from procedurescout_core.object_store import open_store
 
-    from procedurescout_core.object_store import LocalStore
-
-    return LocalStore(Path(os.environ.get("PRICE_STORE_DIR", "price-store")))
+    return open_store(
+        os.environ.get("PRICE_STORE_DIR", "price-store"),
+        os.environ.get("PRICE_STORE_ENDPOINT", ""),
+        os.environ.get("PRICE_STORE_KEY_ID", ""),
+        os.environ.get("PRICE_STORE_SECRET", ""),
+    )
 
 
 def cmd_auto_publish(args: argparse.Namespace, engine: Engine) -> None:
@@ -489,6 +497,25 @@ def cmd_health_centers(args: argparse.Namespace, engine: Engine) -> None:
         lambda c: health_centers.load_health_centers(c, decode_text(blob.data), args.state),
         blob=blob,
         parameters={"state": args.state},
+    )
+
+
+def cmd_resolve_plans(args: argparse.Namespace, engine: Engine) -> None:
+    """Match new insurance spellings when certain; list the rest for Claude (D-047)."""
+    from procedurescout_ingest.plan_resolver import resolve_new_spellings
+
+    with engine.begin() as conn:
+        res = resolve_new_spellings(conn)
+    print(
+        json.dumps(
+            {
+                "dataset": "plan_name_resolution",
+                "matched_by_rule": len(res.matched),
+                "unresolved": len(res.unresolved),
+                "matched": [list(m) for m in res.matched[:50]],
+                "unresolved_top": [list(u) for u in res.unresolved[:60]],
+            }
+        )
     )
 
 
@@ -666,6 +693,8 @@ def cmd_nv_all(args: argparse.Namespace, engine: Engine) -> None:
         # Large downloads (about 5 GB for Nevada): only when the run asks for it.
         step("price_files", lambda: cmd_price_files(ns(state=st), engine))
         if os.environ.get("PRICE_LOAD") == "1":
+            step("resolve_plans", lambda: cmd_resolve_plans(ns(), engine))
+        if os.environ.get("PRICE_LOAD") == "1":
             try:
                 cmd_storage_experiment(ns(), engine)
             except Exception as exc:  # a measurement; never fails the run
@@ -746,6 +775,7 @@ def build_parser() -> argparse.ArgumentParser:
     state(sp)
 
     sub.add_parser("code-index", help="rebuild the index of codes in published prices")
+    sub.add_parser("resolve-plans", help="match new insurance spellings when certain")
     sp = sub.add_parser("health-centers", help="HRSA health center sites for a state")
     state(sp)
     sp.add_argument("--file", default=None, help="CSV path or URL (default: HRSA download)")
@@ -794,6 +824,7 @@ def main(argv: list[str] | None = None) -> None:
             "catalog": lambda: cmd_catalog(args, engine),
             "health-centers": lambda: cmd_health_centers(args, engine),
             "code-index": lambda: cmd_code_index(args, engine),
+            "resolve-plans": lambda: cmd_resolve_plans(args, engine),
             "auto-publish": lambda: cmd_auto_publish(args, engine),
             "approve": lambda: cmd_approve(args, engine),
             "reject": lambda: cmd_reject(args, engine),

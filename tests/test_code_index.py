@@ -101,3 +101,26 @@ def test_provider_prices_by_code_sessions_and_packages(conn: Connection) -> None
             {"p": pkg},
         )
     sp.rollback()
+
+
+def test_any_published_insurer_name_can_be_searched_as_written(
+    conn: Connection, published: LocalStore
+) -> None:
+    from procedurescout_core.search import SearchError, payer_suggestions
+
+    rebuild_code_index(conn)
+    assert payer_suggestions(conn, "payer two") == [("Synthetic Payer Two", 1)]
+    kw = {
+        "latitude": Decimal("36.17"),
+        "longitude": Decimal("-115.14"),
+        "radius_miles": Decimal(25),
+        "service_slug": None,
+        "code_system": "CPT",
+        "code": "99999",
+        "mode": "plan",
+    }
+    res = search(conn, published, payer_raw="SYNTHETIC PAYER ONE", **kw)  # type: ignore[arg-type]
+    negotiated = [p for p in res.facilities[0].prices if p.price_type == "negotiated"]
+    assert {p.payer_name_raw for p in negotiated} == {"Synthetic Payer One"}  # exactly as written
+    with pytest.raises(SearchError):
+        search(conn, published, payer_raw="Some Unknown Insurer", **kw)  # type: ignore[arg-type]

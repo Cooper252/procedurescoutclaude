@@ -58,8 +58,6 @@ def find_prices(
 ) -> list[PublishedPrice]:
     """Current published prices; with previous=True, the prices in each
     facility's most recently retired file (for price history)."""
-    import duckdb
-
     if not facility_ids:
         raise PriceQueryError("at least one facility is required")
     if len(facility_ids) > MAX_FACILITIES:
@@ -85,7 +83,7 @@ def find_prices(
     if not keys:
         return []
     paths = [store.local_path(k) for k in keys]
-    with duckdb.connect() as duck:
+    with store.duckdb() as duck:
         rows = duck.execute(
             """
             SELECT facility_id, price_source, code_system, code, description_raw, setting,
@@ -125,8 +123,6 @@ def facility_payer_plans(
 ) -> list[tuple[str, str]]:
     """Payer and plan names exactly as this facility publishes them (for the
     insurance picker and to validate a choice before pricing)."""
-    import duckdb
-
     fid = str(uuid.UUID(str(facility_id)))
     keys = [
         str(k)
@@ -139,7 +135,7 @@ def facility_payer_plans(
     ]
     if not keys:
         return []
-    with duckdb.connect() as duck:
+    with store.duckdb() as duck:
         rows = duck.execute(
             "SELECT DISTINCT payer_name_raw, plan_name_raw FROM read_parquet(?) "
             "WHERE payer_name_raw IS NOT NULL AND plan_name_raw IS NOT NULL ORDER BY 1, 2",

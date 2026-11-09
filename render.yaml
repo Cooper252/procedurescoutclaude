@@ -1,0 +1,81 @@
+# Render Blueprint for ProcedureScout (D-048). Nothing here runs or costs money
+# until Cooper connects the repository in Render and approves it.
+# Monthly at these plans (checked 2026-11-08 on render.com/pricing):
+#   website 0.5c-512mb $7 + API 1c-2g $25 + PostgreSQL 0.5c-1g $19 + storage $0.30/GB.
+# Published price files live in Cloudflare R2, not here.
+
+databases:
+  - name: procedurescout-db
+    databaseName: procedurescout
+    user: ps_owner
+    plan: 0.5c-1g
+    postgresMajorVersion: "16"
+    diskSizeGB: 10
+    region: oregon
+    # Open to the internet behind Render's generated password and TLS, because
+    # the GitHub download runs stage and publish prices from outside Render.
+
+services:
+  - type: web
+    name: procedurescout-api
+    runtime: python
+    plan: 1c-2g
+    region: oregon
+    buildCommand: pip install -r requirements.txt && python scripts/install_duckdb_extensions.py .duckdb_extensions
+    # Safe to repeat: PostGIS + restricted API role, then migrations.
+    preDeployCommand: python scripts/prod_db_setup.py && python -m alembic upgrade head
+    startCommand: uvicorn procedurescout_api.main:app --host 0.0.0.0 --port $PORT --proxy-headers
+    healthCheckPath: /healthz
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.8"
+      - key: PYTHONPATH
+        value: packages/core:packages/ingest:apps/api
+      - key: ENVIRONMENT
+        value: production
+      - key: DATABASE_URL # owner: used only by the pre-deploy step
+        fromDatabase:
+          name: procedurescout-db
+          property: connectionString
+      - key: PS_API_ROLE
+        value: ps_api
+      - key: PS_API_PASSWORD # the API itself connects as this restricted role
+        generateValue: true
+      # Provider portal (D-050): its own database role, writes provider pages only.
+      - key: PS_PORTAL_PASSWORD
+        generateValue: true
+      - key: PORTAL_SECRET
+        generateValue: true
+      - key: SITE_URL
+        sync: false
+      - key: DUCKDB_EXTENSION_DIRECTORY
+        value: .duckdb_extensions
+      # Cloudflare R2 (READ-ONLY key for the API). Entered by hand at setup.
+      - key: PRICE_STORE_DIR
+        value: s3://procedurescout-prices
+      - key: PRICE_STORE_ENDPOINT
+        sync: false
+      - key: PRICE_STORE_KEY_ID
+        sync: false
+      - key: PRICE_STORE_SECRET
+        sync: false
+
+  - type: web
+    name: procedurescout-web
+    runtime: node
+    plan: 0.5c-512mb
+    region: oregon
+    rootDir: apps/web
+    buildCommand: npm ci && npm run build
+    startCommand: npx next start -p $PORT
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: API_URL # private address inside Render; the site calls the API at /api
+        fromService:
+          name: procedurescout-api
+          type: web
+          property: hostport
+      - key: NEXT_PUBLIC_SITE_URL
+        sync: false

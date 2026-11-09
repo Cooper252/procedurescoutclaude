@@ -13,21 +13,28 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from decimal import Decimal
-from pathlib import Path
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
 from fastapi import Path as PathParam
 from pydantic import BaseModel
 from sqlalchemy import Connection, create_engine, text
 from sqlalchemy.engine import Engine
 
+from procedurescout_core.db_url import sqlalchemy_url
 from procedurescout_core.facilities import facility_detail, facility_prices
-from procedurescout_core.object_store import LocalStore, ObjectStore
+from procedurescout_core.object_store import ObjectStore, open_store
 from procedurescout_core.places import City, PlaceError, cities, city
 from procedurescout_core.plans import list_plans, matches
 from procedurescout_core.price_store import PriceQueryError, PublishedPrice
-from procedurescout_core.search import SearchError, SearchResult, nearby, search, suggest
+from procedurescout_core.search import (
+    SearchError,
+    SearchResult,
+    nearby,
+    payer_suggestions,
+    search,
+    suggest,
+)
 
 from .settings import get_settings
 
@@ -38,13 +45,13 @@ _engine: Engine | None = None
 def get_conn() -> Iterator[Connection]:
     global _engine
     if _engine is None:
-        _engine = create_engine(get_settings().api_database_url)
+        _engine = create_engine(sqlalchemy_url(get_settings().api_database_url))
     with _engine.connect() as conn:
         yield conn
 
 
 def get_store() -> ObjectStore:
-    return LocalStore(Path(get_settings().price_store_dir))
+    return open_store(*get_settings().store_args())
 
 
 Conn = Annotated[Connection, Depends(get_conn)]
@@ -324,6 +331,8 @@ def provider_types(conn: Conn) -> list[ProviderType]:
 def search_endpoint(
     conn: Conn,
     store: Store,
+    request: Request,
+    background: BackgroundTasks,
     lat: Annotated[Decimal, Query(ge=-90, le=90)],
     lng: Annotated[Decimal, Query(ge=-180, le=180)],
     radius_miles: Annotated[Decimal, Query(ge=1, le=100)] = Decimal(25),
@@ -333,6 +342,7 @@ def search_endpoint(
     provider_type: Annotated[str | None, Query(max_length=40)] = None,
     mode: Annotated[str, Query(pattern="^(cash|list|plan)$")] = "cash",
     plan_id: Annotated[str | None, Query(max_length=36)] = None,
+    payer: Annotated[str | None, Query(max_length=200)] = None,
 ) -> SearchOut:
     try:
         result = search(
@@ -347,9 +357,22 @@ def search_endpoint(
             provider_type=provider_type,
             mode=mode,
             plan_id=plan_id,
+            payer_raw=payer,
         )
     except SearchError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+    from procedurescout_core.provider_stats import service_key
+
+    from .portal_routes import count_search
+
+    background.add_task(
+        count_search,
+        service_key(result.service_slug, code_system, code),
+        lat,
+        lng,
+        [f.facility_id for f in result.facilities],
+        request.headers.get("user-agent", ""),
+    )
     return SearchOut(
         service=result.service_slug,
         service_name=result.service_name,
@@ -472,3 +495,17 @@ def facility_service_prices(
         prices_published_at=r.published_at,
         prices=[_price(p) for p in r.prices],
     )
+
+
+class PayerNameOut(BaseModel):
+    name: str
+    facilities: int
+
+
+@router.get("/payers/suggest", response_model=list[PayerNameOut])
+def payers_suggest(
+    conn: Conn, q: Annotated[str, Query(min_length=2, max_length=60)]
+) -> list[PayerNameOut]:
+    """Insurer names exactly as hospitals wrote them, for people whose plan is not
+    in the card-name list yet (D-046)."""
+    return [PayerNameOut(name=n, facilities=f) for n, f in payer_suggestions(conn, q)]

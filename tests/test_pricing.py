@@ -286,3 +286,34 @@ def test_committed_plan_names_load_approved(conn: Connection) -> None:
     names = {p.payer for p in list_plans(conn)}
     assert "Anthem Blue Cross Blue Shield (Colorado)" not in names  # out-of-state Blues (rule 9)
     assert {"Anthem Blue Cross Blue Shield (Nevada)", "Culinary Health Fund"} <= names
+
+
+def test_new_spellings_are_matched_only_when_certain(conn: Connection, world: LocalStore) -> None:
+    from procedurescout_ingest.plan_resolver import RULE, plan_type, resolve_new_spellings
+
+    assert plan_type("Commercial HMO") == "HMO" and plan_type("MCR") == "Medicare Advantage"
+    assert plan_type("Workers Comp PPO") is None and plan_type("Gold Select Network") is None
+    # the synthetic file has "Synthetic Payer Two | HMO"; its insurer is not yet known
+    res = resolve_new_spellings(conn)
+    assert ("Synthetic Payer Two", "HMO", 1) in res.unresolved and res.matched == []
+    # once one spelling of that insurer is approved and it has an HMO card name,
+    # its plain "HMO" spelling matches by rule
+    catalog.load_payers(
+        conn,
+        ",".join(catalog.PAYER_COLUMNS)
+        + "\nSynthetic Health,HMO,hmo,commercial,tester,2026-11-08\n",
+    )
+    catalog.load_payer_aliases(
+        conn,
+        ALIASES_HEADER
+        + "Synthetic Payer Two,Gold Network,Synthetic Health,Gold PPO,tester,2026-11-08,\n",
+    )
+    res = resolve_new_spellings(conn)
+    assert res.matched == [("Synthetic Payer Two", "HMO", "Synthetic Health", "HMO")]
+    who = conn.execute(
+        text(
+            "SELECT reviewed_by FROM ref.plan_alias "
+            "WHERE raw_plan_text = 'HMO' AND review_state = 'approved'"
+        )
+    ).scalar()
+    assert who == RULE

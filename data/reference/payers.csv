@@ -18,6 +18,7 @@ Anthem Blue Cross Blue Shield (Nevada),Medicaid plan,other,medicaid_managed_care
 Anthem Blue Cross Blue Shield (Nevada),Medicare Advantage,other,medicare_advantage,Cooper,2026-11-08
 Anthem Blue Cross Blue Shield (Nevada),PPO,ppo,commercial,Cooper,2026-11-08
 Arroweye Solutions,Employee / member plan,unknown,employer_self_funded,Cooper,2026-11-08
+Beech Street,Network on your card,unknown,other,"Claude (delegated by Cooper, D-047)",2026-11-08
 Blue Cross Blue Shield Federal Employee Program,All plans (one rate published for all),unknown,commercial,Cooper,2026-11-08
 Boyd Group,Employee / member plan,unknown,employer_self_funded,Cooper,2026-11-08
 Bricklayers Local 13,Employee / member plan,unknown,union_trust,Cooper,2026-11-08
@@ -43,8 +44,10 @@ City of Las Vegas,Employee / member plan (HMO),hmo,employer_self_funded,Cooper,2
 City of Las Vegas,Employee / member plan (PPO),ppo,employer_self_funded,Cooper,2026-11-08
 Clark County (employee plan),Employee / member plan,unknown,employer_self_funded,Cooper,2026-11-08
 Clark County Firefighters Local 1908,Employee / member plan,unknown,union_trust,Cooper,2026-11-08
+Coventry (Aetna),Network on your card,unknown,other,"Claude (delegated by Cooper, D-047)",2026-11-08
 Culinary Health Fund,Employee / member plan,unknown,union_trust,Cooper,2026-11-08
 Employee Painters Trust,Employee / member plan,unknown,union_trust,Cooper,2026-11-08
+First Health (Aetna),Network on your card,unknown,other,"Claude (delegated by Cooper, D-047)",2026-11-08
 GEHA,All plans (one rate published for all),unknown,commercial,Cooper,2026-11-08
 GEHA (UnitedHealthcare network),All plans (one rate published for all),unknown,commercial,Cooper,2026-11-08
 Golden Entertainment,Employee / member plan,unknown,employer_self_funded,Cooper,2026-11-08
@@ -57,6 +60,7 @@ Health Plan of Nevada (HPN),Medicaid plan,other,medicaid_managed_care,Cooper,202
 Health Plan of Nevada (HPN),Medicare Advantage,other,medicare_advantage,Cooper,2026-11-08
 Health Plan of Nevada (HPN),Nevada Check Up (children),other,medicaid_managed_care,Cooper,2026-11-08
 Health Plan of Nevada (HPN),POS,pos,commercial,Cooper,2026-11-08
+Health Services Coalition,Network on your card,unknown,other,"Claude (delegated by Cooper, D-047)",2026-11-08
 HealthSCOPE Benefits,All plans (one rate published for all),unknown,commercial,Cooper,2026-11-08
 Hometown Health,All plans (one rate published for all),unknown,commercial,Cooper,2026-11-08
 Hometown Health,HMO,hmo,commercial,Cooper,2026-11-08
@@ -90,10 +94,12 @@ Molina Healthcare,All plans (one rate published for all),unknown,commercial,Coop
 Molina Healthcare,Marketplace (exchange) plan,other,exchange,Cooper,2026-11-08
 Molina Healthcare,Medicaid plan,other,medicaid_managed_care,Cooper,2026-11-08
 Molina Healthcare,Medicare Advantage,other,medicare_advantage,Cooper,2026-11-08
+MultiPlan,Network on your card,unknown,other,"Claude (delegated by Cooper, D-047)",2026-11-08
 NV Energy,Employee / member plan,unknown,employer_self_funded,Cooper,2026-11-08
 National Security Technologies,Employee / member plan,unknown,employer_self_funded,Cooper,2026-11-08
 Nevada Hand,Employee / member plan,unknown,employer_self_funded,Cooper,2026-11-08
 Nevada Medicaid (fee for service),Medicaid,other,medicaid_managed_care,Cooper,2026-11-08
+Nevada Preferred Professionals,Network on your card,unknown,other,"Claude (delegated by Cooper, D-047)",2026-11-08
 Nv Health & Welfare Trust,Employee / member plan,unknown,union_trust,Cooper,2026-11-08
 One Health Plan,All plans (one rate published for all),unknown,commercial,Cooper,2026-11-08
 One Health Plan,HMO,hmo,commercial,Cooper,2026-11-08
@@ -102,6 +108,7 @@ Operating Engineers,Employee / member plan (Local 12),unknown,union_trust,Cooper
 Operating Engineers,Employee / member plan (Local 501),unknown,union_trust,Cooper,2026-11-08
 Original Medicare,Original Medicare,other,other,Cooper,2026-11-08
 Oscar Health,All plans (one rate published for all),unknown,commercial,Cooper,2026-11-08
+PHCS (MultiPlan),Network on your card,unknown,other,"Claude (delegated by Cooper, D-047)",2026-11-08
 Pli Las Vegas,Employee / member plan,unknown,employer_self_funded,Cooper,2026-11-08
 Plumbers & Pipefitters Local 525,Employee / member plan,unknown,union_trust,Cooper,2026-11-08
 Prominence Health Plan,All plans (one rate published for all),unknown,commercial,Cooper,2026-11-08
@@ -109,10 +116,12 @@ Prominence Health Plan,HMO,hmo,commercial,Cooper,2026-11-08
 Prominence Health Plan,Marketplace (exchange) plan,other,exchange,Cooper,2026-11-08
 Prominence Health Plan,Medicare Advantage,other,medicare_advantage,Cooper,2026-11-08
 Prominence Health Plan,PPO,ppo,commercial,Cooper,2026-11-08
+Prominence HealthFirst (formerly Nevada Preferred),Network on your card,unknown,other,"Claude (delegated by Cooper, D-047)",2026-11-08
 Rebel Oil Company,Employee / member plan,unknown,employer_self_funded,Cooper,2026-11-08
 Resorts World Las Vegas,Employee / member plan,unknown,employer_self_funded,Cooper,2026-11-08
 SCAN Health Plan,All plans (one rate published for all),unknown,commercial,Cooper,2026-11-08
 SCAN Health Plan,Medicare Advantage,other,medicare_advantage,Cooper,2026-11-08
+Saint Mary's Health Plan,All plans (one rate published for all),unknown,commercial,Cooper,2026-11-08
 Saint Mary's Health Plan,HMO,hmo,commercial,Cooper,2026-11-08
 Saint Mary's Health Plan,Medicare Advantage,other,medicare_advantage,Cooper,2026-11-08
 Saint Mary's Health Plan,PPO,ppo,commercial,Cooper,2026-11-08
@@ -123,10 +132,12 @@ Select Health (Intermountain),Medicare Advantage,other,medicare_advantage,Cooper
 Select Health (Intermountain),POS,pos,commercial,Cooper,2026-11-08
 Select Health (Intermountain),PPO,ppo,commercial,Cooper,2026-11-08
 Sheet Metal Workers,Employee / member plan,unknown,union_trust,Cooper,2026-11-08
+Sierra Health (HPN and Sierra Health and Life),All plans (one rate for both companies),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-08
 Sierra Health Options,All plans (one rate published for all),unknown,commercial,Cooper,2026-11-08
 Sierra Health Options,PPO,ppo,commercial,Cooper,2026-11-08
 Sierra Health and Life,All plans (one rate published for all),unknown,commercial,Cooper,2026-11-08
 Sierra Health and Life,Medicare Advantage,other,medicare_advantage,Cooper,2026-11-08
+Sierra Health and Life,PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-08
 SilverSummit Healthplan (Centene),All plans (one rate published for all),unknown,commercial,Cooper,2026-11-08
 SilverSummit Healthplan (Centene),Marketplace (exchange) plan,other,exchange,Cooper,2026-11-08
 SilverSummit Healthplan (Centene),Medicaid plan,other,medicaid_managed_care,Cooper,2026-11-08
@@ -144,6 +155,7 @@ Teamsters Local 14,Employee / member plan,unknown,union_trust,Cooper,2026-11-08
 Teamsters Local 631,Employee / member plan,unknown,union_trust,Cooper,2026-11-08
 Teamsters Local 986,Employee / member plan,unknown,union_trust,Cooper,2026-11-08
 The Venetian Resort,Employee / member plan,unknown,employer_self_funded,Cooper,2026-11-08
+Three Rivers Provider Network,Network on your card,unknown,other,"Claude (delegated by Cooper, D-047)",2026-11-08
 Truline Corporation,Employee / member plan,unknown,employer_self_funded,Cooper,2026-11-08
 UMR (UnitedHealthcare),All plans (one rate published for all),unknown,employer_self_funded,Cooper,2026-11-08
 Ufcw Local 711 Retail Clerks,Employee / member plan,unknown,union_trust,Cooper,2026-11-08
@@ -155,6 +167,7 @@ UnitedHealthcare,Medicare Advantage,other,medicare_advantage,Cooper,2026-11-08
 UnitedHealthcare,Options PPO,ppo,commercial,Cooper,2026-11-08
 UnitedHealthcare,Oxford Health,unknown,commercial,Cooper,2026-11-08
 UnitedHealthcare,PPO,ppo,commercial,Cooper,2026-11-08
+Universal Health Network,Network on your card,unknown,other,"Claude (delegated by Cooper, D-047)",2026-11-08
 VA Community Care,VA Community Care,unknown,tricare_va,Cooper,2026-11-08
 Wynn Resorts,Employee / member plan,unknown,employer_self_funded,Cooper,2026-11-08
 Zuffa,Employee / member plan,unknown,employer_self_funded,Cooper,2026-11-08

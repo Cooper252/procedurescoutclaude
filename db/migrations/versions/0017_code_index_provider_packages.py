@@ -50,6 +50,17 @@ def upgrade() -> None:
         "USING gin (to_tsvector('english', coalesce(hospital_description, '')))"
     )
 
+    # every insurer spelling in published prices, so people can find a rate even
+    # before its plan is matched to a card name (shown exactly as written, D-046)
+    op.execute("""
+    CREATE TABLE ref.payer_index (
+        raw_normalized text PRIMARY KEY,
+        raw_text       text NOT NULL,
+        facilities     integer NOT NULL CHECK (facilities > 0),
+        prices         bigint NOT NULL CHECK (prices > 0),
+        updated_at     timestamptz NOT NULL DEFAULT now()
+    )""")
+
     # provider prices: an approved service OR an official code; sessions per price
     op.execute("ALTER TABLE prov.listing_price ALTER COLUMN procedure_id DROP NOT NULL")
     op.execute("""
@@ -119,7 +130,7 @@ def upgrade() -> None:
     DO $$
     BEGIN
         IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '{api_role}') THEN
-            EXECUTE 'GRANT SELECT ON ref.code_index TO {api_role}';
+            EXECUTE 'GRANT SELECT ON ref.code_index, ref.payer_index TO {api_role}';
         END IF;
     END $$""")
 
@@ -146,4 +157,5 @@ def downgrade() -> None:
         END IF;
         RETURN NEW;
     END $$""")
+    op.execute("DROP TABLE IF EXISTS ref.payer_index")
     op.execute("DROP TABLE ref.code_index")

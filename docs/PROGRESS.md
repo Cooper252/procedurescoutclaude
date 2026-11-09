@@ -2,7 +2,63 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
-## 2026-11-08 — Every published code searchable; providers price by code, sessions and own packages (D-045)
+## 2026-11-08 — Provider homepages, provider account, reviews and counts (D-050)
+- Database: `0018_provider_portal.py` (accounts, sign-in links, sessions, memberships, homepage versions, images, reviews, review links, replies, reports, email outbox, daily counts; published views for the public API; new `ps_portal` role, no DELETE on reviews). `scripts/db_init.sql` and `scripts/prod_db_setup.py` create the portal role.
+- Core: `portal_auth.py` (email link, authenticator app TOTP, lockout after 5 wrong codes, claiming with automatic domain match or manual check), `provider_pages.py` (homepage drafts reviewed before publishing, image checks for PNG/JPEG/WebP ≤ 2 MB), `reviews.py` (email-confirmed and provider-invited reviews, moderation, replies with a HIPAA warning, reports, public removed count), `provider_stats.py` (daily totals, 0.1° search grid, numbers under 10 hidden, boost estimates). Images stored with `put_media`/`get_media` in both stores.
+- API: `portal_routes.py` (public homepage, reviews, images, counting, review flow; portal sign-in, authenticator, claims, homepage editor, uploads, numbers, invites, replies, reports; custom header required on every change), `admin_portal_routes.py` (review page at `/admin/providers`). Searches are counted in the background.
+- Website: facility pages show logo, about, hours, languages, access, insurance note, booking and website links, photos and reviews, and count views and clicks; `/review` (write a review from a link); real provider sign-in and `/providers/sign-in/verify`; `/providers/account` (authenticator setup, claiming, Overview numbers + nearby demand + Sponsored-spot estimates, page editor with images, reviews with invite links, replies and reports). English and Spanish (`lib/i18n_portal.ts`). Preview data only in `lib/synthetic_portal_demo.ts`.
+- Tests (this session): `ruff check .` → All checks passed; `mypy` → Success: no issues found in 55 source files; `tsc --noEmit` ok; `next build` ok; `pytest -q` → `322 passed, 1 skipped, 1 warning in 13.89s` (new: 19 in `test_provider_portal.py`, 5 in `test_portal_api.py`). Preview screenshots checked at desktop and iPhone 13 width (no horizontal scroll, no browser errors).
+- Not done: the website has not been run against a live API in a browser (needs a database with real facilities; synthetic rows may not go into `ref`). No email service yet (Q26), so sign-in and review emails wait in `prov.outbox`. Price entry in the portal is not built. Payments not built (Q30).
+- Status: Implemented + Tested (synthetic). Not deployed.
+
+## 2026-11-08 — Hosting prepared (R2 store, Render blueprint); provider pages specified
+- `S3Store` in `object_store.py`: uploads published Parquet byte for byte with boto3, refuses to overwrite, validates keys, never shows its secret; the API reads with DuckDB httpfs. `open_store()` picks folder or `s3://` bucket from settings (API, admin page, CLI).
+- `render.yaml`: website 0.5c-512mb ($7), API 1c-2g ($25), PostgreSQL 16 0.5c-1g ($19 + storage), plans and prices checked on render.com 2026-11-08. `scripts/prod_db_setup.py` (PostGIS + `ps_api` role, repeatable), `scripts/install_duckdb_extensions.py`, host URLs normalized to psycopg (`db_url.py`), website accepts a bare `host:port` API address. Guide: `docs/DEPLOYMENT_PLAN.md`.
+- New packages: boto3/botocore 1.43.126; moto[server] 5.2.5 (tests only).
+- Tests (this session): `ruff check .` → All checks passed; `mypy` → Success: no issues found in 49 source files; `tsc --noEmit` ok; `pytest -q` → `298 passed, 1 skipped, 1 warning in 11.27s` (skipped: `test_duckdb_reads_exact_amounts_from_the_bucket`, DuckDB extension download blocked in this sandbox; runs in GitHub Actions).
+- Provider homepages, dashboard analytics, reviews and payments readiness written up as a proposal: `docs/PROVIDER_PAGES_SPEC.md` (Q30–Q32). Nothing built.
+- Status: Implemented + partly Tested. Not deployed.
+
+## 2026-11-08 — Repository going public (D-049, answers Q29)
+- Cooper chose public so national downloads run on free GitHub runners.
+- Checked before switching (workspace copy): no keys or tokens in committed files; `.env` is git-ignored; workflow passwords are throwaway CI-only values; run artifacts hold public hospital data only.
+- Required setting right after switching (GitHub shows it only on public repositories): Actions → "Require approval for all external contributors" (protects the self-hosted runner on Cooper's computer).
+- Switched to public by Cooper (2026-11-08); an unauthenticated clone succeeded. Full history (25 commits, all branches) scanned: no keys, tokens or private-key files; only local development passwords (`postgres_dev_only`, `minio_dev_password`, CI-only values). Commit author email cooper252@gmail.com is visible in history.
+- Status: done (public, approval setting on).
+
+## 2026-11-08 — Hosting approved, national scope (D-048)
+
+Cooper approved about $53 a month of hosting (Render + Cloudflare R2) and a national site. No code changed in this entry; plan recorded in D-048, open question Q29 (where national downloads run). Corrected estimate: national Parquet is about 55 GB (0.28 GB for 29 Nevada hospitals), not 15 GB as said earlier; still under $1 a month on R2.
+
+
+- `procedurescout_ingest/plan_resolver.py` + CLI `resolve-plans` (run in `nv-all` after prices load): a new spelling is matched only when its insurer is already known unambiguously (approved spellings all point to one insurer, or it is the insurer's own name) and the plan text is a plain type (HMO, PPO, EPO, POS, Medicaid, Medicare Advantage, marketplace, all plans) the insurer has a card name for. Recorded as `reviewed_by = "automatic rule (D-047)"`. Everything else is listed in the run report (`unresolved_top`) for Claude to research; it stays findable as written.
+- Test: `test_new_spellings_are_matched_only_when_certain`.
+
+`make lint typecheck test`: `294 passed, 1 warning` (3.13); `/tmp/v312/bin/python -m pytest -q`: `294 passed, 1 warning in 10.59s`.
+
+
+Also added 10 provider networks people see on their cards (MultiPlan, PHCS, First Health, Prominence HealthFirst, Health Services Coalition, Beech Street, Coventry, Three Rivers, Universal Health Network, Nevada Preferred Professionals) as "Network on your card", with 47 hospital spellings. Matched spellings now cover 94.3% of Nevada plan prices in run #15 (was 80.9%); the rest are workers' comp, jails, hospice, behavioral-only, research and catch-all rows, plus 2 with an unclear company, all findable as written.
+
+16 more Nevada spellings matched with evidence in `payer_aliases.csv` notes; 2 new card names (Sierra Health and Life PPO; Sierra Health, one rate for both companies). CLAUDE.md rules 9 and 10 updated for the delegation. Remaining unmatched Nevada spellings are networks, workers' comp, jails/hospice and other non-plan rows, plus 2 with an unclear company; all stay findable as written.
+
+`make lint typecheck test`: `293 passed, 1 warning` (3.13); `/tmp/v312/bin/python -m pytest -q`: `293 passed, 1 warning`.
+
+
+- Cooper approved 6 of the 12 new Humboldt General spellings (One Health, Silver Summit ×2, CareSource Medicaid, Saint Mary's Health, TriWest); added "Saint Mary's Health Plan / All plans". The other 6 stay out (state not stated, networks, workers' comp, unclear company).
+- `ref.payer_index` (migration 0017) rebuilt with the code index; `search(payer_raw=...)` shows negotiated rates published under exactly that spelling (validated against the index, rule 12); `GET /v1/payers/suggest`; search param `payer`.
+- Website: "Don't see your plan? Search the insurance name as hospitals write it" under the plan picker, with a labeled note on results.
+- Test: `test_any_published_insurer_name_can_be_searched_as_written`.
+
+`make lint typecheck test`: `293 passed, 1 warning` (3.13); `/tmp/v312/bin/python -m pytest -q`: `293 passed, 1 warning`. Website `tsc` clean, build succeeded, insurer-name search walked at 390 px without horizontal scroll.
+
+
+Every step succeeded. Highlights from `reference-nv-report.txt`:
+- `hrsa_health_center_sites`: 80 Nevada health center sites loaded, all with a location (the column names guessed from HRSA's published layout matched).
+- `service_catalog`: 202 services, 161 synonyms, 16 provider types, 2 approved packages (3 medical bundles still proposed), 159 card-name plans, 431 approved hospital spellings (11 payer spellings shared by several companies), 4 coverage limits approved, 13 assistance policies still proposed.
+- Prices: 29 of 31 files loaded, 48,972,607 prices staged, 16 refused (same as run #13); Parquet round trip exact, lookup 81 ms vs 418 ms.
+- `payer-plan-names.csv`: 639 spellings, 12 new since run #14 (all Humboldt General Hospital, whose file changed); approved aliases cover 80.9% of plan prices. The 12 new spellings need review (Q24).
+- The code index was not built in this run because nothing is published in the throwaway database; it builds after each approval or automatic publish.
+
 
 - Migration `0017_code_index_provider_packages.py`: `ref.code_index` (API read), provider prices by approved service or official code with `quantity`, `prov.package` and `prov.package_item` (trigger: pieces must be approved services or official codes).
 - `procedurescout_ingest/code_index.py` + CLI `code-index` (also run after `approve` and `auto-publish`).

@@ -14,6 +14,9 @@ Plans by the names on people's cards that have at least one approved hospital sp
 ## GET /v1/provider-types
 Approved provider types for the filter: `[{code, name}]`.
 
+## GET /v1/payers/suggest?q=
+Insurer names exactly as hospitals wrote them in published prices, most widely used first: `[{name, facilities}]`. A chosen name is searched with `mode=plan&payer=<name>` (instead of `plan_id`); results then contain only negotiated rates published under that spelling, to be labeled as written (D-046).
+
 ## GET /v1/places/zip/{zip5}
 Centre of a ZIP code area (Census ZCTA) so people can search by ZIP: `{zip, state, lat, lng}` (strings). 404 if unknown, 422 if not 5 digits.
 
@@ -47,3 +50,8 @@ Response: `{service, service_name, unit, codes, note, facilities: [{facility_id,
 
 ## Review page (not public)
 `/admin/reviews` (HTML), `POST /admin/reviews/{dataset}/approve`, `POST /admin/reviews/{dataset}/reject`. Off unless `ADMIN_TOKEN` and `ADMIN_DATABASE_URL` are set; interim name + password sign-in, multi-factor before launch (ADM-02). Implemented in `apps/api/procedurescout_api/admin_routes.py`.
+
+## Provider homepages, reviews and portal (`portal_routes.py`, D-050)
+Public (no sign-in): `GET /v1/facilities/{id}/page` (published profile, logo/photo URLs, review summary, latest 10 reviews, `claimed`), `GET /v1/facilities/{id}/reviews?offset=`, `GET /v1/media/{key}` (approved images only), `POST /v1/events` `{facility_id, kind}` (204; page_view, website_click, phone_click, directions_click, booking_click), `POST /v1/reviews/request` `{facility_id, email}` (202, same answer either way), `POST /v1/reviews/check` `{token}`, `POST /v1/reviews` `{token, rating, title, body, price_matched, display_name, visited, independent}` (201, waits for moderation).
+
+Portal (cookie `ps_session`; every change needs header `X-ProcedureScout: 1`): `POST /v1/portal/sign-in` `{email}`, `POST /v1/portal/sign-in/verify` `{token}`, `POST /v1/portal/sign-out`, `GET /v1/portal/me`, `POST /v1/portal/mfa/setup`, `POST /v1/portal/mfa/verify` `{code}`, `GET /v1/portal/facilities/search?q=`, `POST /v1/portal/claims` `{facility_id, note}`, `GET|PUT /v1/portal/facilities/{id}/profile`, `POST /v1/portal/facilities/{id}/media?kind=logo|photo&alt=` (raw image body), `GET|DELETE /v1/portal/facilities/{id}/media/{media_id}`, `GET /v1/portal/facilities/{id}/stats?days=7|30|90`, `GET /v1/portal/facilities/{id}/reviews`, `POST /v1/portal/facilities/{id}/invites`, `POST .../reviews/{review_id}/reply` `{body}` (returns `privacy_warning`), `POST .../reviews/{review_id}/report` `{reason}`. Without `PORTAL_DATABASE_URL` these answer 404. `dev_link` is returned only when `PORTAL_DEV_LINKS=true` and not in production.

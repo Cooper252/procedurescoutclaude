@@ -2,6 +2,37 @@
 
 Newest first. Each entry: decision, reason, consequences.
 
+## 2026-11-08 — D-050: Provider homepages, dashboard and reviews built
+Cooper asked for provider homepages (logo, links, photos, more information), a provider account with numbers (views, nearby demand, what a boost would do) and reviews, all built before paying for hosting. Decisions:
+- **Review verification (Q31, Cooper):** no receipts. A visit is confirmed by a one-time link, either emailed by us after the person asks ("Did you visit…?", shown as "Visit confirmed by email") or given by the provider ("Invited by the provider"). Reviewers confirm they visited and are not staff, family or paid. One review per person per provider.
+- **Unclaimed providers can be reviewed (Q32, Cooper)**, labeled "Not claimed by the provider yet".
+- **Reviews follow the FTC rule (16 CFR Part 465):** providers reply and report but never remove; a person checks every review and reply; removed reviews are counted publicly; replies that may confirm someone was a patient are flagged (HIPAA).
+- **Sign-in (Q26, proposed default built):** one-time email link plus an authenticator-app code before any change. Only hashes of links and sessions are stored. Emails wait in `prov.outbox` until an email service is chosen (Q26 still open for the service).
+- **Counts are privacy-safe:** daily totals only, searches on a 0.1° grid, no IP/device/account; numbers under 10 shown as "fewer than 10".
+- **Boost = labeled "Sponsored" spot**, shared by up to 2 providers, never changes regular order (PRV-06). The dashboard shows estimates only; nothing is sold until Cooper approves payments (Q30).
+- **Database roles:** the public API role reads only published views; a new portal role writes provider pages, reviews and counts only and cannot delete reviews.
+
+: The GitHub repository becomes public (answers Q29)
+Cooper chose to make `Cooper252/procedurescoutclaude` public so GitHub's standard Actions runners are free with no monthly cap, which the national downloads need (about 1 TB and many runner-hours per full refresh). Consequences:
+- The code is visible to anyone. Passwords, database addresses and storage keys live only in GitHub Actions secrets and hosting settings, never in files; `.env` is git-ignored and only `.env.example` (no real values) is committed. Before switching, the files and history were checked for keys.
+- No open-source license is added, so the code stays "all rights reserved": visible but not licensed for reuse.
+- Workflows must never print secrets or upload them as run artifacts, and must not run on pull requests from forks.
+- Run logs and uploaded run files become public too. Today they hold only public hospital data and throwaway test-database passwords that exist only inside each run.
+- The self-hosted runner on Cooper's computer is the one real risk: on a public repository, a stranger's pull request could try to run code on it. The `home-fetch` job only starts by hand (`workflow_dispatch`), and right after the switch the repository is set to "Require approval for all external contributors" (Settings → Actions → General; GitHub shows this option only on public repositories), so no outside pull request runs anything without Cooper's click.
+
+## 2026-11-08 — D-048: Hosting approved; the site is national
+Cooper approved the hosting plan (about $53 a month to start: Render for the website, API and PostgreSQL; Cloudflare R2 for published Parquet files) and wants a full national website: every state, every hospital, surgery center and provider. Plan, in order:
+1. Prepare hosting without spending: an S3-compatible store for R2, deployment files, then sign-up with Cooper.
+2. Make every step state-by-state and repeatable: reference data and HRSA health centers for all states; hospital websites found and verified by their own cms-hpt.txt (which names the hospital), so no one reviews them by hand; price files parsed straight to Parquet per hospital and published to R2, skipping files that have not changed since the last run.
+3. Insurance names, coverage limits and assistance policies placed by Claude per state with evidence (D-047).
+Scale (from Nevada, 29 hospitals: 5.9 GB downloaded, 0.28 GB Parquet): roughly 6,000 hospitals nationally means about 1 TB of downloads for a full refresh and about 55 GB of Parquet on R2 (under $1 a month). The open question is where that downloading runs (Q29).
+
+## 2026-11-08 — D-047: Claude places insurance names; Cooper does not review them
+Cooper: "You need to figure out where they all go." Claude now resolves every hospital insurance spelling itself, from evidence it can check (insurers' and states' own pages, the hospital's file), and records the evidence in each alias's notes with `reviewed_by = "Claude (delegated by Cooper, D-047)"`. Names that cannot be placed with evidence are not guessed: they stay unmatched and remain findable exactly as written (D-046), and Claude keeps researching them each run. First batch (Nevada): plain "Sierra" HMO -> Health Plan of Nevada, PPO -> Sierra Health and Life (Sierra Health and Life is the PPO/POS/EPO company, HPN the HMO); Sierra "all plans" -> a combined Sierra card name; state-less "BCBS"/"Blue Cross" and "Anthem BCBS Colorado" at Nevada hospitals -> Anthem BCBS Nevada (Anthem is Nevada's Blue licensee, its Nevada plans are issued by Rocky Mountain Hospital and Medical Service / HMO Colorado dba HMO Nevada, and BlueCard prices visiting Blue members at the local plan's rates); Cigna's Wyoming company -> Cigna. Provider networks named by hospitals (MultiPlan, PHCS, First Health, Health Services Coalition and others) are card names too, as "Network on your card", because members see the network logo on their card. Left unmatched: "Northern Nevada | Medicare Advantage" and "Sierra Health | Medicare" (company unclear), networks, workers' comp and non-plan rows.
+
+## 2026-11-08 — D-046: No published insurance rate is hidden while its name waits for review
+Cooper: everything hospitals publish must be findable, not just the insurers we have matched. Cash prices, full prices and every negotiated rate were already published and visible in each place's Details. Now, in "My insurance", a person whose plan is not yet in the card-name list can search the insurer's name exactly as hospitals wrote it (`ref.payer_index`, built from all published prices) and see those rates, labeled as written and noting that one name can cover several plans. This is not a match (rule 9 is unchanged): nothing is merged or relabeled; card-name matching still needs approved aliases.
+
 ## 2026-11-08 — D-045: Three layers so the list never has to hold every procedure
 Cooper pointed out that 202 services cannot cover millions of published prices without endless approvals.
 1. **Every billing code is searchable automatically.** After each publish, `ref.code_index` lists every code in published prices with how many places publish it and the description hospitals most often use, shown labeled "As hospitals describe it" (D-002). People can type a code number or words from that wording; codes join `ref.code` by number only, so searches stay validated (rule 12) and no CPT descriptor is stored (rule 11). No approval is needed: the codes and wording are the hospitals' own published data.

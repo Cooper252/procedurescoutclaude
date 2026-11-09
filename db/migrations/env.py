@@ -4,6 +4,7 @@ never from alembic.ini, so credentials are not committed."""
 from __future__ import annotations
 
 import os
+import re
 
 from alembic import context
 from sqlalchemy import create_engine, pool
@@ -15,7 +16,7 @@ def _database_url() -> str:
     url = config.attributes.get("database_url") or os.environ.get("DATABASE_URL")
     if not url:
         raise RuntimeError("DATABASE_URL is not set (see .env.example)")
-    return str(url)
+    return re.sub(r"^postgres(ql)?://", "postgresql+psycopg://", str(url).strip())
 
 
 def run_migrations_online() -> None:

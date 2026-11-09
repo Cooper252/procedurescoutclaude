@@ -5,7 +5,9 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { useApp } from "@/components/AppState";
 import { FileCheck, Heart, Phone, Pin, Globe, Alert } from "@/components/Icons";
+import { ProviderHome, ProviderReviews, Stars } from "@/components/ProviderHome";
 import { api } from "@/lib/api";
+import { portal, track, type ProviderPage } from "@/lib/portal";
 import { fill, SERVICE_ES, TYPE_ES } from "@/lib/i18n";
 import { formatMoney, unitLabel } from "@/lib/money";
 import type { Bundle, FacilityDetail, FacilityPrices, Price, Service } from "@/lib/types";
@@ -37,9 +39,12 @@ function Facility() {
   const [bundles, setBundles] = useState<Bundle[]>([]);
   const [prices, setPrices] = useState<FacilityPrices | null>(null);
   const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState<ProviderPage | null>(null);
 
   useEffect(() => {
     api.facility(id).then(setF).catch(() => setMissing(true));
+    portal.page(id).then(setPage).catch(() => setPage(null));
+    track(id, "page_view");
     api.services().then(setServices).catch(() => setServices([]));
     api.bundles().then(setBundles).catch(() => setBundles([]));
   }, [id]);
@@ -92,7 +97,15 @@ function Facility() {
       <header className="fac-head card">
         <div>
           <p className="eyebrow">{f.provider_types.map(typeName).join(" · ")}</p>
-          <h1 className="page-title">{f.name}</h1>
+          <div className="fac-title">
+            {page?.logo_url && <img className="fac-logo" src={page.logo_url} alt="" width={48} height={48} />}
+            <h1 className="page-title">{f.name}</h1>
+          </div>
+          {page && page.reviews.count > 0 && page.reviews.average && (
+            <a className="fac-rating" href="#reviews">
+              <Stars value={Number(page.reviews.average)} /> <strong>{page.reviews.average}</strong> ({page.reviews.count})
+            </a>
+          )}
           <p className="fac-addr">
             <Pin size={16} /> {[f.address, f.city, `${f.state} ${f.zip ?? ""}`.trim()].filter(Boolean).join(", ")}
           </p>
@@ -112,20 +125,22 @@ function Facility() {
         </div>
         <div className="fac-actions">
           {f.phone && (
-            <a className="btn primary sm" href={`tel:${f.phone.replace(/[^\d+]/g, "")}`}>
+            <a className="btn primary sm" href={`tel:${f.phone.replace(/[^\d+]/g, "")}`} onClick={() => track(f.facility_id, "phone_click")}>
               <Phone size={16} /> {t.facCall}
             </a>
           )}
-          <a className="btn ghost sm" href={maps} target="_blank" rel="noopener noreferrer">
+          <a className="btn ghost sm" href={maps} target="_blank" rel="noopener noreferrer" onClick={() => track(f.facility_id, "directions_click")}>
             <Pin size={16} /> {t.directions}
           </a>
           {f.website && (
-            <a className="btn ghost sm" href={f.website} target="_blank" rel="noopener noreferrer">
+            <a className="btn ghost sm" href={f.website} target="_blank" rel="noopener noreferrer" onClick={() => track(f.facility_id, "website_click")}>
               <Globe size={16} /> {t.facWebsite}
             </a>
           )}
         </div>
       </header>
+
+      {page && <ProviderHome page={page} />}
 
       {(isHospital || help) && (
         <section className="fac-help">
@@ -190,6 +205,8 @@ function Facility() {
         {prices && prices.codes[0] && <p className="tip">{fill(t.askTip, { c: prices.codes[0] })}</p>}
       </section>
 
+      {page && <ProviderReviews page={page} facilityName={f.name} />}
+
       {bundles.length > 0 && (
         <section className="fac-bundles">
           <h2>{t.facWhole}</h2>
@@ -216,7 +233,7 @@ function Facility() {
       )}
 
       <p className="fac-claim">
-        <Link href="/providers">{t.facClaim}</Link>
+        <Link href="/providers/sign-in">{t.facClaim}</Link>
       </p>
     </div>
   );

@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from functools import lru_cache
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from sqlalchemy.engine import make_url
+
+from procedurescout_core.db_url import sqlalchemy_url
 
 
 class Settings(BaseSettings):
@@ -10,11 +14,66 @@ class Settings(BaseSettings):
 
     api_database_url: str = "postgresql+psycopg://ps_api:ps_api_dev@localhost:5432/procedurescout"
     environment: str = "development"
-    # Folder holding published Parquet files (D-033); an S3-compatible store later.
+    # Where published Parquet files live (D-033): a folder, or s3://<bucket> for
+    # Cloudflare R2 (D-048) with the endpoint and a READ-ONLY key below.
     price_store_dir: str = "price-store"
+    price_store_endpoint: str = ""
+    price_store_key_id: str = ""
+    price_store_secret: str = ""
     # Review page (ADM-01): off unless both are set. Interim sign-in, MFA later (ADM-02).
     admin_token: str = ""
     admin_database_url: str = ""
+    # Provider portal (D-050): off unless PORTAL_DATABASE_URL is set. The portal
+    # role writes provider accounts, homepages, reviews and counts only.
+    portal_database_url: str = ""
+    # Secret for reviewer fingerprints (never stored with emails).
+    portal_secret: str = ""
+    # Public address of the website, used in emailed links.
+    site_url: str = "http://localhost:3000"
+    # Development only: return sign-in and review links in responses (there is
+    # no email service yet, Q26). Always off when ENVIRONMENT=production.
+    portal_dev_links: bool = False
+    # Hosting (D-048): instead of API_DATABASE_URL, give the owner DATABASE_URL
+    # plus PS_API_PASSWORD and the API connects as the restricted role.
+    database_url: str = ""
+    ps_api_role: str = "ps_api"
+    ps_api_password: str = ""
+    ps_portal_role: str = "ps_portal"
+    ps_portal_password: str = ""
+
+    @model_validator(mode="after")
+    def _api_url_from_parts(self) -> Settings:
+        if (
+            "api_database_url" not in self.model_fields_set
+            and self.database_url
+            and (self.ps_api_password)
+        ):
+            url = make_url(sqlalchemy_url(self.database_url)).set(
+                username=self.ps_api_role, password=self.ps_api_password
+            )
+            self.api_database_url = url.render_as_string(hide_password=False)
+        if (
+            "portal_database_url" not in self.model_fields_set
+            and self.database_url
+            and (self.ps_portal_password)
+        ):
+            url = make_url(sqlalchemy_url(self.database_url)).set(
+                username=self.ps_portal_role, password=self.ps_portal_password
+            )
+            self.portal_database_url = url.render_as_string(hide_password=False)
+        return self
+
+    @property
+    def show_dev_links(self) -> bool:
+        return self.portal_dev_links and self.environment != "production"
+
+    def store_args(self) -> tuple[str, str, str, str]:
+        return (
+            self.price_store_dir,
+            self.price_store_endpoint,
+            self.price_store_key_id,
+            self.price_store_secret,
+        )
 
 
 @lru_cache

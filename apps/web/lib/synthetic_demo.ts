@@ -464,3 +464,9 @@ export function demoServiceForCode(code: string): string {
   const hit = Object.entries(BASE).find(([, [, c]]) => c.endsWith(" " + code));
   return hit ? hit[0] : DEMO_SERVICES[0]!.slug;
 }
+
+export function demoPayerSuggest(q: string) {
+  const names = ["SAMPLE HEALTH", "Sample Health All Plans", "SAMPLE CARE HMO", "Sample Union Trust"];
+  const n = q.trim().toLowerCase();
+  return names.filter((x) => x.toLowerCase().includes(n)).map((name, i) => ({ name, facilities: 4 - i }));
+}

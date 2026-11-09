@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useApp } from "@/components/AppState";
 import { Heart } from "@/components/Icons";
+import { PayerAsWritten } from "@/components/PayerAsWritten";
 import { ResultCard } from "@/components/ResultCard";
 import { SearchForm } from "@/components/SearchForm";
 import { api } from "@/lib/api";
@@ -36,6 +37,7 @@ function Results() {
   // it stays in each place's details and on the bill-help page
   const mode = (sp.get("mode") === "plan" ? "plan" : "cash") as Mode;
   const planId = sp.get("plan");
+  const payerRaw = sp.get("payer");
   const ptype = sp.get("type");
   const radius = RADII.includes(sp.get("r") ?? "") ? (sp.get("r") as string) : "25";
   const sort = sp.get("sort") === "near" ? "near" : "price";
@@ -81,7 +83,7 @@ function Results() {
 
   useEffect(() => {
     if (!coords || (!service && !code)) return;
-    if (mode === "plan" && !planId) {
+    if (mode === "plan" && !planId && !payerRaw) {
       setResult(null);
       return;
     }
@@ -89,14 +91,14 @@ function Results() {
     setLoading(true);
     setError(null);
     api
-      .search({ lat: coords.lat, lng: coords.lng, service, codeSystem, code, mode, planId, providerType: ptype, radius })
+      .search({ lat: coords.lat, lng: coords.lng, service, codeSystem, code, mode, planId, payerRaw, providerType: ptype, radius })
       .then((r) => live && setResult(r))
       .catch((e: Error) => live && setError(e.message))
       .finally(() => live && setLoading(false));
     return () => {
       live = false;
     };
-  }, [coords, service, codeSystem, code, mode, planId, ptype, radius, attempt]);
+  }, [coords, service, codeSystem, code, mode, planId, payerRaw, ptype, radius, attempt]);
 
   const svc = services.find((s) => s.slug === service) ?? null;
   const name = code
@@ -178,7 +180,9 @@ function Results() {
                   role="radio"
                   aria-checked={mode === x.m}
                   className={mode === x.m ? "seg on" : "seg"}
-                  onClick={() => setParam({ mode: x.m === "cash" ? null : x.m, plan: x.m === "plan" ? planId : null })}
+                  onClick={() =>
+                  setParam({ mode: x.m === "cash" ? null : x.m, plan: x.m === "plan" ? planId : null, payer: x.m === "plan" ? payerRaw : null })
+                }
                 >
                   {x.label}
                 </button>
@@ -193,7 +197,7 @@ function Results() {
             ) : (
               <div className="field plan-pick">
                 <label htmlFor="plan">{t.pickPlan}</label>
-                <select id="plan" value={planId ?? ""} onChange={(e) => setParam({ plan: e.target.value || null })}>
+                <select id="plan" value={planId ?? ""} onChange={(e) => setParam({ plan: e.target.value || null, payer: null })}>
                   <option value="">—</option>
                   {Array.from(new Set(plans.map((p) => p.payer))).map((payer) => (
                     <optgroup key={payer} label={payer}>
@@ -210,11 +214,14 @@ function Results() {
               </div>
             )
           )}
+          {mode === "plan" && plans !== null && (
+            <PayerAsWritten current={payerRaw} onPick={(name) => setParam({ payer: name, plan: null })} />
+          )}
         </div>
       </div>
 
       <div className="wrap results-body">
-        {mode === "plan" && !planId && plans !== null && plans.length > 0 && (
+        {mode === "plan" && !planId && !payerRaw && plans !== null && plans.length > 0 && (
           <p className="notice">{t.choosePlanFirst}</p>
         )}
         {loading && <ResultsSkeleton />}

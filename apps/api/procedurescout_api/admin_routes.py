@@ -20,7 +20,6 @@ import hmac
 import html
 import uuid
 from collections.abc import Iterator
-from pathlib import Path
 from typing import Annotated
 from urllib.parse import parse_qs
 
@@ -29,7 +28,8 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy import Connection, create_engine, text
 from sqlalchemy.engine import Engine
 
-from procedurescout_core.object_store import LocalStore, ObjectStore
+from procedurescout_core.db_url import sqlalchemy_url
+from procedurescout_core.object_store import ObjectStore, open_store
 from procedurescout_ingest import publish
 
 from .settings import get_settings
@@ -44,13 +44,13 @@ def get_admin_conn() -> Iterator[Connection]:
     if not settings.admin_database_url:
         raise HTTPException(status_code=404)
     if _engine is None:
-        _engine = create_engine(settings.admin_database_url)
+        _engine = create_engine(sqlalchemy_url(settings.admin_database_url))
     with _engine.begin() as conn:
         yield conn
 
 
 def get_admin_store() -> ObjectStore:
-    return LocalStore(Path(get_settings().price_store_dir))
+    return open_store(*get_settings().store_args())
 
 
 def reviewer(request: Request) -> str:
