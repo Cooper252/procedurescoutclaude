@@ -71,12 +71,21 @@ def _insurer_for(conn: Connection, payer_key: str) -> str | None:
 
 
 def resolve_new_spellings(conn: Connection) -> Resolution:
-    """New spellings in staged and published prices (price.price)."""
+    """New spellings in staged prices and published files' summaries."""
     pairs = conn.execute(
         text(
             """
-            SELECT payer_name_raw, plan_name_raw, count(*) FROM price.price
-            WHERE payer_name_raw IS NOT NULL AND plan_name_raw IS NOT NULL
+            SELECT payer_name_raw, plan_name_raw, sum(n) FROM (
+                SELECT payer_name_raw, plan_name_raw, count(*) AS n FROM price.price p
+                WHERE payer_name_raw IS NOT NULL AND plan_name_raw IS NOT NULL
+                  AND NOT EXISTS (SELECT 1 FROM price.file_payer_summary s
+                                  WHERE s.dataset_version_id = p.dataset_version_id)
+                GROUP BY 1, 2
+                UNION ALL
+                -- spellings from published files whose staged rows were removed (D-054)
+                SELECT payer_name_raw, plan_name_raw, prices FROM price.file_payer_summary
+                WHERE plan_name_raw <> ''
+            ) x
             GROUP BY 1, 2
             """
         )

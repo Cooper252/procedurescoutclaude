@@ -136,6 +136,13 @@ def _esc(value: object) -> str:
     return html.escape("" if value is None else str(value))
 
 
+@router.get("")
+@router.get("/")
+def admin_home() -> RedirectResponse:
+    """Staff typing /admin land on the price review page (sign-in is checked there)."""
+    return RedirectResponse("/admin/reviews", status_code=303)
+
+
 @router.get("/reviews", response_class=HTMLResponse)
 def reviews_page(who: Reviewer, conn: AdminConn, done: str | None = None) -> HTMLResponse:
     rows = []

@@ -23,6 +23,9 @@ app = FastAPI(
     openapi_url="/openapi.json",
 )
 
+from .ratelimit import middleware as rate_limit  # noqa: E402
+
+app.middleware("http")(rate_limit)
 app.include_router(search_router)
 app.include_router(care_router)
 app.include_router(portal_router)

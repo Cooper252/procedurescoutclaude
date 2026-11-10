@@ -77,6 +77,27 @@ def test_coverage_limits_say_may_qualify_only_when_approved(conn: Connection) ->
     )
 
 
+def test_coverage_limits_cover_every_state_with_sources(conn: Connection) -> None:
+    """D-056: every state + DC has adults, children, pregnancy and marketplace
+    rows, each approved with an official source; a Texas adult without children
+    above the parent limit is not told Medicaid, and Alaska uses its own guideline."""
+    _guidelines(conn)
+    stats = catalog.load_coverage_limits(conn, (ROOT / "coverage_limits.csv").read_text())
+    assert stats.rejects == []
+    rows = conn.execute(
+        text(
+            "SELECT state_code, count(*), bool_and(review_state = 'approved'), "
+            "bool_and(source_url LIKE 'https://%') FROM ref.coverage_limit GROUP BY 1"
+        )
+    ).all()
+    assert len(rows) == 51
+    assert all(r[1] == 4 and r[2] and r[3] for r in rows)
+    tx = assistance.coverage(conn, state_code="TX", household_size=1, annual_income=Decimal(8000))
+    assert ("medicaid", "adults") not in {(m.program, m.group) for m in tx}  # 16% limit
+    ak = assistance.coverage(conn, state_code="AK", household_size=1, annual_income=Decimal(15000))
+    assert ("medicaid", "adults") in {(m.program, m.group) for m in ak}
+
+
 @pytest.fixture()
 def client(conn: Connection) -> Iterator[TestClient]:
     def test_conn() -> Iterator[Connection]:

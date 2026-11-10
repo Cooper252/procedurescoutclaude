@@ -116,9 +116,12 @@ def plain_message(
 def facility_policy(conn: Connection, facility_id: uuid.UUID | str, state_code: str) -> str:
     """The plain-dollar message for one facility (no personal data needed)."""
     fid = str(uuid.UUID(str(facility_id)))
-    row = conn.execute(text("SELECT name FROM ref.facility WHERE id = :f"), {"f": fid}).first()
+    row = conn.execute(
+        text("SELECT name, state_code FROM ref.facility WHERE id = :f"), {"f": fid}
+    ).first()
     if row is None:
         raise AssistanceError("unknown facility")
+    state_code = str(row[1] or state_code)  # the facility's own state decides (AK/HI amounts)
     tiers = [
         Tier(
             str(r[0]),

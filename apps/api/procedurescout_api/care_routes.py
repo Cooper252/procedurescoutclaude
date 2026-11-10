@@ -59,7 +59,7 @@ class FacilityMessage(BaseModel):
 def facility_assistance(
     facility_id: Annotated[str, Path(max_length=36)],
     conn: Conn,
-    state: Annotated[str, Query(min_length=2, max_length=2)] = "NV",
+    state: Annotated[str, Query(min_length=2, max_length=2)] = "US",
 ) -> FacilityMessage:
     try:
         message = assistance.facility_policy(conn, facility_id, state)

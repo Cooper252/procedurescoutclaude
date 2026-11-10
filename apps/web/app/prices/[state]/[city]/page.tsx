@@ -21,8 +21,8 @@ export default async function CityPage({ params }: { params: Params }) {
   const others = (await data.cities(state)).filter((x) => x.slug !== c.slug);
   return (
     <PlaceIndex
-      title="areaTitle"
-      vars={{ service: "Medical", place: `${c.city}, ${c.state}` }}
+      title="cityTitle"
+      vars={{ place: `${c.city}, ${c.state}` }}
       sections={[
         { heading: "areaServices", links: services.map((s) => ({ href: `/prices/${state}/${c.slug}/${s.slug}`, label: s.name.replace(/ \(.*\)$/, ""), slug: s.slug })) },
         { heading: "areaNearby", links: others.map((x) => ({ href: `/prices/${state}/${x.slug}`, label: x.city })) },

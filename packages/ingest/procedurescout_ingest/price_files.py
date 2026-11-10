@@ -1,4 +1,4 @@
-"""Phase 2, step 2a: download each Nevada price file, check what is inside, delete it.
+"""Phase 2, step 2a: download each price file of one state, check what is inside, delete it.
 
 No prices are loaded yet. For every price file assigned to one of our
 facilities this module:
@@ -585,6 +585,9 @@ def check_price_files(
     load: bool = False,
     min_free_bytes: int = DEFAULT_MIN_FREE_BYTES,
     skip_unchanged: bool = True,
+    after_load: Callable[[Connection, str], None] | None = None,
+    max_files: int | None = None,
+    stop_at_ns: int | None = None,
 ) -> LoadStats:
     """Download, check and delete each file; with `load`, also read its prices
     into a staged dataset (price_load) before deleting it.
@@ -592,7 +595,16 @@ def check_price_files(
     National refreshes (D-048): a file whose server date and size match the
     last file we read from that link, for a facility whose prices are already
     published, is not downloaded again; a downloaded file whose SHA-256 equals
-    the last one read is not loaded again."""
+    the last one read is not loaded again.
+
+    `after_load(conn, facility_id)` runs after each file's prices are staged:
+    the production run publishes and removes the staged rows right away, so
+    the database never holds a whole state's prices at once (D-054).
+
+    `max_files` stops after that many downloads (the all-states test run);
+    `stop_at_ns` (a time.monotonic_ns() value) stops cleanly before a time limit such
+    as GitHub's 6 hours, so finished files stay saved and the next run carries
+    on from there (published, unchanged files are skipped)."""
     stats = LoadStats()
     today = today or datetime.now().astimezone().date()
     chosen, skipped = choose_per_facility(candidates(conn, state_code))
@@ -607,7 +619,15 @@ def check_price_files(
         )
     workdir.mkdir(parents=True, exist_ok=True)
     total = 0
+    downloads = 0
     for c in chosen:
+        if stop_at_ns is not None and time.monotonic_ns() >= stop_at_ns:
+            stats.count("stopped_for_time")
+            stats.summary["stopped_early"] = "time limit reached; run again to continue"
+            break
+        if max_files is not None and downloads >= max_files:
+            stats.summary["stopped_early"] = f"file limit {max_files} reached"
+            break
         stats.rows_in += 1
         who = f"ccn:{c.ccn}"
         last = (
@@ -637,6 +657,7 @@ def check_price_files(
             stats.count("unchanged_skipped")
             continue
         dest = workdir / f"price-file-{c.ccn}-{c.source_id[:8]}"
+        downloads += 1
         started = time.monotonic()
         d = downloader(c.url, dest)
         try:
@@ -661,6 +682,8 @@ def check_price_files(
                 continue
             if load:
                 _load(conn, c, d.path, check, file_id, state_code, stats, min_free_bytes, workdir)
+                if after_load is not None:
+                    after_load(conn, c.facility_id)
         finally:
             dest.unlink(missing_ok=True)
             if d.path is not None:
@@ -668,14 +691,16 @@ def check_price_files(
     stats.summary["bytes_downloaded"] = total
     stats.summary["files_chosen"] = len(chosen)
     if load:
+        # every state's partition (Nevada has its own; other states use the default)
         sizes = conn.execute(
             text(
-                "SELECT pg_total_relation_size('price.price_nv'), "
-                "pg_relation_size('price.price_nv'), pg_database_size(current_database())"
+                "SELECT coalesce(sum(pg_total_relation_size(relid)), 0), "
+                "coalesce(sum(pg_relation_size(relid)), 0), pg_database_size(current_database()) "
+                "FROM pg_partition_tree('price.price') WHERE isleaf"
             )
         ).one()
-        stats.summary["price_nv_total_bytes"] = int(sizes[0])
-        stats.summary["price_nv_table_bytes"] = int(sizes[1])
+        stats.summary["price_total_bytes"] = int(sizes[0])
+        stats.summary["price_table_bytes"] = int(sizes[1])
         stats.summary["database_bytes"] = int(sizes[2])
     return stats
 

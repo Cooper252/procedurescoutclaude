@@ -679,9 +679,9 @@ def _megabytes(n: int) -> str:
     return f"{whole}.{rest} MB"
 
 
-def probe_sources(conn: Connection, prober: Prober) -> LoadStats:
+def probe_sources(conn: Connection, prober: Prober, state_code: str | None = None) -> LoadStats:
     """Check the size and date of every price-file URL that belongs to one of our
-    facilities; download nothing.
+    facilities (in one state when ``state_code`` is given); download nothing.
 
     In scope: files assigned to one facility, and files held back because they
     also list locations we could not match (at least one entry in them matched
@@ -696,9 +696,15 @@ def probe_sources(conn: Connection, prober: Prober) -> LoadStats:
                       FROM src.hpt_txt_entry e JOIN ref.facility mf ON mf.id = e.facility_id
                      WHERE e.mrf_url = s.url AND e.match_status = 'matched') AS matched_ccns
             FROM src.transparency_source s LEFT JOIN ref.facility f ON f.id = s.facility_id
+            WHERE CAST(:st AS text) IS NULL OR f.state_code = :st
+               OR EXISTS (SELECT 1 FROM src.hpt_txt_entry e2
+                            JOIN ref.facility f2 ON f2.id = e2.facility_id
+                           WHERE e2.mrf_url = s.url AND e2.match_status = 'matched'
+                             AND f2.state_code = :st)
             ORDER BY s.url
             """
-        )
+        ),
+        {"st": state_code.upper() if state_code else None},
     ).all()
     total = 0
     for sid, url, ccn, matched_ccns in sources:

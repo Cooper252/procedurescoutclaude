@@ -22,7 +22,7 @@ export default function HelpPaying() {
   const [centers, setCenters] = useState<HealthCenter[] | null>(null);
 
   useEffect(() => {
-    api.message(place?.state ?? "NV").then(setMsg).catch(() => setMsg(null));
+    api.message(place?.state ?? null).then(setMsg).catch(() => setMsg(null));
   }, [place?.state]);
 
   async function run(sz: number, inc: string, z: string) {
@@ -216,17 +216,33 @@ export default function HelpPaying() {
         </section>
       )}
 
-      {place?.state === "NV" && (
+      {place && (
         <section className="coverage">
           <h2>{t.freeClinicsTitle}</h2>
           <p className="lead small">{t.freeClinicsSub}</p>
           <a
             className="btn ghost"
-            href="https://www.nevada211.org/healthcare-services/community-clinics/"
+            href={place.state === "NV" ? "https://www.nevada211.org/healthcare-services/community-clinics/" : "https://www.211.org/"}
             target="_blank"
             rel="noopener noreferrer"
           >
             {t.freeClinicsLink}
+          </a>
+        </section>
+      )}
+
+      {place?.state === "NV" && (
+        <section className="coverage">
+          <h2>{t.nvLawTitle}</h2>
+          <p>{t.nvLawBody}</p>
+          <p className="small muted">{t.nvLawFine}</p>
+          <a
+            className="btn ghost"
+            href="https://www.leg.state.nv.us/NRS/NRS-439B.html#NRS439BSec260"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {t.nvLawLink}
           </a>
         </section>
       )}

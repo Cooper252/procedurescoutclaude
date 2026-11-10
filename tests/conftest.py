@@ -176,3 +176,12 @@ def insert_price(conn: Connection, **overrides: object) -> None:
     cols = ", ".join(row)
     params = ", ".join(f":{c}" for c in row)
     conn.execute(text(f"INSERT INTO price.price ({cols}) VALUES ({params})"), row)
+
+
+@pytest.fixture(autouse=True)
+def _fresh_rate_limits() -> Iterator[None]:
+    """Each test starts with empty rate-limit counters."""
+    from procedurescout_api import ratelimit
+
+    ratelimit.reset()
+    yield

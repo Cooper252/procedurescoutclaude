@@ -2,7 +2,19 @@
 
 Newest first. Each entry: decision, reason, consequences.
 
-## 2026-11-09 — D-053: Email by Resend (switchable); per-person review logins
+## 2026-11-10 — D-057: The site lives at procedurescout.com
+Cooper owns procedurescout.com. `SITE_URL`/`NEXT_PUBLIC_SITE_URL` are `https://procedurescout.com`, email is sent from an address at that domain (verified in Resend), and the domain's DNS points at Render.
+
+## 2026-11-10 — D-056: Claude confirms state laws and program limits, with sources
+Cooper: "You confirm it. I can't go through 50 state laws." Claude may approve state rules (uninsured-discount laws, Medicaid/CHIP and marketplace income limits, similar public rules) only from an official or recognised source cited in the row (`source_url`), recorded as `reviewed_by = "Claude (delegated by Cooper, D-056)"`. Anything that can't be sourced stays proposed and is not shown. Wording always says "may qualify" and that the agency or hospital decides. First use: income limits for all 50 states + DC (MACPAC Exhibits 35/36, July 2025, plus the standard 5-point disregard; California children use the statewide 266%), and Nevada's uninsured discount (NRS 439B.260 / 439B.115, read on the Legislature's site, revised 2026-04-15), shown on the help-paying page for Nevada only as a conditional rule (inpatient, uninsured, private hospital with 200+ beds) because we don't hold bed counts. Lawyer review (Q25) still covers the site's wording.
+
+## 2026-11-10 — D-055: First price files publish automatically when every check passes
+Cooper answered Q35 yes. A hospital's first file publishes when it has prices, no file problems and at most 1% of rows refused; otherwise it waits on the review page as before. The live-load run's `first_files_automatic` now defaults to on.
+
+## 2026-11-10 — D-054: Publish file by file; staged rows removed after publishing
+National storage: the live database (10 GB to start) can't hold whole states' staged prices. The live-load run (`load-state-production.yml`) stages one hospital file, publishes it to R2 when the automatic checks pass, removes its staged rows (the Parquet file is what the site reads), and commits before the next file. Small per-file summaries (codes and insurance spellings) are kept so the code index, insurer search and insurance-name matching stay complete. Hospital website candidates come from the community-built DoltHub list (`dolthub/standard-charge-files`, CC BY-SA 4.0), used only as hints: each is accepted only if the site's own cms-hpt.txt names the hospital (D-048). Whether a hospital's first file may publish without a person is Cooper's decision (Q35); the run has a switch for it, off by default.
+
+: Email by Resend (switchable); per-person review logins
 - Email: Cooper chose Resend (free up to 3,000 emails a month, 100 a day; then $20 a month), on the condition it can be changed later. The sender is generic: Resend's API or any SMTP service (Amazon SES and others) by settings, no code change (`procedurescout_core/mailer.py`). Sent emails have their one-time link removed; sent rows are deleted after 30 days.
 - Review pages: each reviewer has their own account (email link + authenticator app), added with `add-staff`; decisions are recorded under their email. The shared password works only outside production (ADM-02).
 

@@ -17,15 +17,18 @@
 | Q16 | CDT (dental) descriptor licence from the ADA, or code numbers with our own names only? | Cooper (counsel) | Before dental launch |
 | Q17 | Paid listings (D-031, rules confirmed 2026-11-07): length of the free period and the prices; counsel review of the advertising terms. | Cooper (counsel) | Before Phase 9 |
 | Q20 | Review the 13 proposed hospital financial assistance policies on the review page (UMC, 3 HCA, 3 St. Rose, 2 Renown, Carson Tahoe, North Vista, Saint Mary's, Banner Churchill); still to find: the Valley Health System (UHS) Las Vegas hospitals, Northern Nevada Medical Center, rural hospitals. | Cooper | Before launch |
-| Q22 | Confirm NRS 439B.260 (30% off billed charges for uninsured patients at certain Nevada hospitals) applies as North Vista's policy says, before it is shown (SITE_DESIGN §4.9). | Engineering + counsel | Before launch |
 | Q25 | Have a lawyer review the draft disclaimer, terms of use and privacy notice (`apps/web/lib/legal.ts`), and the Spanish versions, before launch. | Cooper (counsel) | Before launch |
 | Q24 | Plan names approved (D-041). Still open: the low-confidence spellings (plain "Sierra", "Blue Cross Blue Shield Medicare", Cigna Wyoming) in `data/reference/proposed/plan_names_proposed.csv`. | Cooper | Before launch |
 | Q10 | NUBC revenue code descriptions: licence or code-only display? | Cooper (counsel) | Phase 3 |
 | Q30 | Listing fee and Sponsored prices by kind of business, and when charging starts (D-051). Free for now. | Cooper | When he decides to charge |
-| Q34 | Where to get candidate websites for about 6,000 hospitals nationwide. The checking is automatic (D-048: the site's own cms-hpt.txt must name the hospital), but candidates must come from somewhere (proposed: Claude searches per state and proposes them, as for Nevada). | Engineering | Before national price downloads |
 
 ## Resolved
 
+- Q35 (2026-11-10): yes, first files publish automatically when every check passes (D-055).
+- Q36 (2026-11-10): procedurescout.com, which Cooper owns (D-057).
+- Q22 (2026-11-10): confirmed by Claude from the Legislature's text of NRS 439B.260 and 439B.115 (D-056): at least 30% off for uninsured inpatients not eligible for public programs who arrange payment within 30 days, at private hospitals with 200+ beds. Shown for Nevada on the help-paying page.
+
+- Q34 (2026-11-10): hospital website candidates come from the DoltHub community list (CC BY-SA 4.0), each verified by the hospital's own cms-hpt.txt (D-054).
 - Q33 (2026-11-09): Cooper approved the national-provider taxonomy list as is (`data/reference/nppes_taxonomy_map.csv`).
 - Q26 (2026-11-09): sign-in by email link + authenticator app (built); email through Resend, switchable to Amazon SES or any SMTP service (D-053).
 - Q31 (2026-11-08): Cooper: no receipts; visits are confirmed by a link from us (email) or from the provider (D-050).

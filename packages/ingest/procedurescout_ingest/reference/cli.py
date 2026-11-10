@@ -14,6 +14,7 @@ import argparse
 import json
 import os
 import sys
+import time
 import uuid
 from collections.abc import Callable
 from datetime import date
@@ -77,6 +78,7 @@ STEP_DATASETS = {
     "msdrg": "cms_ms_drg_table5",
     "websites": "facility_websites",
     "aliases": "manual_relationships",
+    "find_websites": "facility_websites",
     "discover": "cms_hpt_txt_discovery",
     "manual_sources": "cms_hpt_txt_discovery",
     "probe": "cms_hpt_txt_discovery",
@@ -108,7 +110,10 @@ def _run(
     sha256: str | None = None,
     nbytes: int | None = None,
     parameters: dict[str, Any] | None = None,
+    commits_inside: bool = False,
 ) -> LoadStats:
+    """commits_inside: the work commits as it goes (production price loading,
+    one file at a time, D-054); otherwise everything is one transaction."""
     with engine.begin() as conn:
         load_id: uuid.UUID = begin_load(
             conn,
@@ -121,9 +126,15 @@ def _run(
             parameters=parameters,
         )
     try:
-        with engine.begin() as conn:
-            stats = work(conn)
-            finish_load(conn, load_id, stats)
+        if commits_inside:
+            with engine.connect() as conn:
+                stats = work(conn)
+                finish_load(conn, load_id, stats)
+                conn.commit()
+        else:
+            with engine.begin() as conn:
+                stats = work(conn)
+                finish_load(conn, load_id, stats)
     except Exception as exc:
         with engine.begin() as conn:
             fail_load(conn, load_id, f"{type(exc).__name__}: {exc}")
@@ -340,9 +351,9 @@ def cmd_probe(args: argparse.Namespace, engine: Engine) -> None:
         _run(
             engine,
             "cms_hpt_txt_discovery",
-            lambda c: discovery.probe_sources(c, prober),
+            lambda c: discovery.probe_sources(c, prober, getattr(args, "state", None)),
             source_file="known price-file URLs (headers only)",
-            parameters={"kind": "probe"},
+            parameters={"kind": "probe", "state": getattr(args, "state", None)},
         )
 
 
@@ -369,14 +380,49 @@ def cmd_price_files(args: argparse.Namespace, engine: Engine) -> None:
             home = price_files.load_home_price_files(Path(home_dir).resolve())
             print(f"price files available from Cooper's computer: {len(home)}", file=sys.stderr)
             downloader = price_files.with_home_fallback(downloader, home)
+        # Production (D-054): publish each facility's file as soon as it passes the
+        # automatic checks, remove its staged rows, and commit, one file at a time.
+        publish_now = load and os.environ.get("PUBLISH_AS_YOU_GO") == "1"
+        allow_first = os.environ.get("AUTO_PUBLISH_FIRST_FILES") == "1"
+        after = None
+        if publish_now:
+            from .. import publish
+
+            store = _store()
+
+            def after(conn: Connection, facility_id: str) -> None:
+                publish.auto_publish_pending(conn, store, allow_first, facility_id)
+                publish.prune_published(conn, facility_id)
+                conn.commit()
+
+        limit = os.environ.get("PRICE_FILE_LIMIT", "").strip()
+        budget = os.environ.get("PRICE_TIME_BUDGET_MINUTES", "").strip()
+        stop_at_ns = time.monotonic_ns() + int(budget) * 60 * 10**9 if budget else None
         _run(
             engine,
             "price_file_check",
             lambda c: price_files.check_price_files(
-                c, args.state, downloader, Path(work), load=load, min_free_bytes=min_free
+                c,
+                args.state,
+                downloader,
+                Path(work),
+                load=load,
+                min_free_bytes=min_free,
+                after_load=after,
+                max_files=int(limit) if limit else None,
+                stop_at_ns=stop_at_ns,
             ),
             source_file="assigned price files (downloaded, checked, deleted)",
-            parameters={"state": args.state, "max_bytes": max_bytes, "load_prices": load},
+            parameters={
+                "state": args.state,
+                "max_bytes": max_bytes,
+                "load_prices": load,
+                "publish_as_you_go": publish_now,
+                "auto_publish_first_files": publish_now and allow_first,
+                "file_limit": limit or None,
+                "time_budget_minutes": budget or None,
+            },
+            commits_inside=publish_now,
         )
 
 
@@ -491,6 +537,38 @@ def cmd_verify_websites(args: argparse.Namespace, engine: Engine) -> None:
             lambda c: website_verify.verify(c, csv_text, fetch, LoadStats()),
             source_file=args.file,
         )
+
+
+def cmd_find_websites(args: argparse.Namespace, engine: Engine) -> None:
+    from .. import website_verify
+
+    with new_client() as client:
+
+        def get_json(url: str, params: dict[str, str]) -> Any:
+            r = client.get(url, params=params, timeout=60)
+            r.raise_for_status()
+            return r.json()
+
+        def fetch(url: str) -> tuple[int, str]:
+            r = client.get(url, timeout=30)
+            return r.status_code, r.text[:2_000_000]
+
+        candidates = website_verify.dolthub_candidates(get_json, args.state)
+        _run(
+            engine,
+            "facility_websites",
+            lambda c: website_verify.verify(c, candidates, fetch, LoadStats()),
+            source_url=website_verify.DOLTHUB_SQL,
+            parameters={"state": args.state, "candidates": candidates.count("\n") - 1},
+        )
+
+
+def cmd_prune_published(args: argparse.Namespace, engine: Engine) -> None:
+    from .. import publish
+
+    with engine.begin() as conn:
+        n = publish.prune_published(conn)
+    print(f"removed {n} staged rows of published files")
 
 
 def cmd_set_plan(args: argparse.Namespace, engine: Engine) -> None:
@@ -811,16 +889,18 @@ def cmd_nv_all(args: argparse.Namespace, engine: Engine) -> None:
     step("health_centers", lambda: cmd_health_centers(ns(state=st, file=None), engine))
     if os.path.exists(WEBSITES_CSV):
         step("websites", lambda: cmd_websites(ns(file=WEBSITES_CSV), engine))
-        step("discover", lambda: cmd_discover(ns(state=st), engine))
+    # hospitals still without a website: candidates checked by their cms-hpt.txt (D-048)
+    step("find_websites", lambda: cmd_find_websites(ns(state=st), engine))
+    step("discover", lambda: cmd_discover(ns(state=st), engine))
     if os.path.exists(MANUAL_SOURCES_CSV):
         step("manual_sources", lambda: cmd_manual_sources(ns(file=MANUAL_SOURCES_CSV), engine))
-    step("probe", lambda: cmd_probe(ns(), engine))
+    step("probe", lambda: cmd_probe(ns(state=st), engine))
     if os.environ.get("PRICE_FILE_DOWNLOADS") == "1":
         # Large downloads (about 5 GB for Nevada): only when the run asks for it.
         step("price_files", lambda: cmd_price_files(ns(state=st), engine))
         if os.environ.get("PRICE_LOAD") == "1":
             step("resolve_plans", lambda: cmd_resolve_plans(ns(), engine))
-        if os.environ.get("PRICE_LOAD") == "1":
+        if os.environ.get("PRICE_LOAD") == "1" and os.environ.get("PUBLISH_AS_YOU_GO") != "1":
             try:
                 cmd_storage_experiment(ns(), engine)
             except Exception as exc:  # a measurement; never fails the run
@@ -878,7 +958,8 @@ def build_parser() -> argparse.ArgumentParser:
     sp = sub.add_parser("manual-sources", help="reviewed hand-entered price-file links")
     sp.add_argument("--file", default=MANUAL_SOURCES_CSV)
 
-    sub.add_parser("probe", help="size/date check of known price files (no download)")
+    sp = sub.add_parser("probe", help="size/date check of known price files (no download)")
+    sp.add_argument("--state", default=None, type=str.upper, help="only this state's files")
     sub.add_parser("storage-experiment", help="measure storage layouts for loaded prices")
 
     sub.add_parser(
@@ -899,6 +980,11 @@ def build_parser() -> argparse.ArgumentParser:
         "verify-websites", help="accept proposed hospital websites whose cms-hpt.txt names them"
     )
     sp.add_argument("--file", required=True, help="CSV with ccn,url,source")
+    sp = sub.add_parser(
+        "find-websites", help="candidate hospital websites, verified by their cms-hpt.txt"
+    )
+    sp.add_argument("--state", required=True, type=str.upper)
+    sub.add_parser("prune-published", help="remove staged rows of published files (D-054)")
     sp = sub.add_parser("set-plan", help="add or change a paid plan (Cooper's decision, D-051)")
     sp.add_argument("--code", required=True)
     sp.add_argument("--name", required=True)
@@ -984,8 +1070,10 @@ def main(argv: list[str] | None = None) -> None:
             "send-email": lambda: cmd_send_email(args, engine),
             "add-staff": lambda: cmd_add_staff(args, engine),
             "set-plan": lambda: cmd_set_plan(args, engine),
+            "prune-published": lambda: cmd_prune_published(args, engine),
             "nppes-offices": lambda: cmd_nppes_offices(args, engine),
             "verify-websites": lambda: cmd_verify_websites(args, engine),
+            "find-websites": lambda: cmd_find_websites(args, engine),
             "set-fee-start": lambda: cmd_set_fee_start(args, engine),
             "approve": lambda: cmd_approve(args, engine),
             "reject": lambda: cmd_reject(args, engine),

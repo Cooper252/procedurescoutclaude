@@ -322,3 +322,12 @@ def test_city_places(client: TestClient) -> None:
     assert client.get("/v1/places/city/nv/no-such-town").status_code == 404
     assert client.get("/v1/places/city/nv/Bad Slug!").status_code == 404
     assert client.get("/v1/places/cities", params={"state": "N1"}).status_code == 422
+
+
+def test_bare_admin_address_goes_to_the_review_page() -> None:
+    from fastapi.testclient import TestClient
+
+    from procedurescout_api.main import app
+
+    r = TestClient(app).get("/admin", follow_redirects=False)
+    assert r.status_code == 303 and r.headers["location"] == "/admin/reviews"

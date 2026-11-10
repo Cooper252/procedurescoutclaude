@@ -47,12 +47,12 @@ services:
       - key: PORTAL_SECRET
         generateValue: true
       - key: SITE_URL
-        sync: false
+        value: https://procedurescout.com
       # Email through Resend (D-053); switch EMAIL_PROVIDER to smtp for Amazon SES etc.
       - key: EMAIL_PROVIDER
         value: resend
       - key: EMAIL_FROM
-        sync: false
+        value: ProcedureScout <noreply@procedurescout.com>
       - key: RESEND_API_KEY
         sync: false
       # Billing stays off until Cooper adds Stripe keys (D-051)
@@ -77,6 +77,9 @@ services:
     runtime: node
     plan: 0.5c-512mb
     region: oregon
+    domains:  # D-057; DNS records are added at the domain registrar after sign-up
+      - procedurescout.com
+      - www.procedurescout.com
     rootDir: apps/web
     buildCommand: npm ci && npm run build
     startCommand: npx next start -p $PORT
@@ -90,4 +93,4 @@ services:
           type: web
           property: hostport
       - key: NEXT_PUBLIC_SITE_URL
-        sync: false
+        value: https://procedurescout.com

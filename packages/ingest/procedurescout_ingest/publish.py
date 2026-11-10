@@ -174,6 +174,7 @@ def approve(
         {"who": who, "note": note, "d": dv},
     )
     _move(conn, run_id, ImportState.PUBLISHED)
+    write_summaries(conn, dv, str(facility_id))
     conn.execute(
         text(
             """
@@ -247,11 +248,20 @@ class AutoDecision:
     reasons: tuple[str, ...]
 
 
-def auto_check(conn: Connection, dataset_version_id: uuid.UUID) -> tuple[bool, list[str]]:
+FIRST_FILE_MAX_REFUSED = Decimal("0.01")
+
+
+def auto_check(
+    conn: Connection, dataset_version_id: uuid.UUID, allow_first: bool = False
+) -> tuple[bool, list[str]]:
     """A staged refresh may publish without a person only when the facility
     already has an approved dataset and nothing got worse (Cooper, Q19):
     refused rows not more than last time, price count within 30%, no new
-    file problems, and the file's own date not older."""
+    file problems, and the file's own date not older.
+
+    With allow_first (only if Cooper approves it for the national launch,
+    Q35), a facility's first file may also publish automatically when it has
+    prices, no file problems, and at most 1% of rows refused."""
     row = conn.execute(
         text(
             """
@@ -280,7 +290,17 @@ def auto_check(conn: Connection, dataset_version_id: uuid.UUID) -> tuple[bool, l
         {"f": row[0]},
     ).first()
     if prev is None:
-        return False, ["first file for this facility: a person reviews it"]
+        if not allow_first:
+            return False, ["first file for this facility: a person reviews it"]
+        rows_out, refused = int(row[1] or 0), int(row[2] or 0)
+        first: list[str] = []
+        if rows_out == 0:
+            first.append("no prices")
+        if row[3]:
+            first.append(f"file problems: {row[3]}")
+        if rows_out and Decimal(refused) > FIRST_FILE_MAX_REFUSED * (rows_out + refused):
+            first.append(f"{refused} rows refused (more than 1%)")
+        return not first, first
     reasons = []
     new_rows, new_rej = int(row[1] or 0), int(row[2] or 0)
     old_rows, old_rej = int(prev[0] or 0), int(prev[1] or 0)
@@ -298,12 +318,74 @@ def auto_check(conn: Connection, dataset_version_id: uuid.UUID) -> tuple[bool, l
     return not reasons, reasons
 
 
-def auto_publish_pending(conn: Connection, store: ObjectStore) -> list[AutoDecision]:
+def auto_publish_pending(
+    conn: Connection,
+    store: ObjectStore,
+    allow_first: bool = False,
+    facility_id: str | None = None,
+) -> list[AutoDecision]:
     decisions = []
     for p in pending_reviews(conn):
+        if facility_id is not None and p.facility_id != facility_id:
+            continue
         dv = uuid.UUID(p.dataset_version_id)
-        ok, reasons = auto_check(conn, dv)
+        ok, reasons = auto_check(conn, dv, allow_first)
         if ok:
             approve(conn, dv, AUTO_REVIEWER, store, note="all automatic checks passed")
         decisions.append(AutoDecision(p.dataset_version_id, p.facility_name, ok, tuple(reasons)))
     return decisions
+
+
+# --------------------------------------------------- national storage (D-054)
+def write_summaries(conn: Connection, dataset_version_id: uuid.UUID, facility_id: str) -> None:
+    """Keep the small per-file summaries the code index and insurance-name
+    matching need, so the staged rows can be removed after publishing."""
+    conn.execute(
+        text(
+            """
+            INSERT INTO price.file_code_summary (dataset_version_id, facility_id, code_system,
+                code, top_description, prices)
+            SELECT :d, CAST(:f AS uuid), code_system, code,
+                   mode() WITHIN GROUP (ORDER BY left(btrim(description_raw), 300))
+                       FILTER (WHERE description_raw IS NOT NULL AND btrim(description_raw) <> ''),
+                   count(*)
+            FROM price.price WHERE dataset_version_id = :d
+            GROUP BY code_system, code
+            ON CONFLICT DO NOTHING
+            """
+        ),
+        {"d": dataset_version_id, "f": facility_id},
+    )
+    conn.execute(
+        text(
+            """
+            INSERT INTO price.file_payer_summary (dataset_version_id, facility_id,
+                payer_name_raw, plan_name_raw, prices)
+            SELECT :d, CAST(:f AS uuid), payer_name_raw, coalesce(plan_name_raw, ''), count(*)
+            FROM price.price
+            WHERE dataset_version_id = :d AND payer_name_raw IS NOT NULL
+              AND btrim(payer_name_raw) <> ''
+            GROUP BY payer_name_raw, coalesce(plan_name_raw, '')
+            ON CONFLICT DO NOTHING
+            """
+        ),
+        {"d": dataset_version_id, "f": facility_id},
+    )
+
+
+def prune_published(conn: Connection, facility_id: str | None = None) -> int:
+    """Remove staged rows of datasets that are published (their Parquet file is
+    the copy the site reads) or retired, once their summaries exist."""
+    result = conn.execute(
+        text(
+            """
+            DELETE FROM price.price p USING src.dataset_version dv
+            WHERE dv.id = p.dataset_version_id AND dv.status IN ('published', 'retired')
+              AND (CAST(:f AS uuid) IS NULL OR dv.facility_id = CAST(:f AS uuid))
+              AND EXISTS (SELECT 1 FROM price.file_code_summary s
+                          WHERE s.dataset_version_id = dv.id)
+            """
+        ),
+        {"f": facility_id},
+    )
+    return int(result.rowcount or 0)

@@ -1,8 +1,9 @@
 """Verify proposed hospital websites by their own cms-hpt.txt (D-048).
 
 Nationally there are about 6,000 hospitals, too many for a person to check
-each website. A proposed website (from data/reference/proposed/
-website_candidates_<STATE>.csv: ccn,url,source) is accepted automatically
+each website. Candidate websites come from a CSV (ccn,url,source) or from the
+community-built DoltHub list of hospital homepages (dolthub_candidates). A
+candidate is accepted automatically
 only when the site's /cms-hpt.txt has a location-name that resolves, by exact
 approved alias in the same state, to that very hospital. The fetched file is
 the evidence. Anything else is reported and left for later; nothing is
@@ -15,6 +16,7 @@ import csv
 import io
 import re
 from collections.abc import Callable
+from typing import Any
 from urllib.parse import urlparse
 
 from sqlalchemy import Connection, text
@@ -82,3 +84,38 @@ def verify(conn: Connection, candidates_csv: str, fetch: Fetch, stats: LoadStats
         stats.rows_loaded += 1
         stats.count("verified")
     return stats
+
+
+# --------------------------------------------------------------- candidates
+DOLTHUB_SQL = "https://www.dolthub.com/api/v1alpha1/dolthub/standard-charge-files/main"
+DOLTHUB_SOURCE = "dolthub/standard-charge-files (CC BY-SA 4.0)"
+
+
+def dolthub_candidates(get_json: Callable[[str, dict[str, str]], Any], state_code: str) -> str:
+    """Candidate homepages for one state's hospitals from the community-built
+    DoltHub list (CC BY-SA 4.0, used only as hints; each is verified by the
+    site's own cms-hpt.txt before use). Returns ccn,url,source CSV text."""
+    if not re.fullmatch(r"[A-Z]{2}", state_code):
+        raise ValueError(f"not a state code: {state_code!r}")
+    out = io.StringIO()
+    w = csv.writer(out)
+    w.writerow(["ccn", "url", "source"])
+    offset = 0
+    while True:
+        # state_code is validated above and offset is an int: nothing user-typed
+        q = (
+            "SELECT ccn, homepage FROM hospitals WHERE state = '{s}' AND length(homepage) > 8 "
+            "ORDER BY ccn LIMIT 500 OFFSET {o}"
+        )
+        q = q.format(s=state_code, o=int(offset))
+        body = get_json(DOLTHUB_SQL, {"q": q})
+        rows = (body.get("rows") or []) if isinstance(body, dict) else []
+        for r in rows:
+            ccn = str(r.get("ccn") or "").strip().upper()
+            url = str(r.get("homepage") or "").strip()
+            if re.fullmatch(r"[0-9A-Z]{6}", ccn) and url:
+                w.writerow([ccn, url, DOLTHUB_SOURCE])
+        if len(rows) < 500:
+            break
+        offset += 500
+    return out.getvalue()

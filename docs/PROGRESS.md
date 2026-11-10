@@ -2,6 +2,42 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-10 — Pre-launch check: every state, Cooper's answers, fixes found
+- Cooper's answers: first files publish automatically (D-055, live-load default on); domain procedurescout.com (D-057: `render.yaml` domains, `SITE_URL`, `EMAIL_FROM`); Claude confirms state rules with sources (D-056).
+- Help paying, all states: `data/reference/coverage_limits.csv` now has 204 rows (51 states + DC x adults, children, pregnancy, marketplace), each with its official source (MACPAC Exhibits 35/36, July 2025, + 5-point disregard; expansion status checked against healthinsurance.org, updated 2026-03-31).
+- Nevada uninsured discount (NRS 439B.260/439B.115) confirmed from the Legislature's site and shown on the help-paying page for Nevada (English + Spanish).
+- Free all-states test: `.github/workflows/test-all-states.yml` + `scripts/state_check.py` (loads each state into a throwaway database like the live run, reads a few price files, publishes to a temp folder, then asks the real API for cities, nearby places and a priced search; one summary table).
+- Fixes found by the review:
+  - Website built without `API_URL` silently became the sample-data preview; live builds now stop instead (`next.config.ts`).
+  - Help pages assumed Nevada when no place was chosen; facility help used Nevada's poverty amounts for every state (now the facility's own state; matters for Alaska and Hawaii).
+  - Price-file size summary measured only Nevada's partition (now every state).
+  - Price-file size check re-probed every state on each state's run (now one state).
+  - Big states: price files stop cleanly before GitHub's limit (`PRICE_TIME_BUDGET_MINUTES`) and continue on the next run; the live run checks the database version first.
+  - Spanish city page said "Precios de Medical"; `/admin` now goes to the review page.
+- Checked: Render plan names valid (render.com/docs/compute-plans.md), Hobby workspace has no fee and includes 2 custom domains (render.com/pricing.md).
+- End to end on a local throwaway database (synthetic file): load → publish → code index → `state_check.py` → `cities 1, nearby 5, facility_page 200, search_cash "80", search_list "100.1", priced_search_works true`. Site built against that API and walked in English and Spanish: every page 200, no console errors, except expected 404s.
+- Tests (this session): `ruff check .` → All checks passed!; `mypy` → Success: no issues found in 63 source files; `pytest -q` → `351 passed, 1 skipped, 1 warning in 20.43s`; `tsc --noEmit` ok; `next build` ok.
+- Not done: "Test every state" has not been run yet (Cooper starts it in GitHub); its results decide what else to fix before sign-up.
+- Status: Implemented + Tested (synthetic). Not deployed.
+
+## 2026-11-10 — Ready for national loading: websites found automatically, file-by-file publishing, rate limits, all states
+- Hospital websites: `website_verify.dolthub_candidates` (DoltHub `standard-charge-files`, 7,143 homepages, CC BY-SA 4.0; only hints) + automatic check by cms-hpt.txt; runs as the `find_websites` step of every state run and as `find-websites`.
+- File-by-file publishing (D-054): migration `0021_published_summaries.py`; `publish.write_summaries` on every approval, `publish.prune_published`, code and insurer indexes from summaries, insurance-name matching reads summaries; `check_price_files(after_load=…)`; production mode (`PUBLISH_AS_YOU_GO`, optional `AUTO_PUBLISH_FIRST_FILES`, Q35) commits after each file; `prune-published` command; new workflow `.github/workflows/load-state-production.yml` (writes to the live database and R2; needs secrets).
+- Rate limits on the API (`ratelimit.py`: sign-in and review emails 10 per 10 minutes, reports 20 per 10 minutes, other changes 60 a minute, reads 300 a minute, per visitor, in memory only).
+- Website lists every state and DC; free-clinic help points to 211 outside Nevada.
+- Go-live checklist: `docs/GO_LIVE.md`.
+- Tests (this session): `ruff check .` → All checks passed; `mypy` → Success: no issues found in 63 source files; `tsc --noEmit` ok; `pytest -q` → `348 passed, 1 skipped, 1 warning in 16.37s` (new: `test_after_publishing_staged_rows_go_but_index_and_search_remain`, `test_first_files_publish_automatically_only_when_allowed`, `test_publish_as_you_go_hook_runs_after_each_file`, `test_dolthub_candidates_page_through_and_validate`, `test_sign_in_is_limited_per_visitor_and_health_is_not`).
+- Not done: the live-load run hasn't run (no hosting yet); the DoltHub list hasn't been queried from a real run (checked by hand: Nevada rows match our reviewed websites).
+- Status: Implemented + Tested (synthetic). Not deployed.
+
+## 2026-11-10 — First real office load: Nevada (any-state run, NPPES November 2026)
+- Run "Reference data — any state" for NV with offices ticked (report `reference-nv (15).zip`). Every step succeeded.
+- NPPES: 9,891,116 rows read; **8,238 Nevada offices added**; 63 NPIs already belonged to hospitals or surgery centers and were not duplicated. All 25 approved taxonomy rows matched the NUCC list (179 codes; no `taxonomy_not_in_nucc`).
+- By type (places / with a map location): doctor's office 2,726/2,725; mental health 2,191/2,190; dental 1,364/1,362; physical therapy 583/583; eye care 500/499; chiropractor 429/429; surgery center 185/185 (117 from NPPES + CMS ASCs); urgent care 163/162; laboratory 161/161; podiatry 138/138; hearing 67/67; imaging 61/61; massage 50/50; hospital 46/46.
+- Map locations for offices: 7,877 by street address, 355 at the ZIP's center, 6 none.
+- Names come from the NPPES file (d/b/a name when given); some read as legal names ("… LLC"); providers can correct them when they claim their page.
+- Status: Verified in a throwaway run (nothing kept); not deployed.
+
 ## 2026-11-09 — Email, staff logins, reports, stars, billing (off), national offices, any-state run
 - Email (D-053): `mailer.py` sends `prov.outbox` through Resend or SMTP, right after each request (background) and by `send-email`; bodies with links cleared after sending; 5 retries within an hour; sent rows deleted after 30 days.
 - Review pages (ADM-02, D-053): per-person staff accounts (`prov.staff`, `add-staff`) signed in with the email link + authenticator; shared password only outside production; `/admin/*` reachable through the website.

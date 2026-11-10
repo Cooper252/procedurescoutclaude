@@ -47,3 +47,30 @@ def test_only_sites_naming_the_hospital_are_accepted(conn: Connection) -> None:
         )
     ).one()
     assert row == ("https://valley.example", "https://valley.example/cms-hpt.txt", wv.AUTO_REVIEWER)
+
+
+def test_dolthub_candidates_page_through_and_validate() -> None:
+    calls: list[str] = []
+
+    def get_json(url: str, params: dict[str, str]) -> dict[str, object]:
+        calls.append(params["q"])
+        if "OFFSET 0" in params["q"]:
+            rows = [{"ccn": f"29{i:04d}", "homepage": "https://h.example/"} for i in range(500)]
+            rows[0] = {"ccn": "bad", "homepage": "https://x.example/"}
+            return {"rows": rows}
+        return {
+            "rows": [
+                {"ccn": "29T049", "homepage": None},
+                {"ccn": "299999", "homepage": "h.example"},
+            ]
+        }
+
+    text_ = wv.dolthub_candidates(get_json, "NV")
+    lines = text_.strip().splitlines()
+    assert lines[0] == "ccn,url,source"
+    assert len(lines) == 1 + 499 + 1  # one bad CCN and one empty homepage dropped
+    assert all("WHERE state = 'NV'" in q for q in calls) and len(calls) == 2
+    import pytest
+
+    with pytest.raises(ValueError):
+        wv.dolthub_candidates(get_json, "NV' OR 1=1")

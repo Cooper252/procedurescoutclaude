@@ -348,7 +348,7 @@ def test_load_stages_prices_and_publishes_nothing(conn: Connection, tmp_path: Pa
     )
     assert stats.summary["files_loaded"] == 1 and stats.summary["load_failed"] == 1
     assert stats.summary["price_rows_loaded"] == 6
-    assert stats.summary["price_nv_total_bytes"] > 0
+    assert stats.summary["price_total_bytes"] > 0
     rows = conn.execute(
         text(
             """
@@ -397,3 +397,39 @@ def test_load_skipped_when_disk_is_low(conn: Connection, tmp_path: Path) -> None
     )
     assert stats.summary["load_skipped_low_disk"] >= 1
     assert "files_loaded" not in stats.summary
+
+
+def test_file_limit_and_time_stop(conn: Connection, tmp_path: Path) -> None:
+    """The all-states test run reads a few files per state (max_files); a long
+    state run stops cleanly before its time limit (stop_at) so saved work stays."""
+    setup_hospitals(conn)
+    load_websites(conn, websites_csv())
+    approved = load_co_listed(
+        conn,
+        "location_name,parent_ccn,note,reviewed_by,reviewed_at\n"
+        "Synthetic Valley North Campus,SYN503,listed in its file,tester,2026-11-06\n",
+        LoadStats(),
+    )
+    discover(conn, "NV", fake_fetcher, co_listed=approved)
+    files = {f"{SITE}/mrf/valley.json": JSON_FILE, f"{SITE}/mrf/shared.json": TALL}
+    calls: list[str] = []
+
+    def downloader(url: str, dest: Path) -> Download:
+        import hashlib
+
+        calls.append(url)
+        dest.write_bytes(files[url].read_bytes())
+        data = dest.read_bytes()
+        return Download(url, dest, hashlib.sha256(data).hexdigest(), len(data), 200, url)
+
+    one = check_price_files(
+        conn, "NV", downloader, tmp_path / "w1", today=date(2026, 11, 6), max_files=1
+    )
+    assert len(calls) == 1
+    assert one.summary["stopped_early"] == "file limit 1 reached"
+    calls.clear()
+    none = check_price_files(
+        conn, "NV", downloader, tmp_path / "w2", today=date(2026, 11, 6), stop_at_ns=0
+    )
+    assert calls == []
+    assert none.summary["stopped_early"].startswith("time limit reached")

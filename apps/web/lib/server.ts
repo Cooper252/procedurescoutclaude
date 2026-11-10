@@ -21,7 +21,20 @@ export interface CityInfo {
   facilities: number;
 }
 
-export const STATES: Record<string, string> = { nv: "Nevada" };
+// Every state and DC (D-048). A state page lists the cities we have data for;
+// until a state is loaded its page simply has no cities yet.
+export const STATES: Record<string, string> = {
+  al: "Alabama", ak: "Alaska", az: "Arizona", ar: "Arkansas", ca: "California", co: "Colorado",
+  ct: "Connecticut", de: "Delaware", dc: "District of Columbia", fl: "Florida", ga: "Georgia",
+  hi: "Hawaii", id: "Idaho", il: "Illinois", in: "Indiana", ia: "Iowa", ks: "Kansas",
+  ky: "Kentucky", la: "Louisiana", me: "Maine", md: "Maryland", ma: "Massachusetts",
+  mi: "Michigan", mn: "Minnesota", ms: "Mississippi", mo: "Missouri", mt: "Montana",
+  ne: "Nebraska", nv: "Nevada", nh: "New Hampshire", nj: "New Jersey", nm: "New Mexico",
+  ny: "New York", nc: "North Carolina", nd: "North Dakota", oh: "Ohio", ok: "Oklahoma",
+  or: "Oregon", pa: "Pennsylvania", ri: "Rhode Island", sc: "South Carolina", sd: "South Dakota",
+  tn: "Tennessee", tx: "Texas", ut: "Utah", vt: "Vermont", va: "Virginia", wa: "Washington",
+  wv: "West Virginia", wi: "Wisconsin", wy: "Wyoming",
+};
 
 async function get<T>(path: string): Promise<T | null> {
   try {
@@ -40,13 +53,13 @@ export async function services(): Promise<Service[]> {
 
 export async function cities(state: string): Promise<CityInfo[]> {
   if (!STATES[state]) return [];
-  if (PREVIEW) return demo.DEMO_CITIES;
+  if (PREVIEW) return state === "nv" ? demo.DEMO_CITIES : [];
   return (await get<CityInfo[]>(`/v1/places/cities?state=${state.toUpperCase()}`)) ?? [];
 }
 
 export async function city(state: string, slug: string): Promise<CityInfo | null> {
   if (!STATES[state] || !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) return null;
-  if (PREVIEW) return demo.DEMO_CITIES.find((c) => c.slug === slug) ?? null;
+  if (PREVIEW) return state === "nv" ? demo.DEMO_CITIES.find((c) => c.slug === slug) ?? null : null;
   return get<CityInfo>(`/v1/places/city/${state}/${slug}`);
 }
 

@@ -1,0 +1,161 @@
+name: Test every state (free, nothing kept)
+
+# Before paying for hosting (Cooper, 2026-11-10): load every state the way the
+# live site will, on GitHub's free machines, into a throwaway database, then
+# ask the real API for cities, nearby places and a priced search. Nothing is
+# kept or deployed and no paid account is needed.
+#
+# Each state: reference data, hospital websites (found and checked
+# automatically), price-file links, and the first few price files (downloaded,
+# read, published to a temporary folder, staged rows removed), exactly like
+# load-state-production.yml. Results: the run's Summary page shows one row per
+# state; each state's files are in its "state-XX" download.
+#
+# Sites that refuse GitHub's servers show up as download failures here; the
+# live run has the same limitation (docs/GO_LIVE.md).
+
+on:
+  workflow_dispatch:
+    inputs:
+      states:
+        description: "all, or a list such as NV,CA,TX"
+        required: true
+        default: "all"
+      price_files_per_state:
+        description: "Price files to read per state (0 = none; each can be up to several GB)"
+        required: true
+        default: "3"
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    runs-on: ubuntu-24.04
+    outputs:
+      states: ${{ steps.pick.outputs.states }}
+    steps:
+      - id: pick
+        env:
+          STATES_IN: ${{ inputs.states }}
+        run: |
+          ALL="AL AK AZ AR CA CO CT DE DC FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY"
+          IN=$(printf '%s' "$STATES_IN" | tr '[:lower:]' '[:upper:]' | tr -c 'A-Z\n' ' ')
+          if [ "$(echo $IN)" = "ALL" ]; then IN="$ALL"; fi
+          OUT=""
+          for s in $IN; do case " $ALL " in *" $s "*) OUT="$OUT\"$s\",";; esac; done
+          echo "states=[${OUT%,}]" >> "$GITHUB_OUTPUT"
+          echo "states=[${OUT%,}]"
+
+  state:
+    needs: plan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      max-parallel: 8  # polite to the public data sources
+      matrix:
+        state: ${{ fromJSON(needs.plan.outputs.states) }}
+    services:
+      db:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_PASSWORD: postgres_ci_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql+psycopg://ps_owner:ps_owner_dev@localhost:5432/procedurescout
+      API_DATABASE_URL: postgresql+psycopg://ps_api:ps_api_dev@localhost:5432/procedurescout
+      PS_API_ROLE: ps_api
+      PRICE_STORE_DIR: ${{ github.workspace }}/price-store
+      STATE: ${{ matrix.state }}
+    steps:
+      - name: Make room on the disk
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL || true
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - run: pip install -r requirements.txt
+      - name: Create roles and databases
+        env:
+          PGPASSWORD: postgres_ci_only
+        run: psql -h localhost -U postgres -v ON_ERROR_STOP=1 -f scripts/db_init.sql
+      - run: python -m alembic upgrade head
+      - name: Load the state like the live run
+        env:
+          PYTHONPATH: packages/core:packages/ingest
+          PRICE_FILE_DOWNLOADS: ${{ inputs.price_files_per_state != '0' && '1' || '0' }}
+          PRICE_LOAD: ${{ inputs.price_files_per_state != '0' && '1' || '0' }}
+          PRICE_FILE_LIMIT: ${{ inputs.price_files_per_state }}
+          PRICE_TIME_BUDGET_MINUTES: "120"
+          PUBLISH_AS_YOU_GO: "1"
+          AUTO_PUBLISH_FIRST_FILES: "1"
+        run: |
+          set -o pipefail
+          python -m procedurescout_ingest.reference.cli nv-all --state "$STATE" 2>&1 | tee load-report.txt || true
+          python -m procedurescout_ingest.reference.cli resolve-plans || true
+          python -m procedurescout_ingest.reference.cli code-index || true
+      - name: Check the state end to end through the API
+        env:
+          PYTHONPATH: ${{ github.workspace }}/packages/core:${{ github.workspace }}/packages/ingest:${{ github.workspace }}/apps/api
+        run: |
+          EXPECT=""
+          if [ "${{ inputs.price_files_per_state }}" != "0" ]; then EXPECT="--expect-prices"; fi
+          python scripts/state_check.py --state "$STATE" $EXPECT
+      - name: Export what failed
+        if: always()
+        env:
+          PGPASSWORD: ps_owner_dev
+        run: |
+          psql -h localhost -U ps_owner procedurescout -c "\copy (SELECT dataset, status, rows_in, rows_loaded, rows_rejected, summary, error FROM src.reference_load ORDER BY started_at) TO 'loads.csv' CSV HEADER" || true
+          psql -h localhost -U ps_owner procedurescout -c "\copy (SELECT l.dataset, r.row_ref, r.severity, r.rule, left(r.message, 500) FROM src.reference_reject r JOIN src.reference_load l ON l.id = r.load_id WHERE r.severity <> 'info' OR r.rule IN ('prices_loaded', 'load_failed') ORDER BY l.started_at, r.id) TO 'problems.csv' CSV HEADER" || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: state-${{ matrix.state }}
+          path: |
+            state-check.json
+            state-check.md
+            load-report.txt
+            loads.csv
+            problems.csv
+          if-no-files-found: warn
+          retention-days: 14
+
+  summary:
+    needs: state
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: state-*
+          path: results
+      - name: One table for every state
+        run: |
+          {
+            echo "## Every state"
+            echo
+            echo "| State | Hospitals | Surgery centers | Hospital websites | Price links | Files read | Published | Download failures | Read failures | Cities | Priced search | Result |"
+            echo "|---|---|---|---|---|---|---|---|---|---|---|---|"
+            for d in results/state-*; do
+              if [ -f "$d/state-check.md" ]; then cat "$d/state-check.md"
+              else echo "| ${d#results/state-} | - | - | - | - | - | - | - | - | - | - | run did not finish |"; fi
+            done
+          } | tee all-states.md >> "$GITHUB_STEP_SUMMARY"
+          cat results/state-*/state-check.json > all-states.jsonl 2>/dev/null || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: all-states
+          path: |
+            all-states.md
+            all-states.jsonl

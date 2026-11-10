@@ -6,6 +6,12 @@ import type { NextConfig } from "next";
 // A bare "host:port" (how Render passes a private service address) means http://.
 const rawApi = process.env.API_URL?.trim().replace(/\/$/, "");
 const apiUrl = rawApi && !/^https?:\/\//.test(rawApi) ? `http://${rawApi}` : rawApi;
+// The API address is read when the site is BUILT. On the live host (Render sets
+// RENDER=true) a missing address would quietly ship the sample-data preview, so
+// stop the build instead.
+if (!apiUrl && (process.env.RENDER === "true" || process.env.REQUIRE_API_URL === "1")) {
+  throw new Error("API_URL is not set; the live site would show sample data. Set it and rebuild.");
+}
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,

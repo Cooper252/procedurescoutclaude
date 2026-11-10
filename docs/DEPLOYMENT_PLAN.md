@@ -11,13 +11,26 @@ Status: **prepared, not deployed.** Nothing is signed up or paid for yet.
 | PostgreSQL 16 + PostGIS | Render Postgres | 0.5c-1g, 10 GB | $19 + $3 storage |
 | Published price files (Parquet) | Cloudflare R2 bucket `procedurescout-prices` | pay as you go | first 10 GB free, then $0.015/GB |
 | National downloads | GitHub Actions (public repository, D-049) | standard runners | free |
+| Render workspace | Hobby (checked 2026-11-10 on render.com/pricing.md) | no plan fee | $0; 5 GB outbound a month included, then $0.15/GB; 2 custom domains included (procedurescout.com + www); database point-in-time recovery 3 days |
 
 Everything Render runs is described in `render.yaml` (a Render "Blueprint").
 Render documents PostGIS as available on PostgreSQL 13 and later.
 
 ## How the pieces connect
 
-- The **website** calls the API at `/api/...`. `API_URL` is the API's private
+- The **website** calls the API at `/api/...`. The address is read when the website
+  is **built**, so a build on Render without `API_URL` stops with an error instead of
+  shipping the sample-data preview (`next.config.ts`). If the very first website
+  build fails that way, deploy it again once the API exists.
+- The website answers at **procedurescout.com** and **www.procedurescout.com**
+  (`domains` in `render.yaml`, D-057); add the DNS records Render shows at the
+  domain registrar.
+- **Before the first live load**: run "Test every state" (`test-all-states.yml`,
+  free, nothing kept) and fix what it shows. The live-load run refuses to start
+  until the API has been deployed (database on the newest migration), and stops
+  reading price files after 4.5 hours so big states can be finished by running
+  them again.
+- `API_URL` is the API's private
   Render address (`host:port`); the website adds `http://`.
 - The **API** connects to PostgreSQL as the restricted role `ps_api`, which can read
   published data only (CLAUDE.md rule 7). On Render it gets the owner

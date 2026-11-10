@@ -22,12 +22,37 @@ def rebuild_code_index(conn: Connection) -> LoadStats:
         text(
             """
             INSERT INTO ref.code_index (system, code, hospital_description, facilities, prices)
-            SELECT code_system, code,
-                   mode() WITHIN GROUP (ORDER BY left(btrim(description_raw), 300))
-                       FILTER (WHERE description_raw IS NOT NULL AND btrim(description_raw) <> ''),
-                   count(DISTINCT facility_id), count(*)
-            FROM price.published_price
-            GROUP BY code_system, code
+            WITH per_file AS (
+                -- published datasets: from their kept summaries (rows may be removed, D-054)
+                SELECT s.code_system, s.code, s.top_description, s.facility_id, s.prices
+                FROM price.file_code_summary s
+                JOIN src.dataset_version dv ON dv.id = s.dataset_version_id
+                WHERE dv.status = 'published'
+                UNION ALL
+                -- published datasets without a summary (older): from their rows
+                SELECT code_system, code,
+                       mode() WITHIN GROUP (ORDER BY left(btrim(description_raw), 300))
+                           FILTER (WHERE description_raw IS NOT NULL
+                                   AND btrim(description_raw) <> ''),
+                       facility_id, count(*)
+                FROM price.published_price pp
+                WHERE NOT EXISTS (SELECT 1 FROM price.file_code_summary s
+                                  WHERE s.dataset_version_id = pp.dataset_version_id)
+                GROUP BY code_system, code, facility_id
+            ),
+            described AS (
+                SELECT code_system, code, top_description, sum(prices) AS n,
+                       row_number() OVER (PARTITION BY code_system, code
+                                          ORDER BY sum(prices) DESC, top_description) AS rank
+                FROM per_file WHERE top_description IS NOT NULL
+                GROUP BY code_system, code, top_description
+            )
+            SELECT f.code_system, f.code, d.top_description,
+                   count(DISTINCT f.facility_id), sum(f.prices)
+            FROM per_file f
+            LEFT JOIN described d ON d.code_system = f.code_system AND d.code = f.code
+                                 AND d.rank = 1
+            GROUP BY f.code_system, f.code, d.top_description
             """
         )
     )
@@ -57,9 +82,17 @@ def rebuild_payer_index(conn: Connection) -> int:
     rows = conn.execute(
         text(
             """
-            SELECT payer_name_raw, count(DISTINCT facility_id), count(*)
-            FROM price.published_price
-            WHERE payer_name_raw IS NOT NULL AND btrim(payer_name_raw) <> ''
+            SELECT payer_name_raw, count(DISTINCT facility_id), sum(n) FROM (
+                SELECT s.payer_name_raw, s.facility_id, s.prices AS n
+                FROM price.file_payer_summary s
+                JOIN src.dataset_version dv ON dv.id = s.dataset_version_id
+                WHERE dv.status = 'published'
+                UNION ALL
+                SELECT payer_name_raw, facility_id, 1 FROM price.published_price pp
+                WHERE payer_name_raw IS NOT NULL AND btrim(payer_name_raw) <> ''
+                  AND NOT EXISTS (SELECT 1 FROM price.file_payer_summary s
+                                  WHERE s.dataset_version_id = pp.dataset_version_id)
+            ) x
             GROUP BY payer_name_raw
             """
         )

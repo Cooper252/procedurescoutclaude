@@ -37,3 +37,10 @@ Checked 2026-11-04. "Verified" means the source was opened during Phase 0; "Unve
 | Nevada DWSS "Appendix A MAGI Income Charts" (effective 4/1/2025) | Nevada Medicaid / Check Up percentages | `data/reference/coverage_limits.csv` (proposed) |
 | KFF, "9 Things to Watch for the 2027 ACA Open Enrollment Period" | Enhanced premium tax credits ended after 2025; 400% cap | `coverage_limits.csv` (proposed) |
 | Nevada 211 community clinics page | Free and charitable clinics (link only) | Link on the help page |
+
+## Hospital website candidates (D-054)
+- DoltHub `dolthub/standard-charge-files`, table `hospitals` (`ccn`, `homepage`), community-built, **CC BY-SA 4.0**. Used only as hints: a homepage is accepted only when that site's own `/cms-hpt.txt` names the hospital. We don't redistribute the list. Attribution: "Hospital homepage hints from DoltHub's standard-charge-files database (CC BY-SA 4.0)." Counsel to confirm (Q25).
+
+## National provider list (D-052)
+- CMS NPPES Data Dissemination file (monthly, ~1.1 GB zip; weekly updates ~6 MB), download.cms.gov/nppes. Public domain (US government).
+- NUCC Health Care Provider Taxonomy code set (CSV), nucc.org. Used to name taxonomy codes.

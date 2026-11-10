@@ -69,7 +69,7 @@ export function FreeCarePanel() {
 
   useEffect(() => {
     api
-      .message(place?.state ?? "NV")
+      .message(place?.state ?? null)
       .then(setMsg)
       .catch(() => setMsg(null));
   }, [place?.state]);

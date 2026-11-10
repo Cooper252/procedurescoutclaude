@@ -1,0 +1,128 @@
+name: Load a state into the live site (manual)
+
+# Production loading (D-048, D-054). Unlike the "Reference data" runs, this one
+# writes to the LIVE database and the Cloudflare R2 bucket, so it only works
+# after hosting is set up and these repository secrets exist:
+#   PROD_DATABASE_URL     Render database "External Database URL" (owner)
+#   PRICE_STORE_DIR       s3://procedurescout-prices
+#   PRICE_STORE_ENDPOINT  https://<account id>.r2.cloudflarestorage.com
+#   PRICE_STORE_KEY_ID    R2 key that can read and write
+#   PRICE_STORE_SECRET    its secret
+# Each hospital file is downloaded, checked, staged, published to R2 when it
+# passes the automatic checks, its staged rows removed, and committed, one
+# file at a time, so the database never holds a whole state's prices.
+
+on:
+  workflow_dispatch:
+    inputs:
+      state:
+        description: "Two-letter state code, e.g. NV, CA, TX"
+        required: true
+        default: "NV"
+      download_price_files:
+        description: "Download, check and publish the state's hospital price files"
+        type: boolean
+        default: true
+      first_files_automatic:
+        description: "Publish a hospital's FIRST file automatically when every check passes (Cooper said yes, D-055)"
+        type: boolean
+        default: true
+      load_offices:
+        description: "Load offices from the national provider list (about 1.1 GB download)"
+        type: boolean
+        default: true
+      nppes_url:
+        description: "NPPES monthly file (see download.cms.gov/nppes/NPI_Files.html)"
+        required: false
+        default: "https://download.cms.gov/nppes/NPPES_Data_Dissemination_November_2026_V2.zip"
+      nucc_url:
+        description: "NUCC taxonomy CSV (see nucc.org)"
+        required: false
+        default: "https://www.nucc.org/images/stories/CSV/nucc_taxonomy_261.csv"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-load  # one live load at a time
+  cancel-in-progress: false
+
+jobs:
+  load:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+    env:
+      DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+      PRICE_STORE_DIR: ${{ secrets.PRICE_STORE_DIR }}
+      PRICE_STORE_ENDPOINT: ${{ secrets.PRICE_STORE_ENDPOINT }}
+      PRICE_STORE_KEY_ID: ${{ secrets.PRICE_STORE_KEY_ID }}
+      PRICE_STORE_SECRET: ${{ secrets.PRICE_STORE_SECRET }}
+      PYTHONPATH: packages/core:packages/ingest
+      STATE_IN: ${{ inputs.state }}
+    steps:
+      - name: Stop if hosting is not set up
+        run: |
+          if [ -z "$DATABASE_URL" ] || [ -z "$PRICE_STORE_DIR" ]; then
+            echo "Live database or R2 secrets are missing; set them up first (docs/DEPLOYMENT_PLAN.md)."
+            exit 1
+          fi
+      - name: Make room on the disk
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL || true
+          df -h /
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - name: Stop if the live database is not on the newest version
+        run: |
+          python - <<'PY'
+          import os, sys
+          from alembic.config import Config
+          from alembic.script import ScriptDirectory
+          from sqlalchemy import create_engine, text
+          from procedurescout_core.db_url import sqlalchemy_url
+          head = ScriptDirectory.from_config(Config("alembic.ini")).get_current_head()
+          with create_engine(sqlalchemy_url(os.environ["DATABASE_URL"])).connect() as c:
+              now = c.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
+          print(f"live database at {now}, code expects {head}")
+          sys.exit(0 if now == head else "deploy the API first (it upgrades the database), then run this again")
+          PY
+      - name: Load reference data, websites, price files (publish as they pass)
+        env:
+          PRICE_FILE_DOWNLOADS: ${{ inputs.download_price_files && '1' || '0' }}
+          PRICE_LOAD: ${{ inputs.download_price_files && '1' || '0' }}
+          PUBLISH_AS_YOU_GO: "1"
+          AUTO_PUBLISH_FIRST_FILES: ${{ inputs.first_files_automatic && '1' || '0' }}
+          # Stop reading price files after 4.5 hours so the run finishes inside
+          # GitHub's 6-hour limit; run the state again to carry on (finished
+          # hospitals are skipped).
+          PRICE_TIME_BUDGET_MINUTES: "270"
+        run: |
+          set -o pipefail
+          STATE=$(printf '%s' "$STATE_IN" | tr '[:lower:]' '[:upper:]' | tr -cd 'A-Z' | cut -c1-2)
+          python -m procedurescout_ingest.reference.cli nv-all --state "$STATE" | tee load-report.txt
+      - name: Load offices from the national provider list
+        if: ${{ inputs.load_offices }}
+        env:
+          NPPES_URL: ${{ inputs.nppes_url }}
+          NUCC_URL: ${{ inputs.nucc_url }}
+        run: |
+          STATE=$(printf '%s' "$STATE_IN" | tr '[:lower:]' '[:upper:]' | tr -cd 'A-Z' | cut -c1-2)
+          python -m procedurescout_ingest.reference.cli nppes-offices --file "$NPPES_URL" --nucc "$NUCC_URL" --state "$STATE"
+          python -m procedurescout_ingest.reference.cli geocode --state "$STATE"
+      - name: Refresh code index, insurance names and clean up
+        if: always()
+        run: |
+          python -m procedurescout_ingest.reference.cli resolve-plans || true
+          python -m procedurescout_ingest.reference.cli code-index
+          python -m procedurescout_ingest.reference.cli prune-published
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: production-load
+          path: load-report.txt
+          if-no-files-found: ignore

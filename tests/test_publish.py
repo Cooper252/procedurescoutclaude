@@ -198,3 +198,98 @@ def test_refresh_skips_a_file_with_the_same_content(
     assert after == before
     stage(conn, tmp_path, skip_unchanged=False)  # forced: loaded again
     assert conn.execute(text("SELECT count(*) FROM src.dataset_version")).scalar_one() > before
+
+
+def test_after_publishing_staged_rows_go_but_index_and_search_remain(
+    conn: Connection, staged: publish.Pending, tmp_path: Path
+) -> None:
+    """National storage (D-054): the Parquet file is what the site reads; staged
+    rows are removed after publishing, summaries keep the indexes complete."""
+    from procedurescout_ingest.code_index import rebuild_code_index
+
+    store = LocalStore(tmp_path / "store")
+    dv = uuid.UUID(staged.dataset_version_id)
+    publish.approve(conn, dv, "Synthetic Reviewer", store)
+    rebuild_code_index(conn)
+    before_codes = conn.execute(
+        text("SELECT system::text, code, facilities, prices FROM ref.code_index ORDER BY 1, 2")
+    ).all()
+    before_payers = conn.execute(
+        text("SELECT raw_text, prices FROM ref.payer_index ORDER BY 1")
+    ).all()
+    removed = publish.prune_published(conn)
+    assert removed == 6
+    assert (
+        conn.execute(
+            text("SELECT count(*) FROM price.price WHERE dataset_version_id = :d"), {"d": dv}
+        ).scalar_one()
+        == 0
+    )
+    rebuild_code_index(conn)
+    after_codes = conn.execute(
+        text("SELECT system::text, code, facilities, prices FROM ref.code_index ORDER BY 1, 2")
+    ).all()
+    assert after_codes == before_codes and len(after_codes) > 0
+    assert (
+        conn.execute(text("SELECT raw_text, prices FROM ref.payer_index ORDER BY 1")).all()
+        == before_payers
+    )
+    fid = conn.execute(text("SELECT id FROM ref.facility WHERE ccn = 'SYN501'")).scalar_one()
+    code = conn.execute(text("SELECT code FROM ref.code_index LIMIT 1")).scalar_one()
+    system = conn.execute(text("SELECT system::text FROM ref.code_index LIMIT 1")).scalar_one()
+    assert find_prices(conn, store, [fid], system, code)  # the published file still answers
+
+
+def test_first_files_publish_automatically_only_when_allowed(
+    conn: Connection, staged: publish.Pending, tmp_path: Path
+) -> None:
+    store = LocalStore(tmp_path / "store")
+    dv = uuid.UUID(staged.dataset_version_id)
+    ok, reasons = publish.auto_check(conn, dv)
+    assert not ok and "first file" in reasons[0]
+    ok, reasons = publish.auto_check(conn, dv, allow_first=True)
+    assert ok, reasons
+    decisions = publish.auto_publish_pending(
+        conn, store, allow_first=True, facility_id=staged.facility_id
+    )
+    assert [d.published for d in decisions] == [True]
+
+
+def test_publish_as_you_go_hook_runs_after_each_file(conn: Connection, tmp_path: Path) -> None:
+    setup_hospitals(conn)
+    load_websites(conn, websites_csv())
+    discover(conn, "NV", fake_fetcher)
+    data = JSON_FILE.read_bytes()
+    store = LocalStore(tmp_path / "store")
+    seen: list[str] = []
+
+    def downloader(url: str, dest: Path) -> Download:
+        dest.write_bytes(data)
+        return Download(url, dest, hashlib.sha256(data).hexdigest(), len(data), 200, url)
+
+    def after(c: Connection, facility_id: str) -> None:
+        seen.append(facility_id)
+        publish.auto_publish_pending(c, store, True, facility_id)
+        publish.prune_published(c, facility_id)
+
+    check_price_files(
+        conn,
+        "NV",
+        downloader,
+        tmp_path / "w",
+        today=date(2026, 11, 8),
+        load=True,
+        min_free_bytes=0,
+        after_load=after,
+    )
+    assert seen
+    published = conn.execute(
+        text("SELECT count(*) FROM src.dataset_version WHERE status = 'published'")
+    ).scalar_one()
+    staged_rows = conn.execute(
+        text(
+            "SELECT count(*) FROM price.price p JOIN src.dataset_version dv "
+            "ON dv.id = p.dataset_version_id WHERE dv.status = 'published'"
+        )
+    ).scalar_one()
+    assert published >= 1 and staged_rows == 0
