@@ -27,6 +27,10 @@ on:
         description: "Publish a hospital's FIRST file automatically when every check passes (Cooper said yes, D-055)"
         type: boolean
         default: true
+      clear_leftover_staged:
+        description: "First, remove staged price rows left in the live database by earlier runs (Cooper OK'd, D-059)"
+        type: boolean
+        default: false
       load_offices:
         description: "Load offices from the national provider list (about 1.1 GB download)"
         type: boolean
@@ -51,6 +55,20 @@ jobs:
   load:
     runs-on: ubuntu-24.04
     timeout-minutes: 350
+    services:
+      # D-059: a throwaway database on this computer holds each file's price
+      # rows while it is checked and published; the live database gets only
+      # the results, so it never fills up.
+      work:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_PASSWORD: postgres_ci_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-retries 20
     env:
       DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
       PRICE_STORE_DIR: ${{ secrets.PRICE_STORE_DIR }}
@@ -58,6 +76,7 @@ jobs:
       PRICE_STORE_KEY_ID: ${{ secrets.PRICE_STORE_KEY_ID }}
       PRICE_STORE_SECRET: ${{ secrets.PRICE_STORE_SECRET }}
       PYTHONPATH: packages/core:packages/ingest
+      WORK_DATABASE_URL: postgresql+psycopg://ps_owner:ps_owner_dev@localhost:5432/procedurescout
       STATE_IN: ${{ inputs.state }}
     steps:
       - name: Stop if hosting is not set up
@@ -91,6 +110,16 @@ jobs:
           print(f"live database at {now}, code expects {head}")
           sys.exit(0 if now == head else "deploy the API first (it upgrades the database), then run this again")
           PY
+      - name: Set up the work database on this computer
+        env:
+          PGPASSWORD: postgres_ci_only
+        run: |
+          psql -h localhost -U postgres -v ON_ERROR_STOP=1 -f scripts/db_init.sql
+          DATABASE_URL="$WORK_DATABASE_URL" python -m alembic upgrade head
+          python -m procedurescout_ingest.reference.cli prepare-work-db
+      - name: Free the live database of rows left by earlier runs
+        if: ${{ inputs.clear_leftover_staged }}
+        run: python -m procedurescout_ingest.reference.cli clear-staged
       - name: Load reference data, websites, price files (publish as they pass)
         env:
           PRICE_FILE_DOWNLOADS: ${{ inputs.download_price_files && '1' || '0' }}
