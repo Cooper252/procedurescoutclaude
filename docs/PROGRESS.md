@@ -2,6 +2,15 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-10 — Fixes from the state logs (CA, CT, IA, MN, SC)
+- Connecticut (Nuvance) JSON files start with a byte-order mark: now skipped (`price_parser.skip_bom`, used by the check and the reader).
+- Iowa files say template version 4.0.0: a note now, not a file problem (every price is still read by field name; 0 of 216,335 refused in the test run).
+- Minnesota: a few rows with stray bytes (13 of 151,276; 4,069 of 1.9 million) are a note when at most 1% of rows.
+- South Carolina (Prisma Health): the 3 links served ~1 KB each, not price files; the report now shows what the file starts with.
+- California: 131 hospitals were refused because the system's list names them differently; new header-address check (D-058, `website_verify.header_address_keys`). 94 sites answered 403 to GitHub's computers (still a limit); 256 DoltHub hospitals aren't in CMS's hospital list.
+- Tests: `test_all_states_findings_bom_bad_bytes_and_newer_version`, `test_newer_template_version_is_a_note`, `test_header_address_keys_from_json_and_csv`, `test_a_system_file_listing_the_hospitals_address_verifies_it`. `pytest -q` → `356 passed, 1 skipped, 1 warning in 17.21s`; ruff, mypy clean.
+- Next: run "Test every state" again and compare.
+
 ## 2026-11-10 — First "Test every state" run (all 51, 3 price files each)
 - Result (`all-states.zip`): every state loaded with no failed steps; 5,306 hospitals; cities and nearby search worked in all 51. 34 states fully ok.
 - Bug found and fixed: the price read capped rows for the WHOLE search (5,000), so a big hospital with thousands of insurer rates for a code hid nearby hospitals' prices (13 states showed "published prices not found by search"). `price_store.find_prices` now caps per facility and `search.py` asks only for the price types it shows. Test: `test_a_big_hospital_cannot_crowd_others_out_of_a_search`.

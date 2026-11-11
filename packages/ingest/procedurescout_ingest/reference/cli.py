@@ -521,6 +521,25 @@ def cmd_nppes_offices(args: argparse.Namespace, engine: Engine) -> None:
         )
 
 
+def _head_reader(client: httpx.Client) -> Callable[[str], bytes]:
+    """First 256 KB of a price file (its header), without downloading the rest."""
+
+    def head(url: str) -> bytes:
+        if not url.startswith(("https://", "http://")):
+            return b""
+        out = bytearray()
+        with client.stream("GET", url, timeout=30) as r:
+            if r.status_code != 200:
+                return b""
+            for chunk in r.iter_bytes():
+                out += chunk
+                if len(out) >= 262_144:
+                    break
+        return bytes(out[:262_144])
+
+    return head
+
+
 def cmd_verify_websites(args: argparse.Namespace, engine: Engine) -> None:
     from .. import website_verify
 
@@ -534,7 +553,9 @@ def cmd_verify_websites(args: argparse.Namespace, engine: Engine) -> None:
         _run(
             engine,
             "facility_websites",
-            lambda c: website_verify.verify(c, csv_text, fetch, LoadStats()),
+            lambda c: website_verify.verify(
+                c, csv_text, fetch, LoadStats(), head=_head_reader(client)
+            ),
             source_file=args.file,
         )
 
@@ -557,7 +578,9 @@ def cmd_find_websites(args: argparse.Namespace, engine: Engine) -> None:
         _run(
             engine,
             "facility_websites",
-            lambda c: website_verify.verify(c, candidates, fetch, LoadStats()),
+            lambda c: website_verify.verify(
+                c, candidates, fetch, LoadStats(), head=_head_reader(client)
+            ),
             source_url=website_verify.DOLTHUB_SQL,
             parameters={"state": args.state, "candidates": candidates.count("\n") - 1},
         )

@@ -198,6 +198,8 @@ class FileCheck:
     header: dict[str, Any] = field(default_factory=dict)
     summary: dict[str, Any] = field(default_factory=dict)
     problems: list[str] = field(default_factory=list)
+    # worth knowing, but not a reason to hold the file back (stored in the summary)
+    notes: list[str] = field(default_factory=list)
     inner_name: str | None = None
 
     def get(self, *names: str) -> str | None:
@@ -284,6 +286,9 @@ PI = SC + ".payers_information.item"
 
 def read_json(stream: IO[bytes]) -> FileCheck:
     """CMS JSON (v2.x or v3.0), read as a stream of events."""
+    from .price_parser import skip_bom
+
+    stream = skip_bom(stream)
     check = FileCheck(format=FileFormat.JSON)
     items = charges = payer_rows = modifiers = gross = cash = 0
     code_types: Counter[str] = Counter()
@@ -356,19 +361,43 @@ def _text_lines(stream: IO[bytes]) -> Iterator[str]:
     yield from wrapper
 
 
+def _head(stream: IO[bytes]) -> bytes:
+    """The first bytes, read before parsing (the CSV reader closes the stream)."""
+    try:
+        if stream.seekable():
+            head = stream.read(300)
+            stream.seek(0)
+            return head
+        peek = getattr(stream, "peek", None)
+        return bytes(peek(300)[:300]) if peek is not None else b""
+    except (OSError, ValueError):
+        return b""
+
+
+def _starts_with(head: bytes) -> str:
+    """The first characters of a file that isn't a price file (often a web page
+    or a "file moved" notice), so the report says what was actually served."""
+    shown = re.sub(r"\s+", " ", head.decode("utf-8", "replace"))
+    shown = "".join(ch for ch in shown if ch.isprintable())[:160].strip()
+    return f" (starts with: {shown!r})" if shown else " (empty file)"
+
+
 def read_csv(stream: IO[bytes]) -> FileCheck:
     """CMS CSV template: row 1 header labels, row 2 their values, row 3 the
     column names, then one row per charge. Tall = one row per payer/plan
     (payer_name column); wide = payer and plan inside column names
     (standard_charge|payer|plan|...)."""
     check = FileCheck()
+    head = _head(stream)
     reader = csv.reader(_text_lines(stream))
     try:
         labels = next(reader)
         values = next(reader)
         columns = next(reader)
     except StopIteration:
-        check.problems.append("fewer than three rows: not the CMS CSV template")
+        check.problems.append(
+            "fewer than three rows: not the CMS CSV template" + _starts_with(head)
+        )
         return check
     except csv.Error as exc:
         check.problems.append(f"not readable as CSV: {exc}")
@@ -432,7 +461,10 @@ def read_csv(stream: IO[bytes]) -> FileCheck:
     if ragged:
         check.problems.append(f"{ragged} rows have a different number of columns than the header")
     if replaced:
-        check.problems.append(f"{replaced} rows contain bytes that are not valid UTF-8")
+        # a few stray characters (usually in descriptions) don't make the prices
+        # wrong; only hold the file when more than 1% of rows have them
+        message = f"{replaced} rows contain bytes that are not valid UTF-8"
+        (check.notes if replaced * 100 <= max(rows, 1) else check.problems).append(message)
     check.summary.update(
         {
             "rows": rows,
@@ -790,6 +822,10 @@ def _record(
     version = check.version
     if version is None:
         problems.append("no version in the header")
+    elif version.strip().startswith(("4.", "5.")) and check.format in LOADABLE:
+        # newer than the templates we know; every price is still read by its
+        # field name and the 1%-refused rule still applies (all-states test)
+        check.notes.append(f"version {version!r} is newer than the CMS templates we know")
     elif not version.strip().startswith(("2.", "3.")):
         problems.append(f"version {version!r} is not a CMS 2.x/3.x template")
     raw_date = check.last_updated_raw
@@ -803,6 +839,8 @@ def _record(
     summary = dict(check.summary)
     summary["seconds"] = seconds
     summary["problems"] = problems
+    if check.notes:
+        summary["notes"] = list(check.notes)
     file_id = conn.execute(
         text(
             """
@@ -860,4 +898,6 @@ def _record(
         stats.count("files_with_problems")
     for p in problems:
         stats.reject(who, "file_problem", f"{c.name} | {p}", Severity.WARNING)
+    for n in check.notes:
+        stats.reject(who, "file_note", f"{c.name} | {n}", Severity.INFO)
     return str(file_id)

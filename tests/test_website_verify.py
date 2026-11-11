@@ -74,3 +74,69 @@ def test_dolthub_candidates_page_through_and_validate() -> None:
 
     with pytest.raises(ValueError):
         wv.dolthub_candidates(get_json, "NV' OR 1=1")
+
+
+def test_header_address_keys_from_json_and_csv() -> None:
+    js = (
+        b'\xef\xbb\xbf{"hospital_name":"X","hospital_address":'
+        + b'["2700 Dolbeer St, Eureka, CA 95501"]}'
+    )
+    assert wv.header_address_keys(js) == {"2700|95501"}
+    csv_head = (
+        b"hospital_name,last_updated_on,version,hospital_address\n"
+        b'"X",2026-01-01,3.0.0,"10 Main St, A, NV 89001|22 Oak Ave, B, NV 89002-1234"\n'
+        b"description,code|1\n"
+    )
+    assert wv.header_address_keys(csv_head) == {"10|89001", "22|89002"}
+    assert wv.address_key("Suite 5, 10 Main", "89001") is None
+
+
+def test_a_system_file_listing_the_hospitals_address_verifies_it(conn: Connection) -> None:
+    """D-058: the health system lists the hospital under another name, but the
+    listed price file's header gives the hospital's street address."""
+    setup_hospitals(conn)
+    conn.execute(
+        text(
+            "UPDATE ref.facility SET address_line1 = '2700 DOLBEER ST', zip5 = '95501' "
+            "WHERE ccn = 'SYN503'"
+        )
+    )
+    system_txt = (
+        "location-name: Synthetic Health Desert Campus Eureka\n"
+        "source-page-url: https://system.example/prices\n"
+        "mrf-url: https://system.example/desert.json\n"
+        "contact-name: S\ncontact-email: a@system.example\n\n"
+        "location-name: Synthetic Health Somewhere Else\n"
+        "source-page-url: https://system.example/prices\n"
+        "mrf-url: https://system.example/else.json\n"
+        "contact-name: S\ncontact-email: a@system.example\n"
+    )
+
+    def fetch2(url: str) -> tuple[int, str]:
+        return (200, system_txt) if url == "https://system.example/cms-hpt.txt" else (404, "")
+
+    heads = {
+        "https://system.example/else.json": b'{"hospital_address":["1 Other Rd, Z, NV 89999"]}',
+        "https://system.example/desert.json": (
+            b'{"hospital_name":"Synthetic Health","hospital_address":'
+            b'["2700 Dolbeer Street, Eureka, CA 95501"]}'
+        ),
+    }
+    csv_text = "ccn,url,source\nSYN503,https://system.example,search\n"
+    without = wv.verify(conn, csv_text, fetch2, LoadStats())  # name alone: refused
+    assert without.rows_loaded == 0
+    stats = wv.verify(conn, csv_text, fetch2, LoadStats(), head=lambda u: heads[u])
+    assert stats.rows_loaded == 1 and stats.summary["verified_by_price_file_address"] == 1
+    row = conn.execute(
+        text(
+            "SELECT f.website, f.website_evidence_url, f.website_reviewed_by, a.alias "
+            "FROM ref.facility f JOIN ref.facility_alias a ON a.facility_id = f.id "
+            "AND a.alias_type = 'mrf_name' WHERE f.ccn = 'SYN503'"
+        )
+    ).one()
+    assert tuple(row) == (
+        "https://system.example",
+        "https://system.example/desert.json",
+        wv.ADDRESS_REVIEWER,
+        "Synthetic Health Desert Campus Eureka",
+    )

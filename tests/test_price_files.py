@@ -84,7 +84,9 @@ def test_read_csv_flags_bad_bytes_and_non_template() -> None:
     check = read_csv(io.BytesIO(data))
     assert "1 rows contain bytes that are not valid UTF-8" in check.problems
     short = read_csv(io.BytesIO(b"a,b\n1,2\n"))
-    assert short.problems == ["fewer than three rows: not the CMS CSV template"]
+    assert short.problems == [
+        "fewer than three rows: not the CMS CSV template (starts with: 'a,b 1,2')"
+    ]
 
 
 def test_sniff_and_zip(tmp_path: Path) -> None:
@@ -433,3 +435,41 @@ def test_file_limit_and_time_stop(conn: Connection, tmp_path: Path) -> None:
     )
     assert calls == []
     assert none.summary["stopped_early"].startswith("time limit reached")
+
+
+def test_all_states_findings_bom_bad_bytes_and_newer_version() -> None:
+    """All-states test 2026-11-10: Connecticut JSON files start with a byte-order
+    mark; a few stray bytes in a big CSV and a newer template version (4.0.0)
+    are notes, not reasons to hold a file back."""
+    from procedurescout_ingest.price_parser import parse
+
+    data = b"\xef\xbb\xbf" + JSON_FILE.read_bytes()
+    check = read_json(io.BytesIO(data))
+    assert check.problems == [] and check.version == "3.0.0"
+    with open(JSON_FILE, "rb") as plain:
+        expected = len(list(parse(plain, FileFormat.JSON)))
+    assert len(list(parse(io.BufferedReader(io.BytesIO(data)), FileFormat.JSON))) == expected
+    lines = TALL.read_bytes().split(b"\n")
+    body = [ln for ln in lines[3:] if ln.strip()]
+    many = b"\n".join(lines[:3] + body * 60) + b"\n"
+    one_bad = many.replace(b"SYNTHETIC SERVICE B", b"SYNTHETIC \xff SERVICE B", 1)
+    noted = read_csv(io.BytesIO(one_bad))
+    assert noted.problems == [] and noted.notes == ["1 rows contain bytes that are not valid UTF-8"]
+
+
+def test_newer_template_version_is_a_note(conn: Connection, tmp_path: Path) -> None:
+    setup_hospitals(conn)
+    load_websites(conn, websites_csv())
+    discover(conn, "NV", fake_fetcher)
+    data = JSON_FILE.read_bytes().replace(b'"3.0.0"', b'"4.0.0"', 1)
+
+    def downloader(url: str, dest: Path) -> Download:
+        import hashlib
+
+        dest.write_bytes(data)
+        return Download(url, dest, hashlib.sha256(data).hexdigest(), len(data), 200, url)
+
+    stats = check_price_files(conn, "NV", downloader, tmp_path / "w", today=date(2026, 11, 6))
+    rules = {(r.rule, r.message.split(" | ", 1)[-1]) for r in stats.rejects}
+    assert ("file_note", "version '4.0.0' is newer than the CMS templates we know") in rules
+    assert not any(rule == "file_problem" and "version" in msg for rule, msg in rules)

@@ -2,6 +2,9 @@
 
 Newest first. Each entry: decision, reason, consequences.
 
+## 2026-11-10 — D-058: A hospital's own price-file header can verify its website
+All-states test: health systems list hospitals under other names (Providence lists "Providence St Joseph Hospital Eureka"; CMS says "PROVIDENCE ST JOSEPH HOSPITAL"), so only 1,392 of 5,306 hospitals got a website. Now, when a candidate site's cms-hpt.txt doesn't name the hospital, the first 256 KB of each listed price file (at most 150 per site) are read; if the CMS header's `hospital_address` gives the hospital's street number and ZIP code, the site is accepted (`website_reviewed_by` = "automatic (the price file's header gives this hospital's address, D-058)", evidence = that file's link) and the listed name is saved as an approved `mrf_name` alias so the file is linked to the hospital. A name already belonging to another hospital is never reused. Same test also changed: JSON files starting with a byte-order mark are read; a few stray bytes (at most 1% of rows) and template version 4.x are notes, not reasons to hold a file; a non-price file's first characters are reported.
+
 ## 2026-11-10 — D-057: The site lives at procedurescout.com
 Cooper owns procedurescout.com. `SITE_URL`/`NEXT_PUBLIC_SITE_URL` are `https://procedurescout.com`, email is sent from an address at that domain (verified in Resend), and the domain's DNS points at Render.
 

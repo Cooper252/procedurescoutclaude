@@ -313,7 +313,45 @@ def _payer_prices(
 
 
 # ------------------------------------------------------------------ JSON
+UTF8_BOM = b"\xef\xbb\xbf"
+
+
+def skip_bom(stream: IO[bytes]) -> IO[bytes]:
+    """Step past a UTF-8 byte-order mark: some hospital JSON files start with one
+    and the JSON reader refuses it (Connecticut, all-states test 2026-11-10)."""
+    peek = getattr(stream, "peek", None)
+    head = peek(3)[:3] if peek is not None else b""
+    if head == UTF8_BOM:
+        stream.read(3)
+    elif peek is None:
+        data = stream.read(3)
+        if data != UTF8_BOM:
+            return cast(IO[bytes], io.BufferedReader(_Prefixed(data, stream)))
+    return stream
+
+
+class _Prefixed(io.RawIOBase):
+    """A stream with a few already-read bytes put back in front."""
+
+    def __init__(self, prefix: bytes, rest: IO[bytes]) -> None:
+        self._prefix, self._rest = prefix, rest
+
+    def readable(self) -> bool:
+        return True
+
+    def readinto(self, b: Any) -> int:
+        if self._prefix:
+            n = min(len(b), len(self._prefix))
+            b[:n] = self._prefix[:n]
+            self._prefix = self._prefix[n:]
+            return n
+        data = self._rest.read(len(b))
+        b[: len(data)] = data
+        return len(data)
+
+
 def parse_json(stream: IO[bytes]) -> Iterator[ParsedPrice | RejectedRow]:
+    stream = skip_bom(stream)
     items = ijson.items(stream, "standard_charge_information.item", use_float=False)
     for i, raw in enumerate(items):
         ref = f"standard_charge_information[{i}]"
