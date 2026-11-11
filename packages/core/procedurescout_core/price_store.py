@@ -22,6 +22,7 @@ from .object_store import ObjectStore
 MAX_FACILITIES = 200
 MAX_ROWS = 5000
 _CODE = re.compile(r"^[A-Za-z0-9.\-]{1,20}$")
+_PRICE_TYPE = re.compile(r"^[a-z_]{1,30}$")
 
 
 class PriceQueryError(ValueError):
@@ -55,9 +56,14 @@ def find_prices(
     code: str,
     limit: int = MAX_ROWS,
     previous: bool = False,
+    price_types: Sequence[str] | None = None,
 ) -> list[PublishedPrice]:
     """Current published prices; with previous=True, the prices in each
-    facility's most recently retired file (for price history)."""
+    facility's most recently retired file (for price history).
+
+    `limit` applies to EACH facility, so a big hospital with thousands of
+    insurer rates for a code can't crowd the others out of a search (found by
+    the all-states test, 2026-11-10). `price_types` keeps only those types."""
     if not facility_ids:
         raise PriceQueryError("at least one facility is required")
     if len(facility_ids) > MAX_FACILITIES:
@@ -71,6 +77,9 @@ def find_prices(
         raise PriceQueryError(f"not a code: {code!r}")
     if not 1 <= limit <= MAX_ROWS:
         raise PriceQueryError(f"limit must be between 1 and {MAX_ROWS}")
+    types = sorted(set(price_types)) if price_types is not None else []
+    if any(not _PRICE_TYPE.match(t) for t in types):
+        raise PriceQueryError("unknown price type")
     sql = (
         "SELECT DISTINCT ON (facility_id) object_key FROM price.published_file_history "
         "WHERE facility_id = ANY(CAST(:ids AS uuid[])) AND retired_at IS NOT NULL "
@@ -91,10 +100,13 @@ def find_prices(
                    methodology, dataset_version_id, quality_flags
             FROM read_parquet(?)
             WHERE code_system = ? AND code = ?
+              AND (len(?::VARCHAR[]) = 0 OR list_contains(?::VARCHAR[], price_type))
+            QUALIFY row_number() OVER (
+                PARTITION BY facility_id ORDER BY price_type, payer_name_raw, plan_name_raw
+            ) <= ?
             ORDER BY facility_id, price_type, payer_name_raw, plan_name_raw
-            LIMIT ?
             """,
-            [paths, system.value, code, limit],
+            [paths, system.value, code, types, types, limit],
         ).fetchall()
     return [
         PublishedPrice(

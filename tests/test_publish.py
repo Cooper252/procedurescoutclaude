@@ -293,3 +293,55 @@ def test_publish_as_you_go_hook_runs_after_each_file(conn: Connection, tmp_path:
         )
     ).scalar_one()
     assert published >= 1 and staged_rows == 0
+
+
+def test_a_big_hospital_cannot_crowd_others_out_of_a_search(tmp_path: Path) -> None:
+    """All-states test (2026-11-10): the row cap applied to the whole search, so
+    a hospital with thousands of insurer rates for a code hid the next hospital's
+    prices. The cap is now per facility, and searches ask only for the types they show."""
+    import duckdb
+
+    store = LocalStore(tmp_path / "store")
+    big, small = "00000000-0000-0000-0000-00000000000a", "00000000-0000-0000-0000-00000000000b"
+    for fid, n in ((big, 50), (small, 0)):
+        path = store.local_path(f"published/NV/{fid}/{fid}.parquet")
+        Path(path).parent.mkdir(parents=True, exist_ok=True)
+        duckdb.sql(
+            f"""
+            COPY (
+              SELECT '{fid}' AS facility_id, 'hospital_file' AS price_source, 'CPT' AS code_system,
+                     '99999' AS code, NULL::VARCHAR AS description_raw, 'outpatient' AS setting,
+                     t.price_type, t.payer AS payer_name_raw, NULL::VARCHAR AS plan_name_raw,
+                     CAST(t.amount AS DECIMAL(18,4)) AS amount, NULL::DECIMAL(18,4) AS percentage,
+                     NULL::VARCHAR AS algorithm, NULL::VARCHAR AS methodology,
+                     NULL::VARCHAR AS dataset_version_id, '' AS quality_flags
+              FROM (
+                SELECT 'negotiated' AS price_type, 'Payer ' || i AS payer, 100 + i AS amount
+                FROM range({n}) r(i)
+                UNION ALL SELECT 'gross', NULL, 500 UNION ALL SELECT 'discounted_cash', NULL, 300
+              ) t
+            ) TO '{path}' (FORMAT parquet)
+            """
+        )
+
+    class Keys:
+        def execute(self, *_: object, **__: object) -> "Keys":
+            return self
+
+        def scalars(self) -> list[str]:
+            return [f"published/NV/{big}/{big}.parquet", f"published/NV/{small}/{small}.parquet"]
+
+    rows = find_prices(Keys(), store, [big, small], "CPT", "99999", limit=10)  # type: ignore[arg-type]
+    by = {f: [p.price_type for p in rows if p.facility_id == f] for f in (big, small)}
+    assert len(by[big]) == 10 and sorted(by[small]) == ["discounted_cash", "gross"]
+    shown = find_prices(
+        Keys(),  # type: ignore[arg-type]
+        store,
+        [big, small],
+        "CPT",
+        "99999",
+        price_types=["discounted_cash", "gross"],
+    )
+    assert sorted(p.price_type for p in shown) == ["discounted_cash"] * 2 + ["gross"] * 2
+    with pytest.raises(PriceQueryError, match="price type"):
+        find_prices(Keys(), store, [big], "CPT", "99999", price_types=["DROP TABLE"])  # type: ignore[arg-type]

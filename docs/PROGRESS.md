@@ -2,6 +2,13 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-10 — First "Test every state" run (all 51, 3 price files each)
+- Result (`all-states.zip`): every state loaded with no failed steps; 5,306 hospitals; cities and nearby search worked in all 51. 34 states fully ok.
+- Bug found and fixed: the price read capped rows for the WHOLE search (5,000), so a big hospital with thousands of insurer rates for a code hid nearby hospitals' prices (13 states showed "published prices not found by search"). `price_store.find_prices` now caps per facility and `search.py` asks only for the price types it shows. Test: `test_a_big_hospital_cannot_crowd_others_out_of_a_search`.
+- `scripts/state_check.py` now also tries an insurer search (the hospital's most-listed insurer) and tells "hospital missing" apart from "no price of that kind". Checked locally: `search_cash "80", search_list "100.1", search_plan "75.25"`.
+- Still open: CT, IA, MN, SC published none of their 3 files (reasons in their state downloads); hospital websites found for 1,392 of 5,306 hospitals (26%), so most hospitals have no price link yet.
+- Tests (this session): `pytest -q` → `352 passed, 1 skipped, 1 warning in 20.42s`; ruff and mypy clean.
+
 ## 2026-11-10 — Pre-launch check: every state, Cooper's answers, fixes found
 - Cooper's answers: first files publish automatically (D-055, live-load default on); domain procedurescout.com (D-057: `render.yaml` domains, `SITE_URL`, `EMAIL_FROM`); Claude confirms state rules with sources (D-056).
 - Help paying, all states: `data/reference/coverage_limits.csv` now has 204 rows (51 states + DC x adults, children, pregnancy, marketplace), each with its official source (MACPAC Exhibits 35/36, July 2025, + 5-point disregard; expansion status checked against healthinsurance.org, updated 2026-03-31).

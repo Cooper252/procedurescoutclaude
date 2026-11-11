@@ -82,6 +82,18 @@ def counts(url: str, st: str) -> dict[str, Any]:
             {"s": st},
         ).first()
         out["_sample"] = None if sample is None else [str(x) for x in sample]
+        payer = (
+            c.execute(
+                text(
+                    "SELECT payer_name_raw FROM price.file_payer_summary WHERE facility_id = :f "
+                    "ORDER BY prices DESC LIMIT 1"
+                ),
+                {"f": sample[0]},
+            ).scalar()
+            if sample is not None
+            else None
+        )
+        out["_payer"] = None if payer is None else str(payer)
         any_place = c.execute(
             text(
                 "SELECT ST_Y(geom::geometry), ST_X(geom::geometry) FROM ref.facility "
@@ -95,7 +107,9 @@ def counts(url: str, st: str) -> dict[str, Any]:
     return out
 
 
-def api_checks(st: str, place: list[str] | None, sample: list[str] | None) -> dict[str, Any]:
+def api_checks(
+    st: str, place: list[str] | None, sample: list[str] | None, payer: str | None
+) -> dict[str, Any]:
     from fastapi.testclient import TestClient
 
     from procedurescout_api.main import app
@@ -112,17 +126,13 @@ def api_checks(st: str, place: list[str] | None, sample: list[str] | None) -> di
             r = client.get(f"/v1/facilities/{fid}")
             out["facility_page"] = r.status_code
             found = None
-            for mode in ("cash", "list"):
-                r = client.get(
-                    "/v1/search",
-                    params={
-                        "lat": lat,
-                        "lng": lng,
-                        "code_system": system,
-                        "code": code,
-                        "mode": mode,
-                    },
-                )
+            for mode in ("cash", "list", "plan"):
+                params = {"lat": lat, "lng": lng, "code_system": system, "code": code, "mode": mode}
+                if mode == "plan":
+                    if payer is None:
+                        continue
+                    params["payer"] = payer  # the insurer this hospital lists most
+                r = client.get("/v1/search", params=params)
                 if r.status_code != 200:
                     out[f"search_{mode}"] = f"HTTP {r.status_code}: {r.text[:200]}"
                     continue
@@ -140,9 +150,9 @@ def main() -> None:
     a = p.parse_args()
     owner = os.environ["DATABASE_URL"]
     c = counts(owner, a.state)
-    place, sample = c.pop("_place"), c.pop("_sample")
+    place, sample, payer = c.pop("_place"), c.pop("_sample"), c.pop("_payer", None)
     try:
-        c.update(api_checks(a.state, place, sample))
+        c.update(api_checks(a.state, place, sample, payer))
     except Exception as exc:
         c["api_error"] = f"{type(exc).__name__}: {exc}"[:300]
     problems = []
@@ -150,11 +160,18 @@ def main() -> None:
         problems.append("no hospitals loaded")
     if c.get("api_error"):
         problems.append("API error")
-    for k in ("cities", "nearby", "search_cash", "search_list"):
+    for k in ("cities", "nearby", "search_cash", "search_list", "search_plan"):
         if str(c.get(k, "")).startswith("HTTP"):
             problems.append(f"{k} failed")
     if sample and not c.get("priced_search_works"):
-        problems.append("published prices not found by search")
+        missing = all(
+            c.get(f"search_{m}") in ("facility missing", None) for m in ("cash", "list", "plan")
+        ) and any(c.get(f"search_{m}") == "facility missing" for m in ("cash", "list"))
+        problems.append(
+            "published hospital missing from search"
+            if missing
+            else "published prices not found by search"
+        )
     if a.expect_prices and c.get("facilities_published") == 0:
         problems.append("no hospital published (see download/load failures)")
     if c.get("coverage_rows") != 4:

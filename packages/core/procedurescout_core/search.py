@@ -247,9 +247,21 @@ def search(
     )
     by_facility: dict[str, list[PublishedPrice]] = {}
     with_files = [i for i in ids if i in published]
+    # only the price types this search shows: cash and list for every mode, plus
+    # insurer rates when searching by plan or insurer
+    wanted_types = ["discounted_cash", "gross"]
+    if mode == "plan" or plan_id is not None or payer_key is not None:
+        wanted_types.append("negotiated")
     if with_files:
         for system, value in codes:
-            for p in find_prices(conn, store, [uuid.UUID(i) for i in with_files], system, value):
+            for p in find_prices(
+                conn,
+                store,
+                [uuid.UUID(i) for i in with_files],
+                system,
+                value,
+                price_types=wanted_types,
+            ):
                 by_facility.setdefault(p.facility_id, []).append(p)
     # provider-entered regular prices (reviewed, published), labeled by price_source;
     # their specials are kept apart and never used in comparisons (D-042)
@@ -302,7 +314,13 @@ def search(
     if with_files:
         for system, value in codes:
             for p in find_prices(
-                conn, store, [uuid.UUID(i) for i in with_files], system, value, previous=True
+                conn,
+                store,
+                [uuid.UUID(i) for i in with_files],
+                system,
+                value,
+                previous=True,
+                price_types=wanted_types,
             ):
                 previous.setdefault(p.facility_id, []).append(p)
 
