@@ -2,6 +2,18 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-11 — Price-list templates with upload checking (Cooper's idea)
+- `procedurescout_core/price_templates.py`, routes `GET /v1/portal/price-template?types=…` (CSV, opens in Excel) and `POST /v1/portal/facilities/{id}/price-upload` (check, then confirm). One file for several kinds of care; a shared service goes in the more specialised section. Each line: ready / skipped (blank price) / problem (shown on its line) / new to our list. Lines with only a code are matched by code. Nothing is sent until there are no problems and the practice confirms; prices then go to the usual review.
+- Migration `0023_price_upload_suggestions.py`: `prov.service_suggestion` and a staff queue "New services from price lists" on /admin/providers.
+- New kinds: Orthodontist, Oral surgeon (NUCC Dentist specializations); orthodontic consult, retainer, IV sedation, bone graft; braces/aligners and extractions/wisdom teeth/implant posts filed under them; teeth cleaning (adult) now listed for dental offices.
+- Portal "Prices" tab: tick your kinds of care, download, upload, see every line's result, confirm (English and Spanish).
+- Load workflows: a newer database is accepted (the site can be updated during the week-long all-states run).
+- Tests: `test_price_list_template_and_upload` (sections, no duplicates, $ and commas accepted, 3 decimals refused, code match, confirm refused while problems remain, 4 sent for review, 1 suggestion, staff marks it added). `pytest -q` → `360 passed, 1 skipped, 1 warning in 18.31s`; ruff, mypy, tsc clean.
+
+## 2026-11-11 — Nevada is live (first real load), and a search fix
+- Run 43046998045 succeeded (1 h 23 min). Price files: 25 chosen, 11 read this run (17,776,924 prices, 0 refused) plus 10 already published by the earlier run, 3 downloads failed, 1 not a price file. Live database 79 MB afterwards (was 6.3 GB of leftovers before `clear-staged`).
+- Checked on the live API: hospitals with prices for a brain MRI include University Medical Center ($250 list), Sunrise ($241), North Vista, MountainView, St. Rose (2), Southern Hills (Las Vegas); Saint Mary's, Carson Tahoe, Banner Churchill (Reno area); Northeastern Nevada Regional (Elko). 60 Nevada cities.
+- Bug found: a search without a type picked the 50 nearest places, all unpriced offices, so no hospital prices showed in Las Vegas. Places with a published file or a provider price for the service now come first (`search.py`). Test: `test_places_with_prices_are_not_pushed_out_by_nearer_offices`. `pytest -q` → `359 passed, 1 skipped, 1 warning in 20.64s`; ruff clean.
 ## 2026-11-11 — Specialists, psychiatrists, referral label, more services, unpriced places folded
 - Migration `0022_specialties_referral.py`: `ref.provider_type.grouping` and `.referral` ('hmo' / 'none'). 19 new types (psychiatry, dermatology, cardiology, orthopedics, OB-GYN, ENT, gastroenterology, urology, allergy, neurology, endocrinology, rheumatology, pulmonology, nephrology, oncology, pain medicine, sleep medicine, fertility, plastic surgery); 27 NUCC taxonomy rows mapped (spellings are checked against NUCC by the next offices load).
 - Search menu grouped (Specialists, Mental health, Cosmetic and weight loss, ...); facility pages say when a referral is usually needed; proper names in English and Spanish.

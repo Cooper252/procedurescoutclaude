@@ -305,3 +305,74 @@ def test_review_pages_need_staff_with_authenticator(
     monkeypatch.setenv("ENVIRONMENT", "production")
     get_settings.cache_clear()
     assert _admin().get("/admin/providers", headers=ADMIN).status_code == 401  # no shared password
+
+
+def test_price_list_template_and_upload(client: TestClient, conn: Connection) -> None:
+    """Cooper (2026-11-11): one template for dental + orthodontics + oral surgery,
+    and an upload that checks every line before anything goes to review."""
+    import csv
+    import io
+
+    from tests.test_catalog_offers import load_all
+
+    load_all(conn)
+    fid = _facility(conn)
+    _sign_in(client, "owner@synthetic-clinic.test")
+    client.post("/v1/portal/claims", json={"facility_id": fid}, headers=H)
+    r = client.get("/v1/portal/price-template?types=dental_office,orthodontics,oral_surgery")
+    assert r.status_code == 200 and r.headers["content-type"].startswith("text/csv")
+    rows = list(csv.DictReader(io.StringIO(r.text.lstrip("﻿"))))
+    sections = {x["section"] for x in rows}
+    assert {"Dental office", "Orthodontist (braces and aligners)", "Oral surgeon"} <= sections
+    slugs = [x["service_id"] for x in rows if x["service_id"]]
+    assert len(slugs) == len(set(slugs))  # a shared service appears once
+    assert "braces-full-adult" in slugs and "wisdom-tooth-full-bony" in slugs
+    # fill in a few lines, one mistake, one of their own services
+    for x in rows:
+        if x["service_id"] == "teeth-cleaning-adult":
+            x["your_price"] = "$129.50"
+        if x["service_id"] == "braces-full-adult":
+            x["your_price"] = "5,900"
+        if x["service_id"] == "night-guard":
+            x["your_price"] = "12.345"
+    own = [x for x in rows if x["section"] == "Your own services"]
+    own[0].update(service="Smile makeover consultation", your_price="0.01")
+    own[1].update(service="Exam", codes="CDT D0120", your_price="60")
+    out = io.StringIO()
+    w = csv.DictWriter(out, fieldnames=list(rows[0].keys()))
+    w.writeheader()
+    w.writerows(rows)
+    url = f"/v1/portal/facilities/{fid}/price-upload"
+    first = client.post(url, json={"csv": out.getvalue()}, headers=H).json()
+    assert first["counts"]["ready"] == 3  # cleaning, braces, exam matched by its code
+    assert first["counts"]["suggestion"] == 1 and first["counts"]["error"] == 1
+    bad = next(x for x in first["lines"] if x["status"] == "error")
+    assert "2 decimal places" in bad["message"]
+    refused = client.post(url, json={"csv": out.getvalue(), "confirm": True}, headers=H)
+    assert refused.status_code == 422  # problems must be fixed first
+    for x in rows:
+        if x["service_id"] == "night-guard":
+            x["your_price"] = "350"
+    out = io.StringIO()
+    w = csv.DictWriter(out, fieldnames=list(rows[0].keys()))
+    w.writeheader()
+    w.writerows(rows)
+    done = client.post(url, json={"csv": out.getvalue(), "confirm": True}, headers=H).json()
+    assert done["applied"] == {"sent_for_review": 4, "suggestions": 1}
+    mine = client.get(f"/v1/portal/facilities/{fid}/prices").json()["listings"]
+    assert {x["status"] for x in mine} == {"pending_review"} and len(mine) == 4
+    assert client.get(f"/v1/facilities/{fid}/provider-prices").json()["listings"] == []
+    kept = conn.execute(text("SELECT name, price FROM prov.service_suggestion")).all()
+    assert [(k[0], str(k[1])) for k in kept] == [("Smile makeover consultation", "0.01")]
+    sid = conn.execute(text("SELECT id FROM prov.service_suggestion")).scalar_one()
+    assert "Smile makeover consultation" in _admin().get("/admin/providers", headers=ADMIN).text
+    tok = admin_routes.form_token(f"suggestion:{sid}")
+    r = _admin().post(
+        f"/admin/providers/suggestion/{sid}/approve",
+        data={"form_token": tok},
+        headers=ADMIN,
+        follow_redirects=False,
+    )
+    assert r.status_code == 303
+    status = conn.execute(text("SELECT status FROM prov.service_suggestion")).scalar_one()
+    assert status == "added"

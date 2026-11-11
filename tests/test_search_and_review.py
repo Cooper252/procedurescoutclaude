@@ -69,7 +69,7 @@ def test_committed_catalog_files_load_with_review_state(conn: Connection) -> Non
         conn, (ROOT / "data/reference/service_catalog.csv").read_text()
     )
     assert types.rejects == [] and services.rejects == []
-    assert types.summary == {"approved": 35}  # Cooper: 16 (2026-11-08) + specialties (2026-11-11)
+    assert types.summary == {"approved": 37}  # Cooper: 16 (2026-11-08) + specialties (2026-11-11)
     referral = dict(
         conn.execute(
             text(

@@ -74,3 +74,4 @@ Status levels are separate on purpose. A cell is filled only with evidence. Depl
 | PRV-08 | Specialties, psychiatrists, referral label | 11 | Yes (`0022_specialties_referral.py`, `provider_types.csv`, `nppes_taxonomy_map.csv`, `app/facility/[id]/page.tsx`) | Yes (`test_committed_catalog_files_load_with_review_state`) | — | — | |
 | SVC-03 | Cosmetic surgery, psychiatry, fertility, specialist services | 11 | Yes (`service_catalog.csv`, `service_synonyms.csv`) | Yes (`test_committed_catalog_files_load_with_review_state`) | — | — | |
 | SRCH-05 | Unpriced places folded in search | 11 | Yes (`app/search/page.tsx`) | tsc only | — | — | |
+| PRV-09 | Price-list templates by kind of care, upload checked line by line, new-service suggestions | 11 | Yes (`price_templates.py`, `portal_routes.py`, `0023_price_upload_suggestions.py`, `components/PortalPrices.tsx`) | Yes (`test_price_list_template_and_upload`) | — | — | |

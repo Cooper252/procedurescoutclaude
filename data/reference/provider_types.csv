@@ -34,3 +34,5 @@ pain_medicine,Pain medicine,human,"Cooper (asked for specialists and psychiatris
 sleep_medicine,Sleep medicine,human,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,Specialists,hmo
 fertility,Fertility clinic,human,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,Specialists,hmo
 plastic_surgery,Plastic and cosmetic surgeon,human,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,Cosmetic and weight loss,none
+orthodontics,Orthodontist (braces and aligners),human,"Cooper (asked for dental, orthodontic and oral surgery templates, 2026-11-11)",2026-11-11,"Dental, eye and hearing",none
+oral_surgery,Oral surgeon,human,"Cooper (asked for dental, orthodontic and oral surgery templates, 2026-11-11)",2026-11-11,"Dental, eye and hearing",none

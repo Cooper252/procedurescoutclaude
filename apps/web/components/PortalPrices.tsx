@@ -9,7 +9,7 @@ import { api } from "@/lib/api";
 import { fill } from "@/lib/i18n";
 import { portalText, type PortalDict } from "@/lib/i18n_portal";
 import { formatMoney } from "@/lib/money";
-import { portal, type MyListing, type MyPrices } from "@/lib/portal";
+import { portal, templateUrl, type MyListing, type MyPrices, type UploadResult } from "@/lib/portal";
 import type { Service } from "@/lib/types";
 
 const SYSTEMS = ["CPT", "HCPCS", "CDT", "MS_DRG"];
@@ -35,6 +35,7 @@ export function PortalPrices({ fid, canEdit }: { fid: string; canEdit: boolean }
 
   return (
     <div className="acct-prices">
+      {canEdit && <PriceList fid={fid} p={p} onSaved={load} />}
       {canEdit && <AddPrice fid={fid} p={p} services={services} onSaved={load} />}
       <section className="card acct-card">
         <h2>{p.prTitle}</h2>
@@ -406,6 +407,107 @@ function Packages({
           {msg && <p className="notice good">{msg}</p>}
           <button className="btn primary">{p.pkSave}</button>
         </form>
+      )}
+    </section>
+  );
+}
+
+// Price-list template: download a spreadsheet for your kinds of care, fill in
+// your prices, upload it; every line is checked before anything is sent.
+function PriceList({ fid, p, onSaved }: { fid: string; p: PortalDict; onSaved: () => void }) {
+  const [types, setTypes] = useState<{ code: string; name: string }[]>([]);
+  const [chosen, setChosen] = useState<string[]>([]);
+  const [csv, setCsv] = useState("");
+  const [result, setResult] = useState<UploadResult | null>(null);
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    portal.providerTypesAll().then(setTypes).catch(() => setTypes([]));
+  }, []);
+  const check = async (text: string, confirm: boolean) => {
+    setBusy(true);
+    setErr("");
+    try {
+      const r = await portal.uploadPrices(fid, text, confirm);
+      setResult(r);
+      if (confirm) onSaved();
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const toggle = (c: string) => setChosen((x) => (x.includes(c) ? x.filter((y) => y !== c) : [...x, c]));
+  return (
+    <section className="card acct-card">
+      <h2>{p.tplTitle}</h2>
+      <p className="muted small">{p.tplIntro}</p>
+      <fieldset className="tpl-types">
+        <legend>{p.tplKinds}</legend>
+        {types.map((t) => (
+          <label key={t.code} className="check">
+            <input type="checkbox" checked={chosen.includes(t.code)} onChange={() => toggle(t.code)} /> {t.name}
+          </label>
+        ))}
+      </fieldset>
+      <a
+        className={`btn ghost${chosen.length ? "" : " disabled"}`}
+        href={chosen.length ? templateUrl(chosen) : undefined}
+        aria-disabled={chosen.length === 0}
+        download
+      >
+        {p.tplDownload}
+      </a>
+      <div className="field">
+        <label htmlFor="tpl-file">{p.tplUpload}</label>
+        <input
+          id="tpl-file"
+          type="file"
+          accept=".csv,text/csv"
+          onChange={async (e) => {
+            const f = e.target.files?.[0];
+            if (!f) return;
+            const text = await f.text();
+            setCsv(text);
+            setResult(null);
+            await check(text, false);
+          }}
+        />
+      </div>
+      {err && <p className="form-error" role="alert">{err}</p>}
+      {result && !result.applied && (
+        <div className="tpl-result" aria-live="polite">
+          <p>
+            {fill(p.tplCounts, {
+              ready: String(result.counts.ready),
+              error: String(result.counts.error),
+              suggestion: String(result.counts.suggestion),
+            })}
+          </p>
+          <ul className="tpl-lines">
+            {result.lines.map((l) => (
+              <li key={l.line} className={`tpl-${l.status}`}>
+                <strong>{fill(p.tplLine, { n: String(l.line) })}</strong> {l.service ?? ""} {l.price ? m(l.price) : ""} — {l.message}
+              </li>
+            ))}
+          </ul>
+          <button
+            type="button"
+            className="btn primary"
+            disabled={busy || result.counts.error > 0 || result.counts.ready + result.counts.suggestion === 0}
+            onClick={() => check(csv, true)}
+          >
+            {result.counts.error > 0 ? p.tplFixFirst : p.tplConfirm}
+          </button>
+        </div>
+      )}
+      {result?.applied && (
+        <p className="notice" role="status">
+          {fill(p.tplDone, {
+            sent: String(result.applied.sent_for_review),
+            kept: String(result.applied.suggestions),
+          })}
+        </p>
       )}
     </section>
   );

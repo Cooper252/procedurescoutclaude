@@ -2313,3 +2313,12 @@ fieldset.acct-card { min-width: 0; }
 details.unpriced > summary { cursor: pointer; list-style: revert; padding: 8px 0; }
 details.unpriced > summary:focus-visible { outline: 2px solid var(--accent, #0b6e4f); outline-offset: 2px; }
 .referral-note { margin: 2px 0 6px; max-width: 60ch; }
+
+/* price-list template (2026-11-11) */
+.tpl-types { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 4px 12px; border: 0; padding: 0; margin: 8px 0 12px; min-width: 0; }
+.tpl-types legend { font-weight: 600; margin-bottom: 6px; }
+.btn.disabled { opacity: .5; pointer-events: none; }
+.tpl-lines { list-style: none; padding: 0; margin: 8px 0 12px; max-height: 320px; overflow: auto; }
+.tpl-lines li { padding: 4px 0; border-bottom: 1px solid var(--line, #e5e7eb); overflow-wrap: anywhere; }
+.tpl-error { color: var(--danger, #b42318); }
+.tpl-suggestion { color: var(--muted, #555); }

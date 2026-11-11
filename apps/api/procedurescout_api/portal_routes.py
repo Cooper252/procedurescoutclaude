@@ -35,6 +35,7 @@ from sqlalchemy import Connection, create_engine, text
 from sqlalchemy.engine import Engine
 
 from procedurescout_core import portal_auth as auth
+from procedurescout_core import price_templates as templates
 from procedurescout_core import provider_pages as pages
 from procedurescout_core import provider_prices as prices
 from procedurescout_core import provider_stats as stats
@@ -804,6 +805,61 @@ def portal_price_save(
     except prices.ProviderPriceError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return {"id": lid}
+
+
+@router.get("/portal/price-template")
+def portal_price_template(
+    conn: PortalConn,
+    account: Me,
+    types: Annotated[str, Query(min_length=2, max_length=400)],
+) -> Response:
+    """Download the price list for these kinds of care (comma-separated codes)."""
+    try:
+        body = templates.template_csv(conn, types.split(","))
+    except templates.TemplateError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return Response(
+        content="\ufeff" + body,  # so Excel opens it as UTF-8
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": 'attachment; filename="procedurescout-price-list.csv"'},
+    )
+
+
+class UploadIn(BaseModel):
+    csv: str = Field(max_length=templates.MAX_BYTES)
+    confirm: bool = False
+
+
+@router.post("/portal/facilities/{facility_id}/price-upload")
+def portal_price_upload(
+    facility_id: FID, body: UploadIn, conn: PortalConn, account: Me, _: Guard
+) -> dict[str, Any]:
+    """Check a filled-in price list line by line; with confirm, send the ready
+    lines to price review and keep the practice's own services as suggestions."""
+    _role(conn, account, facility_id, EDIT)
+    try:
+        check = templates.check_upload(conn, body.csv)
+        applied = (
+            templates.apply_upload(conn, facility_id, account.id, check) if body.confirm else None
+        )
+    except (templates.TemplateError, prices.ProviderPriceError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {
+        "lines": [
+            {
+                "line": x.line,
+                "status": x.status,
+                "message": x.message,
+                "service": x.service,
+                "price": x.price,
+                "sessions": x.sessions,
+            }
+            for x in check.lines
+            if x.status != "skipped"
+        ],
+        "counts": {s: check.count(s) for s in ("ready", "skipped", "error", "suggestion")},
+        "applied": applied,
+    }
 
 
 @router.delete("/portal/facilities/{facility_id}/prices/{listing_id}", status_code=204)

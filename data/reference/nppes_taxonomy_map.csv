@@ -51,3 +51,5 @@ Plastic Surgery,*,plastic_surgery,"Cooper (asked for specialists and psychiatris
 Pain Medicine,*,pain_medicine,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,NUCC classification/specialization
 Anesthesiology,Pain Medicine,pain_medicine,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,NUCC classification/specialization
 Clinic/Center,Oncology,oncology,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,NUCC classification/specialization
+Dentist,Orthodontics and Dentofacial Orthopedics,orthodontics,"Cooper (asked for dental, orthodontic and oral surgery templates, 2026-11-11)",2026-11-11,NUCC classification/specialization
+Dentist,Oral and Maxillofacial Surgery,oral_surgery,"Cooper (asked for dental, orthodontic and oral surgery templates, 2026-11-11)",2026-11-11,NUCC classification/specialization

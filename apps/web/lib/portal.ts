@@ -207,6 +207,23 @@ export function track(facilityId: string, kind: "page_view" | "website_click" | 
   }
 }
 
+export interface UploadLine {
+  line: number;
+  status: "ready" | "error" | "suggestion";
+  message: string;
+  service: string | null;
+  price: string | null;
+  sessions: number;
+}
+export interface UploadResult {
+  lines: UploadLine[];
+  counts: { ready: number; skipped: number; error: number; suggestion: number };
+  applied: { sent_for_review: number; suggestions: number } | null;
+}
+
+/** Link to download the price list for these kinds of care (signed-in providers). */
+export const templateUrl = (types: string[]) => `/api/v1/portal/price-template?types=${encodeURIComponent(types.join(","))}`;
+
 export const portal = {
   // ---------------------------------------------------------------- public
   page: (id: string): Promise<ProviderPage> => (DEMO ? later(demo.demoPage(id)) : call("GET", `/v1/facilities/${id}/page`)),
@@ -246,6 +263,10 @@ export const portal = {
   myPrices: (id: string): Promise<MyPrices> => (DEMO ? later(demo.demoMyPrices()) : call("GET", `/v1/portal/facilities/${id}/prices`)),
   savePrice: (id: string, body: ListingIn): Promise<{ id: string }> =>
     DEMO ? later({ id: "preview" }) : call("POST", `/v1/portal/facilities/${id}/prices`, body),
+  uploadPrices: (id: string, csv: string, confirm: boolean): Promise<UploadResult> =>
+    DEMO
+      ? later({ lines: [], counts: { ready: 0, skipped: 0, error: 0, suggestion: 0 }, applied: null })
+      : call("POST", `/v1/portal/facilities/${id}/price-upload`, { csv, confirm }),
   withdrawPrice: (id: string, listingId: string): Promise<void> =>
     DEMO ? later(undefined) : call("DELETE", `/v1/portal/facilities/${id}/prices/${listingId}`),
   addSpecial: (id: string, listingId: string, body: OfferIn): Promise<{ id: string }> =>

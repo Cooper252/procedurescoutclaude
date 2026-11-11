@@ -587,6 +587,10 @@ export function fill(template: string, values: Record<string, string | number>):
 
 // Plain names for services and provider types in Spanish; English names come from the API.
 export const SERVICE_ES: Record<string, string> = {
+  "ortho-consultation": "Consulta de ortodoncia",
+  "retainer-per-arch": "Retenedor (por arcada)",
+  "iv-sedation-dental": "Sedaci\u00f3n intravenosa dental (primeros 15 minutos)",
+  "bone-graft-dental": "Injerto de hueso en sitio de extracci\u00f3n",
   "breast-augmentation": "Aumento de senos (implantes)",
   "breast-lift": "Levantamiento de senos",
   "breast-reduction": "Reducci\u00f3n de senos",
@@ -635,6 +639,8 @@ export const SERVICE_ES: Record<string, string> = {
 };
 
 export const TYPE_EN: Record<string, string> = {
+  orthodontics: "Orthodontist (braces and aligners)",
+  oral_surgery: "Oral surgeon",
   hospital: "Hospital",
   surgery_center: "Surgery center",
   dental_office: "Dental office",
@@ -708,6 +714,8 @@ export const TYPE_ES: Record<string, string> = {
   sleep_medicine: "Medicina del sueño",
   fertility: "Clínica de fertilidad",
   plastic_surgery: "Cirujano plástico y estético",
+  orthodontics: "Ortodoncista (frenos y alineadores)",
+  oral_surgery: "Cirujano oral",
 };
 
 export const GROUP_ES: Record<string, string> = {

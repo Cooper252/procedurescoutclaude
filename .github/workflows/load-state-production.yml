@@ -108,7 +108,9 @@ jobs:
           with create_engine(sqlalchemy_url(os.environ["DATABASE_URL"])).connect() as c:
               now = c.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
           print(f"live database at {now}, code expects {head}")
-          sys.exit(0 if now == head else "deploy the API first (it upgrades the database), then run this again")
+          # a newer database is fine (the site was updated during a long run;
+          # changes only ever add); an older one means the API wasn't deployed
+          sys.exit(0 if int(now) >= int(head) else "deploy the API first (it upgrades the database), then run this again")
           PY
       - name: Set up the work database on this computer
         env:

@@ -21,6 +21,7 @@ from .admin_routes import AdminConn, AdminStore, Reviewer, _esc, _form, form_tok
 router = APIRouter(prefix="/admin/providers", tags=["admin"], include_in_schema=False)
 KINDS = (
     "listingrequest",
+    "suggestion",
     "pricereport",
     "claim",
     "profile",
@@ -53,6 +54,10 @@ pre{{white-space:pre-wrap;margin:0;font:inherit}}
 <h2>Practices asking to be added</h2>
 <p class="muted">Check the practice is real (website, phone, state license) before approving.
 Approving creates its page and makes the requester its owner.</p>{listingrequests}
+<h2>New services from price lists</h2>
+<p class="muted">A practice priced something we don't list. Add it to the service list
+(data/reference/service_catalog.csv) if it's a real, common service, then mark it added;
+otherwise decline with a reason.</p>{suggestions}
 <h2>Wrong-price reports</h2>{pricereports}
 <h2>People asking to manage a page</h2>{claims}
 <h2>Provider prices</h2>
@@ -302,8 +307,21 @@ def page(who: Reviewer, conn: AdminConn, done: str | None = None) -> HTMLRespons
             )
         ).all()
     ]
+    suggestions = [
+        f"<tr><td>{_esc(r[1])}</td><td><strong>{_esc(r[2])}</strong>"
+        f"{' · ' + _esc(r[3]) + ' ' + _esc(r[4]) if r[3] else ''} · ${_esc(r[5])}</td>"
+        f"<td>{_buttons('suggestion', str(r[0]), 'Added to our list', 'Decline')}</td></tr>"
+        for r in conn.execute(
+            text(
+                "SELECT s.id, f.name, s.name, s.code_system, s.code, s.price "
+                "FROM prov.service_suggestion s JOIN ref.facility f ON f.id = s.facility_id "
+                "WHERE s.status = 'proposed' ORDER BY s.created_at LIMIT 200"
+            )
+        ).all()
+    ]
     return HTMLResponse(
         PAGE.format(
+            suggestions=_table(["Provider", "Service and price", "Decision"], suggestions),
             listingrequests=_table(["Practice", "Type and requester", "Decision"], listingrequests),
             pricereports=_table(["Provider", "Report", "Decision"], pricereports),
             listings=_table(["Provider", "Service", "Price", "Decision"], listings),
@@ -357,6 +375,16 @@ async def decide(
             from procedurescout_core import listing_requests
 
             listing_requests.decide(conn, item, who, ok, reason)
+        elif kind == "suggestion":
+            if not ok and not reason:
+                raise ValueError("a reason is needed to decline")
+            conn.execute(
+                text(
+                    "UPDATE prov.service_suggestion SET status = :s, review_note = :n, "
+                    "reviewed_at = now() WHERE id = CAST(:i AS uuid) AND status = 'proposed'"
+                ),
+                {"s": "added" if ok else "declined", "n": reason, "i": item},
+            )
         elif kind == "pricereport":
             from procedurescout_core import price_reports
 
