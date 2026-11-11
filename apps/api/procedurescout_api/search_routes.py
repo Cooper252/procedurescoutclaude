@@ -68,6 +68,8 @@ class Service(BaseModel):
 class ProviderType(BaseModel):
     code: str
     name: str
+    grouping: str | None = None
+    referral: str | None = None  # 'hmo' or 'none' (0022)
 
 
 class Price(BaseModel):
@@ -347,10 +349,11 @@ def services(conn: Conn) -> list[Service]:
 def provider_types(conn: Conn) -> list[ProviderType]:
     rows = conn.execute(
         text(
-            "SELECT code, name FROM ref.provider_type WHERE review_state = 'approved' ORDER BY name"
+            "SELECT code, name, grouping, referral FROM ref.provider_type "
+            "WHERE review_state = 'approved' ORDER BY grouping NULLS LAST, name"
         )
     ).all()
-    return [ProviderType(code=r[0], name=r[1]) for r in rows]
+    return [ProviderType(code=r[0], name=r[1], grouping=r[2], referral=r[3]) for r in rows]
 
 
 @router.get("/search", response_model=SearchOut)

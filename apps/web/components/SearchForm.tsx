@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { api } from "@/lib/api";
-import { SERVICE_ES, TYPE_ES } from "@/lib/i18n";
+import { SERVICE_ES, TYPE_ES, GROUP_ES } from "@/lib/i18n";
 import type { ProviderType, Suggestion } from "@/lib/types";
 import { useApp } from "./AppState";
 import { Locate, Pin, Search } from "./Icons";
@@ -210,10 +210,16 @@ export function SearchForm({ initialService = null, initialZip = "", initialType
           <label htmlFor={`${listId}-type`}>{t.typeLabel}</label>
           <select id={`${listId}-type`} value={ptype} onChange={(e) => setPtype(e.target.value)}>
             <option value="">{t.typeAny}</option>
-            {types.map((ty) => (
-              <option key={ty.code} value={ty.code}>
-                {lang === "es" ? TYPE_ES[ty.code] ?? ty.name : ty.name}
-              </option>
+            {[...new Set(types.map((ty) => ty.grouping ?? "Other"))].map((g) => (
+              <optgroup key={g} label={lang === "es" ? GROUP_ES[g] ?? g : g}>
+                {types
+                  .filter((ty) => (ty.grouping ?? "Other") === g)
+                  .map((ty) => (
+                    <option key={ty.code} value={ty.code}>
+                      {lang === "es" ? TYPE_ES[ty.code] ?? ty.name : ty.name}
+                    </option>
+                  ))}
+              </optgroup>
             ))}
           </select>
         </div>

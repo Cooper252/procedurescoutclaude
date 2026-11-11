@@ -2,6 +2,14 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-11 — Specialists, psychiatrists, referral label, more services, unpriced places folded
+- Migration `0022_specialties_referral.py`: `ref.provider_type.grouping` and `.referral` ('hmo' / 'none'). 19 new types (psychiatry, dermatology, cardiology, orthopedics, OB-GYN, ENT, gastroenterology, urology, allergy, neurology, endocrinology, rheumatology, pulmonology, nephrology, oncology, pain medicine, sleep medicine, fertility, plastic surgery); 27 NUCC taxonomy rows mapped (spellings are checked against NUCC by the next offices load).
+- Search menu grouped (Specialists, Mental health, Cosmetic and weight loss, ...); facility pages say when a referral is usually needed; proper names in English and Spanish.
+- 27 new services (cosmetic surgery, psychiatry, fertility, specialist visit, skin check, IUD, hearing aids) with Spanish names and 49 everyday search words ("boob job", "nose job", "lipo", "bbl", "med management").
+- Search: places without prices fold under "N more nearby that haven't posted prices".
+- Correction to my earlier message: therapy sessions, first therapy visit, GLP-1 programs and telehealth visits were already in the list since 2026-11-08.
+- Tests: `test_committed_catalog_files_load_with_review_state` (35 types; psychiatry 'hmo', OB-GYN 'none'). `pytest -q` → `358 passed, 1 skipped, 1 warning in 22.00s`; ruff, mypy, tsc clean.
+
 ## 2026-11-11 — First live load: what broke and the fix (D-059)
 - Run 1 stopped at the safety check (database address). Run 2 (1 h 50 min): reference data, websites and discovery loaded into the live database (46 hospitals, 68 surgery centers, codes, service list, insurance names, 204 help-paying limits, 80 health centers); then staging a big price file inside the live database made it unavailable (`FATAL: service temporarily unavailable`, after `cannot allocate memory for output buffer`); disk 63% used afterwards.
 - Live API log: searches failed with `ValueError: endpoint must look like https://host[:port], got 'https://…r2.cloudflarestorage.com/procedurescout-prices'` — the bucket name on the end of the address. `S3Store` now accepts it (`test_settings_validation`).

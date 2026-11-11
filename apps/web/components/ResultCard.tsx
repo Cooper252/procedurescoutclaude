@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { fill, TYPE_ES } from "@/lib/i18n";
+import { fill, TYPE_ES, TYPE_EN } from "@/lib/i18n";
 import { formatMoney, money, subtractDecimal, unitLabel } from "@/lib/money";
 import type { Facility, Mode } from "@/lib/types";
 import { useApp } from "./AppState";
@@ -51,7 +51,8 @@ export function ResultCard({
       : mode === "list"
         ? t.list
         : t.cash;
-  const typeName = (c: string) => (lang === "es" ? TYPE_ES[c] : undefined) ?? c.replace(/_/g, " ").replace(/^\w/, (x) => x.toUpperCase());
+  const typeName = (c: string) =>
+    (lang === "es" ? TYPE_ES[c] : undefined) ?? TYPE_EN[c] ?? c.replace(/_/g, " ").replace(/^\w/, (x) => x.toUpperCase());
   const change = f.change_percent_since_last_file;
   const isHospital = f.provider_types.includes("hospital");
   const firstCode = f.prices[0]?.code;

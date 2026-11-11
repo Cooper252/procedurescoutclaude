@@ -24,3 +24,30 @@ Pediatrics,*,physician_office,Cooper,2026-11-09,
 Dermatology,*,physician_office,Cooper,2026-11-09,
 Clinic/Center,Primary Care,physician_office,Cooper,2026-11-09,
 Clinic/Center,Multi-Specialty,physician_office,Cooper,2026-11-09,
+Psychiatry & Neurology,Psychiatry,psychiatry,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,NUCC classification/specialization
+Psychiatry & Neurology,Child & Adolescent Psychiatry,psychiatry,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,NUCC classification/specialization
+Psychiatry & Neurology,Addiction Psychiatry,psychiatry,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,NUCC classification/specialization
+Psychiatry & Neurology,Geriatric Psychiatry,psychiatry,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,NUCC classification/specialization
+Psychiatry & Neurology,Neurology,neurology,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,NUCC classification/specialization
+Psychiatry & Neurology,Sleep Medicine,sleep_medicine,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,NUCC classification/specialization
+Dermatology,*,dermatology,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,NUCC classification/specialization
+Internal Medicine,Cardiovascular Disease,cardiology,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,NUCC classification/specialization
+Internal Medicine,Gastroenterology,gastroenterology,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,NUCC classification/specialization
+Internal Medicine,Endocrinology,endocrinology,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,NUCC classification/specialization
+Internal Medicine,Rheumatology,rheumatology,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,NUCC classification/specialization
+Internal Medicine,Pulmonary Disease,pulmonology,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,NUCC classification/specialization
+Internal Medicine,Nephrology,nephrology,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,NUCC classification/specialization
+Internal Medicine,Medical Oncology,oncology,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,NUCC classification/specialization
+Internal Medicine,Hematology & Oncology,oncology,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,NUCC classification/specialization
+Internal Medicine,Allergy & Immunology,allergy,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,NUCC classification/specialization
+Internal Medicine,Sleep Medicine,sleep_medicine,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,NUCC classification/specialization
+Allergy & Immunology,*,allergy,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,NUCC classification/specialization
+Orthopaedic Surgery,*,orthopedics,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,NUCC classification/specialization
+Obstetrics & Gynecology,*,obgyn,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,NUCC classification/specialization
+Obstetrics & Gynecology,Reproductive Endocrinology,fertility,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,NUCC classification/specialization
+Otolaryngology,*,ent,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,NUCC classification/specialization
+Urology,*,urology,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,NUCC classification/specialization
+Plastic Surgery,*,plastic_surgery,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,NUCC classification/specialization
+Pain Medicine,*,pain_medicine,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,NUCC classification/specialization
+Anesthesiology,Pain Medicine,pain_medicine,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,NUCC classification/specialization
+Clinic/Center,Oncology,oncology,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,NUCC classification/specialization

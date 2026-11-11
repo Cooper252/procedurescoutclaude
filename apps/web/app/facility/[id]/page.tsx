@@ -12,7 +12,7 @@ import { ReportPrice } from "@/components/ReportPrice";
 import { portal, track, type ProviderPage, type ProviderPrices as PP } from "@/lib/portal";
 import { fill, SERVICE_ES, TYPE_ES } from "@/lib/i18n";
 import { formatMoney, unitLabel } from "@/lib/money";
-import type { Bundle, FacilityDetail, FacilityPrices, Price, Service } from "@/lib/types";
+import type { Bundle, FacilityDetail, FacilityPrices, Price, ProviderType, Service } from "@/lib/types";
 
 export default function FacilityPage() {
   return (
@@ -43,6 +43,7 @@ function Facility() {
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState<ProviderPage | null>(null);
   const [own, setOwn] = useState<PP | null>(null);
+  const [types, setTypes] = useState<ProviderType[]>([]);
 
   useEffect(() => {
     api.facility(id).then(setF).catch(() => setMissing(true));
@@ -51,6 +52,7 @@ function Facility() {
     track(id, "page_view");
     api.services().then(setServices).catch(() => setServices([]));
     api.bundles().then(setBundles).catch(() => setBundles([]));
+    api.providerTypes().then(setTypes).catch(() => setTypes([]));
   }, [id]);
 
   useEffect(() => {
@@ -79,7 +81,11 @@ function Facility() {
   }
   if (!f) return <div className="wrap page"><p className="loading">…</p></div>;
 
-  const typeName = (c: string) => (lang === "es" ? TYPE_ES[c] : undefined) ?? c.replace(/_/g, " ").replace(/^\w/, (x) => x.toUpperCase());
+  const typeName = (c: string) =>
+    (lang === "es" ? TYPE_ES[c] : undefined) ??
+    types.find((ty) => ty.code === c)?.name ??
+    c.replace(/_/g, " ").replace(/^\w/, (x) => x.toUpperCase());
+  const needsReferral = f.provider_types.some((c) => types.find((ty) => ty.code === c)?.referral === "hmo");
   const svcName = (s: Service) => (lang === "es" ? SERVICE_ES[s.slug] ?? s.name : s.name);
   const maps = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${f.name} ${f.address ?? ""} ${f.city ?? ""} ${f.state}`)}`;
   const isHospital = f.provider_types.includes("hospital");
@@ -101,6 +107,7 @@ function Facility() {
       <header className="fac-head card">
         <div>
           <p className="eyebrow">{f.provider_types.map(typeName).join(" · ")}</p>
+          {needsReferral && <p className="small muted referral-note">{t.referralHmo}</p>}
           <div className="fac-title">
             {page?.logo_url && <img className="fac-logo" src={page.logo_url} alt="" width={48} height={48} />}
             <h1 className="page-title">{f.name}</h1>

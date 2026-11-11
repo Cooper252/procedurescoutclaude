@@ -69,7 +69,15 @@ def test_committed_catalog_files_load_with_review_state(conn: Connection) -> Non
         conn, (ROOT / "data/reference/service_catalog.csv").read_text()
     )
     assert types.rejects == [] and services.rejects == []
-    assert types.summary == {"approved": 16}  # Cooper approved the full list (2026-11-08)
+    assert types.summary == {"approved": 35}  # Cooper: 16 (2026-11-08) + specialties (2026-11-11)
+    referral = dict(
+        conn.execute(
+            text(
+                "SELECT code, referral FROM ref.provider_type WHERE code IN ('psychiatry', 'obgyn')"
+            )
+        ).all()
+    )
+    assert referral == {"psychiatry": "hmo", "obgyn": "none"}  # 0022
     assert services.summary == {"approved": services.rows_in}  # Cooper (D-042)
     no_descriptor = conn.execute(
         text("SELECT count(*) FROM ref.code WHERE system = 'CPT' AND descriptor IS NOT NULL")

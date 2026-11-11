@@ -75,12 +75,13 @@ def load_provider_types(conn: Connection, csv_text: str) -> LoadStats:
             text(
                 """
                 INSERT INTO ref.provider_type (code, name, source, review_state, reviewed_by,
-                                               reviewed_at)
+                                               reviewed_at, grouping, referral)
                 VALUES (:c, :n, CAST(:s AS ref.suggestion_source),
-                        CAST(:st AS ref.review_state), :rb, CAST(:ra AS timestamptz))
+                        CAST(:st AS ref.review_state), :rb, CAST(:ra AS timestamptz), :g, :rf)
                 ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, source = EXCLUDED.source,
                     review_state = EXCLUDED.review_state, reviewed_by = EXCLUDED.reviewed_by,
-                    reviewed_at = EXCLUDED.reviewed_at
+                    reviewed_at = EXCLUDED.reviewed_at, grouping = EXCLUDED.grouping,
+                    referral = EXCLUDED.referral
                 """
             ),
             {
@@ -90,6 +91,8 @@ def load_provider_types(conn: Connection, csv_text: str) -> LoadStats:
                 "st": state,
                 "rb": who,
                 "ra": when,
+                "g": (row.get("grouping") or "").strip() or None,
+                "rf": (row.get("referral") or "").strip() or None,
             },
         )
         stats.rows_loaded += 1

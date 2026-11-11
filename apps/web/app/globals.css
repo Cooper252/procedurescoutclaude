@@ -2308,3 +2308,8 @@ fieldset.acct-card { min-width: 0; }
 .plan-list { list-style: none; padding: 0; margin: 8px 0; }
 .plan-list li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
 .acct-public-row { margin: 8px 0 0; text-align: right; }
+
+/* places without prices, folded under one line (2026-11-11) */
+details.unpriced > summary { cursor: pointer; list-style: revert; padding: 8px 0; }
+details.unpriced > summary:focus-visible { outline: 2px solid var(--accent, #0b6e4f); outline-offset: 2px; }
+.referral-note { margin: 2px 0 6px; max-width: 60ch; }

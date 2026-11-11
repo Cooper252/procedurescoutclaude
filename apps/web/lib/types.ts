@@ -23,6 +23,8 @@ export interface Suggestion {
 export interface ProviderType {
   code: string;
   name: string;
+  grouping?: string | null;
+  referral?: "hmo" | "none" | null;
 }
 
 export interface Plan {

@@ -320,14 +320,17 @@ function Results() {
               ))}
             </div>
             {unpriced.length > 0 && (
-              <>
-                <h2 className="section-label">{t.noPricesSection}</h2>
+              // places without prices stay out of the way (Cooper, 2026-11-11)
+              <details className="unpriced" open={priced.length === 0}>
+                <summary className="section-label">
+                  {fill(t.noPricesFold, { n: String(unpriced.length) })}
+                </summary>
                 <div className="results-list muted">
                   {unpriced.map((f) => (
                     <ResultCard key={f.facility_id} f={f} mode={mode} unit={unit} service={service} />
                   ))}
                 </div>
-              </>
+              </details>
             )}
             {result.codes.length > 0 && (
               <p className="fine codes">

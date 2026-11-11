@@ -1,17 +1,36 @@
-code,name,source,reviewed_by,reviewed_at
-hospital,Hospital,human,Cooper,2026-11-07
-surgery_center,Surgery center,human,Cooper,2026-11-07
-dental_office,Dental office,human,Cooper,2026-11-07
-medical_spa,Medical spa,human,Cooper,2026-11-07
-weight_loss_clinic,Weight-loss clinic,human,Cooper,2026-11-07
-imaging_center,Imaging center,ai_suggested,Cooper,2026-11-08
-laboratory,Laboratory,ai_suggested,Cooper,2026-11-08
-urgent_care,Urgent care,ai_suggested,Cooper,2026-11-08
-physician_office,Doctor's office,ai_suggested,Cooper,2026-11-08
-chiropractic_office,Chiropractor,ai_suggested,Cooper,2026-11-08
-physical_therapy,Physical therapy,ai_suggested,Cooper,2026-11-08
-massage_therapy,Massage therapy,ai_suggested,Cooper,2026-11-08
-mental_health,Mental health (therapist or counselor),ai_suggested,Cooper,2026-11-08
-eye_care,Eye doctor (optometrist or ophthalmologist),ai_suggested,Cooper,2026-11-08
-hearing_care,Hearing care (audiologist),ai_suggested,Cooper,2026-11-08
-podiatry,Foot doctor (podiatrist),ai_suggested,Cooper,2026-11-08
+code,name,source,reviewed_by,reviewed_at,grouping,referral
+hospital,Hospital,human,Cooper,2026-11-07,Hospitals and surgery,
+surgery_center,Surgery center,human,Cooper,2026-11-07,Hospitals and surgery,
+dental_office,Dental office,human,Cooper,2026-11-07,"Dental, eye and hearing",none
+medical_spa,Medical spa,human,Cooper,2026-11-07,Cosmetic and weight loss,none
+weight_loss_clinic,Weight-loss clinic,human,Cooper,2026-11-07,Cosmetic and weight loss,none
+imaging_center,Imaging center,ai_suggested,Cooper,2026-11-08,Tests and scans,
+laboratory,Laboratory,ai_suggested,Cooper,2026-11-08,Tests and scans,
+urgent_care,Urgent care,ai_suggested,Cooper,2026-11-08,Everyday care,none
+physician_office,Doctor's office,ai_suggested,Cooper,2026-11-08,Everyday care,none
+chiropractic_office,Chiropractor,ai_suggested,Cooper,2026-11-08,Therapy and wellness,none
+physical_therapy,Physical therapy,ai_suggested,Cooper,2026-11-08,Therapy and wellness,
+massage_therapy,Massage therapy,ai_suggested,Cooper,2026-11-08,Therapy and wellness,none
+mental_health,Mental health (therapist or counselor),ai_suggested,Cooper,2026-11-08,Mental health,none
+eye_care,Eye doctor (optometrist or ophthalmologist),ai_suggested,Cooper,2026-11-08,"Dental, eye and hearing",none
+hearing_care,Hearing care (audiologist),ai_suggested,Cooper,2026-11-08,"Dental, eye and hearing",none
+podiatry,Foot doctor (podiatrist),ai_suggested,Cooper,2026-11-08,Specialists,hmo
+psychiatry,Psychiatrist,human,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,Mental health,hmo
+dermatology,Skin doctor (dermatologist),human,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,Specialists,hmo
+cardiology,Heart doctor (cardiologist),human,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,Specialists,hmo
+orthopedics,Bone and joint doctor (orthopedics),human,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,Specialists,hmo
+obgyn,Women's health (OB-GYN),human,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,Specialists,none
+ent,"Ear, nose and throat (ENT)",human,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,Specialists,hmo
+gastroenterology,Digestive doctor (gastroenterologist),human,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,Specialists,hmo
+urology,Urologist,human,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,Specialists,hmo
+allergy,Allergist,human,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,Specialists,hmo
+neurology,Brain and nerve doctor (neurologist),human,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,Specialists,hmo
+endocrinology,Hormone and diabetes doctor (endocrinologist),human,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,Specialists,hmo
+rheumatology,Joint and autoimmune doctor (rheumatologist),human,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,Specialists,hmo
+pulmonology,Lung doctor (pulmonologist),human,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,Specialists,hmo
+nephrology,Kidney doctor (nephrologist),human,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,Specialists,hmo
+oncology,Cancer doctor (oncologist),human,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,Specialists,hmo
+pain_medicine,Pain medicine,human,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,Specialists,hmo
+sleep_medicine,Sleep medicine,human,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,Specialists,hmo
+fertility,Fertility clinic,human,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,Specialists,hmo
+plastic_surgery,Plastic and cosmetic surgeon,human,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,Cosmetic and weight loss,none

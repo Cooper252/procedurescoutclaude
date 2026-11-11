@@ -27,6 +27,10 @@ export default function HowItWorks() {
           </section>
         ))}
       </div>
+      <section className="how-sources">
+        <h2>{t.howSourcesTitle}</h2>
+        <p className="small">{t.howSources}</p>
+      </section>
     </div>
   );
 }
