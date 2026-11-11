@@ -124,18 +124,22 @@ def approve(
     reviewer: str,
     store: ObjectStore,
     note: str | None = None,
+    rows: Connection | None = None,
 ) -> str:
-    """Publish a reviewed dataset; returns the object key of its Parquet file."""
+    """Publish a reviewed dataset; returns the object key of its Parquet file.
+
+    `rows` is where the staged price rows are when they aren't in `conn`
+    (the live national load keeps them on the loading computer, D-059)."""
     who = _require_reviewer(reviewer)
     dv = uuid.UUID(str(dataset_version_id))
     facility_id, state_code, run_id, _, _ = _load_staged(conn, dv)
-    totals = parquet_io.db_totals(conn, dv)
+    totals = parquet_io.db_totals(rows or conn, dv)
     if totals.rows == 0:
         raise ReviewError("dataset has no prices; nothing to publish")
     key = published_key(str(state_code), uuid.UUID(str(facility_id)), dv)
     with tempfile.TemporaryDirectory(prefix="publish-") as work:
         out = Path(work) / "dataset.parquet"
-        parquet_io.write_dataset(conn, dv, out, Path(work))
+        parquet_io.write_dataset(rows or conn, dv, out, Path(work))
         data_sha = hashlib.sha256(out.read_bytes()).hexdigest()
         size = out.stat().st_size
         store.put(out, key)
@@ -174,7 +178,7 @@ def approve(
         {"who": who, "note": note, "d": dv},
     )
     _move(conn, run_id, ImportState.PUBLISHED)
-    write_summaries(conn, dv, str(facility_id))
+    write_summaries(conn, dv, str(facility_id), rows)
     conn.execute(
         text(
             """
@@ -323,6 +327,7 @@ def auto_publish_pending(
     store: ObjectStore,
     allow_first: bool = False,
     facility_id: str | None = None,
+    rows: Connection | None = None,
 ) -> list[AutoDecision]:
     decisions = []
     for p in pending_reviews(conn):
@@ -331,46 +336,91 @@ def auto_publish_pending(
         dv = uuid.UUID(p.dataset_version_id)
         ok, reasons = auto_check(conn, dv, allow_first)
         if ok:
-            approve(conn, dv, AUTO_REVIEWER, store, note="all automatic checks passed")
+            approve(conn, dv, AUTO_REVIEWER, store, note="all automatic checks passed", rows=rows)
+        elif rows is not None:
+            # the rows live only on the loading computer, so this file can't
+            # wait for a person: it is set aside with its reasons and tried
+            # again when the hospital posts a new file (D-059)
+            reject(conn, dv, AUTO_REVIEWER, "automatic checks: " + "; ".join(reasons))
+        if rows is not None:
+            rows.execute(text("DELETE FROM price.price WHERE dataset_version_id = :d"), {"d": dv})
         decisions.append(AutoDecision(p.dataset_version_id, p.facility_name, ok, tuple(reasons)))
     return decisions
 
 
 # --------------------------------------------------- national storage (D-054)
-def write_summaries(conn: Connection, dataset_version_id: uuid.UUID, facility_id: str) -> None:
+def write_summaries(
+    conn: Connection,
+    dataset_version_id: uuid.UUID,
+    facility_id: str,
+    rows: Connection | None = None,
+) -> None:
     """Keep the small per-file summaries the code index and insurance-name
-    matching need, so the staged rows can be removed after publishing."""
-    conn.execute(
+    matching need, so the staged rows can be removed after publishing.
+    Counted where the rows are (`rows`, or `conn`), stored in `conn`."""
+    src = rows or conn
+    codes = src.execute(
         text(
             """
-            INSERT INTO price.file_code_summary (dataset_version_id, facility_id, code_system,
-                code, top_description, prices)
-            SELECT :d, CAST(:f AS uuid), code_system, code,
+            SELECT code_system::text, code,
                    mode() WITHIN GROUP (ORDER BY left(btrim(description_raw), 300))
                        FILTER (WHERE description_raw IS NOT NULL AND btrim(description_raw) <> ''),
                    count(*)
             FROM price.price WHERE dataset_version_id = :d
             GROUP BY code_system, code
-            ON CONFLICT DO NOTHING
             """
         ),
-        {"d": dataset_version_id, "f": facility_id},
-    )
-    conn.execute(
+        {"d": dataset_version_id},
+    ).all()
+    payers = src.execute(
         text(
             """
-            INSERT INTO price.file_payer_summary (dataset_version_id, facility_id,
-                payer_name_raw, plan_name_raw, prices)
-            SELECT :d, CAST(:f AS uuid), payer_name_raw, coalesce(plan_name_raw, ''), count(*)
+            SELECT payer_name_raw, coalesce(plan_name_raw, ''), count(*)
             FROM price.price
             WHERE dataset_version_id = :d AND payer_name_raw IS NOT NULL
               AND btrim(payer_name_raw) <> ''
             GROUP BY payer_name_raw, coalesce(plan_name_raw, '')
-            ON CONFLICT DO NOTHING
             """
         ),
-        {"d": dataset_version_id, "f": facility_id},
-    )
+        {"d": dataset_version_id},
+    ).all()
+    if codes:
+        conn.execute(
+            text(
+                """
+                INSERT INTO price.file_code_summary (dataset_version_id, facility_id,
+                    code_system, code, top_description, prices)
+                VALUES (:d, CAST(:f AS uuid), CAST(:cs AS ref.code_system), :c, :t, :n)
+                ON CONFLICT DO NOTHING
+                """
+            ),
+            [
+                {
+                    "d": dataset_version_id,
+                    "f": facility_id,
+                    "cs": r[0],
+                    "c": r[1],
+                    "t": r[2],
+                    "n": r[3],
+                }
+                for r in codes
+            ],
+        )
+    if payers:
+        conn.execute(
+            text(
+                """
+                INSERT INTO price.file_payer_summary (dataset_version_id, facility_id,
+                    payer_name_raw, plan_name_raw, prices)
+                VALUES (:d, CAST(:f AS uuid), :p, :pl, :n)
+                ON CONFLICT DO NOTHING
+                """
+            ),
+            [
+                {"d": dataset_version_id, "f": facility_id, "p": r[0], "pl": r[1], "n": r[2]}
+                for r in payers
+            ],
+        )
 
 
 def prune_published(conn: Connection, facility_id: str | None = None) -> int:

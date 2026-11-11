@@ -102,6 +102,11 @@ def test_settings_validation() -> None:
     assert isinstance(open_store("price-store"), LocalStore)
     s3 = open_store("s3://ok-bucket", "https://acct.r2.cloudflarestorage.com", "k", "s")
     assert isinstance(s3, S3Store) and s3.bucket == "ok-bucket"
+    # Cloudflare's page shows the address with the bucket on the end (first live load)
+    shown = S3Store("ok-bucket", "https://acct.r2.cloudflarestorage.com/ok-bucket/", "k", "s")
+    assert shown.endpoint == "https://acct.r2.cloudflarestorage.com"
+    with pytest.raises(ValueError):
+        S3Store("ok-bucket", "https://acct.r2.cloudflarestorage.com/other-bucket", "k", "s")
 
 
 def _httpfs_available() -> bool:

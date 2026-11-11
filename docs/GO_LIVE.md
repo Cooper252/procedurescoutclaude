@@ -30,7 +30,7 @@ After sign-up: add the GitHub secrets for the live-load run, run `add-staff` for
 
 ## 3. Loading the country (Claude runs, Cooper clicks "Run workflow")
 
-- **Run "Load a state into the live site"** for each state (`load-state-production.yml`). Each run: reference data, hospital websites (found and checked automatically), price files (published one at a time, staged rows removed), offices from the national provider list, code index, insurance names.
+- **Run "Load every state into the live site"** once (`load-all-states.yml`): every state one after another, one job each, nothing to click in between; it also runs by itself on the 1st of each month to pick up new price files. "Load a state into the live site" (`load-state-production.yml`) still loads a single state. Each run: reference data, hospital websites (found and checked automatically), price files (published one at a time, staged rows removed), offices from the national provider list, code index, insurance names.
 - **Big states may exceed GitHub's 6-hour limit** per run (California, Texas, Florida, New York). If so, those states get split into parts; measure on a mid-size state first.
 - **Insurance names per state**: matched automatically when certain; Claude researches the rest with evidence (D-047).
 - **Help paying, per state**: income limits for every state + DC are in (D-056). Still to do: each state's own uninsured-discount law (Claude researches with sources).

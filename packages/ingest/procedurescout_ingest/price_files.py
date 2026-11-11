@@ -620,6 +620,7 @@ def check_price_files(
     after_load: Callable[[Connection, str], None] | None = None,
     max_files: int | None = None,
     stop_at_ns: int | None = None,
+    rows_conn: Connection | None = None,
 ) -> LoadStats:
     """Download, check and delete each file; with `load`, also read its prices
     into a staged dataset (price_load) before deleting it.
@@ -713,7 +714,18 @@ def check_price_files(
                 stats.count("same_content_not_reloaded")
                 continue
             if load:
-                _load(conn, c, d.path, check, file_id, state_code, stats, min_free_bytes, workdir)
+                _load(
+                    conn,
+                    c,
+                    d.path,
+                    check,
+                    file_id,
+                    state_code,
+                    stats,
+                    min_free_bytes,
+                    workdir,
+                    rows_conn,
+                )
                 if after_load is not None:
                     after_load(conn, c.facility_id)
         finally:
@@ -747,6 +759,7 @@ def _load(
     stats: LoadStats,
     min_free_bytes: int,
     workdir: Path,
+    rows_conn: Connection | None = None,
 ) -> None:
     from . import price_load, price_parser
 
@@ -766,6 +779,7 @@ def _load(
         return
     started = time.monotonic()
     savepoint = conn.begin_nested()
+    rows_savepoint = rows_conn.begin_nested() if rows_conn is not None else None
     try:
         with open_payload(path, check) as payload:
             result = price_load.load_prices(
@@ -774,14 +788,19 @@ def _load(
                 facility_id=c.facility_id,
                 state_code=state_code,
                 records=price_parser.parse(payload, check.format),
+                rows_conn=rows_conn,
             )
     except Exception as exc:  # one bad file must not stop the others
+        if rows_savepoint is not None:
+            rows_savepoint.rollback()
         savepoint.rollback()
         stats.count("load_failed")
         stats.reject(
             who, "load_failed", f"{c.name} | {type(exc).__name__}: {exc}"[:2000], Severity.WARNING
         )
         return
+    if rows_savepoint is not None:
+        rows_savepoint.commit()
     savepoint.commit()
     summary = result.summary()
     summary["seconds"] = round(time.monotonic() - started)

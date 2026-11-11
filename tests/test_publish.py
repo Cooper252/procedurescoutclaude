@@ -345,3 +345,47 @@ def test_a_big_hospital_cannot_crowd_others_out_of_a_search(tmp_path: Path) -> N
     assert sorted(p.price_type for p in shown) == ["discounted_cash"] * 2 + ["gross"] * 2
     with pytest.raises(PriceQueryError, match="price type"):
         find_prices(Keys(), store, [big], "CPT", "99999", price_types=["DROP TABLE"])  # type: ignore[arg-type]
+
+
+def test_rows_kept_elsewhere_publish_or_are_set_aside(
+    conn: Connection, staged: publish.Pending, tmp_path: Path
+) -> None:
+    """D-059 (first live load): price rows staged in a work database on the loading
+    computer. Here the same connection plays both parts, which exercises the
+    two-place path: summaries counted where the rows are, rows removed after
+    the decision, and a file that fails the checks is set aside, not left waiting."""
+    store = LocalStore(tmp_path / "store")
+    dv = uuid.UUID(staged.dataset_version_id)
+    held = publish.auto_publish_pending(conn, store, False, staged.facility_id, rows=conn)
+    assert [d.published for d in held] == [False]  # a first file needs allow_first
+    status = conn.execute(
+        text("SELECT status::text, reviewed_by FROM src.dataset_version WHERE id = :d"), {"d": dv}
+    ).one()
+    assert tuple(status) == ("retired", publish.AUTO_REVIEWER)
+    assert publish.pending_reviews(conn) == []
+    left = conn.execute(
+        text("SELECT count(*) FROM price.price WHERE dataset_version_id = :d"), {"d": dv}
+    ).scalar_one()
+    assert left == 0
+
+
+def test_rows_kept_elsewhere_publish_with_summaries(conn: Connection, tmp_path: Path) -> None:
+    setup_hospitals(conn)
+    load_websites(conn, websites_csv())
+    discover(conn, "NV", fake_fetcher)
+    stage(conn, tmp_path)
+    p = syn501(conn)[0]
+    store = LocalStore(tmp_path / "store")
+    done = publish.auto_publish_pending(conn, store, True, p.facility_id, rows=conn)
+    assert [d.published for d in done] == [True]
+    dv = uuid.UUID(p.dataset_version_id)
+    codes = conn.execute(
+        text("SELECT count(*) FROM price.file_code_summary WHERE dataset_version_id = :d"),
+        {"d": dv},
+    ).scalar_one()
+    left = conn.execute(
+        text("SELECT count(*) FROM price.price WHERE dataset_version_id = :d"), {"d": dv}
+    ).scalar_one()
+    assert codes > 0 and left == 0
+    fid = uuid.UUID(p.facility_id)
+    assert find_prices(conn, store, [fid], "CPT", "99999")

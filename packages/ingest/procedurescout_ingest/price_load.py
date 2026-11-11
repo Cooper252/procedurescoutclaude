@@ -146,12 +146,17 @@ def load_prices(
     facility_id: str,
     state_code: str,
     records: Iterable[ParsedPrice | RejectedRow],
+    rows_conn: Connection | None = None,
 ) -> LoadResult:
-    """Copy parsed prices into price.price under a new staged dataset version."""
+    """Copy parsed prices into price.price under a new staged dataset version.
+
+    `rows_conn` (the live national load, D-059) puts the price rows in a
+    throwaway database on the loading computer instead; the import run and
+    dataset version are still recorded in `conn`."""
     run_id, dv_id = _start_run(conn, file_id, facility_id)
     result = LoadResult(run_id, dv_id)
     facility_uuid = uuid.UUID(str(facility_id))
-    dbapi = conn.connection.driver_connection
+    dbapi = (rows_conn or conn).connection.driver_connection
     assert dbapi is not None
     with dbapi.cursor() as cur:
         with cur.copy(f"COPY price.price ({', '.join(COLUMNS)}) FROM STDIN") as copy:

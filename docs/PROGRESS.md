@@ -2,6 +2,21 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-11 — First live load: what broke and the fix (D-059)
+- Run 1 stopped at the safety check (database address). Run 2 (1 h 50 min): reference data, websites and discovery loaded into the live database (46 hospitals, 68 surgery centers, codes, service list, insurance names, 204 help-paying limits, 80 health centers); then staging a big price file inside the live database made it unavailable (`FATAL: service temporarily unavailable`, after `cannot allocate memory for output buffer`); disk 63% used afterwards.
+- Live API log: searches failed with `ValueError: endpoint must look like https://host[:port], got 'https://…r2.cloudflarestorage.com/procedurescout-prices'` — the bucket name on the end of the address. `S3Store` now accepts it (`test_settings_validation`).
+- Fix: price rows staged in a throwaway database on the GitHub computer (`WORK_DATABASE_URL`, `prepare-work-db`, `rows=`/`rows_conn=` in `publish.py`, `price_load.py`, `price_files.py`); `clear-staged` frees the live database. Checked locally with two real databases: 1 file published, 2 code summaries in the live database, 0 price rows left in either. Tests: `test_rows_kept_elsewhere_publish_or_are_set_aside`, `test_rows_kept_elsewhere_publish_with_summaries`. `pytest -q` → `358 passed, 1 skipped, 1 warning in 25.18s`; ruff, mypy clean.
+
+## 2026-11-10 — Hosting live (not yet on procedurescout.com); every-state loader
+- Cooper signed up for Cloudflare R2 and Render; the Blueprint created the database, API and website. Checked from the browser: API `/healthz` 200, website loads with no sample-data label and reaches the API through `/api`. Database empty until the first load. Status: **Deployed** (onrender.com addresses); data not loaded.
+- First live load started: Nevada (`load-state-production.yml`).
+- New `.github/workflows/load-all-states.yml`: every state in one run (one job per state, one at a time, a state's failure doesn't stop the rest), plus a monthly refresh on the 1st (price files only). Not run yet.
+
+## 2026-11-10 — Second "Test every state" run (after the fixes)
+- `all-states (1).zip`: 50 of 51 states fully ok (was 34). Hospitals with a verified website 1,392 → 2,174 of 5,306 (41%); hospitals with a price link 1,432 → 2,156; files published 109 → 133 of 153 read; download failures 1 → 0; read failures 6 → 0. Connecticut, Iowa, Minnesota now publish 3, 3, 2.
+- Louisiana: the hospital is found by search but its most-listed code has no cash, list or insurer dollar amount (not a failure of search; worth a look).
+- Remaining gap: 59% of hospitals still have no verified website. Known causes: sites refusing GitHub's computers, names that differ with no usable address in the file header, and hospitals in the DoltHub list but not in CMS's hospital list (DoltHub has 7,231 hospitals; CMS's list gives us 5,306). DoltHub also lists a price-file link for 4,205 hospitals (often old) — a possible next source, checked by the same header-address rule.
+
 ## 2026-11-10 — Fixes from the state logs (CA, CT, IA, MN, SC)
 - Connecticut (Nuvance) JSON files start with a byte-order mark: now skipped (`price_parser.skip_bom`, used by the check and the reader).
 - Iowa files say template version 4.0.0: a note now, not a file problem (every price is still read by field name; 0 of 216,335 refused in the test run).

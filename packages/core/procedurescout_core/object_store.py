@@ -138,8 +138,11 @@ class S3Store:
     ) -> None:
         if not re.fullmatch(r"[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]", bucket):
             raise ValueError(f"not a bucket name: {bucket!r}")
-        url = urlparse(endpoint)
-        if url.scheme not in ("https", "http") or not url.netloc or url.path not in ("", "/"):
+        url = urlparse(endpoint.strip())
+        # Cloudflare shows the bucket's address with the bucket name on the end
+        # (https://<account>.r2.cloudflarestorage.com/<bucket>); accept that too.
+        path = url.path.strip("/")
+        if url.scheme not in ("https", "http") or not url.netloc or path not in ("", bucket):
             raise ValueError(f"endpoint must look like https://host[:port], got {endpoint!r}")
         if not key_id or not secret:
             raise ValueError("an access key id and secret are required for a bucket")

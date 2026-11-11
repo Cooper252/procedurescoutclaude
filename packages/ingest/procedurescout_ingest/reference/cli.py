@@ -357,6 +357,67 @@ def cmd_probe(args: argparse.Namespace, engine: Engine) -> None:
         )
 
 
+def _local_only(url: str) -> str:
+    """The work database must be on this computer: never the live one."""
+    from sqlalchemy.engine import make_url
+
+    host = make_url(url.replace("postgresql+psycopg://", "postgresql://")).host or ""
+    if host not in ("localhost", "127.0.0.1", "::1"):
+        raise SystemExit(f"WORK_DATABASE_URL must point at this computer, not {host!r}")
+    return url
+
+
+def cmd_prepare_work_db(args: argparse.Namespace, engine: Engine) -> None:
+    """Make the throwaway work database (already migrated) ready for staging:
+    price rows there point at hospitals and datasets that live in the live
+    database, so those links are dropped; the checks on every price stay."""
+    from procedurescout_core.db_url import sqlalchemy_url
+
+    url = _local_only(os.environ.get("WORK_DATABASE_URL", ""))
+    work = create_engine(sqlalchemy_url(url))
+    with work.begin() as c:
+        for fk in (
+            "price_dataset_version_id_fkey",
+            "price_facility_id_fkey",
+            "price_payer_id_fkey",
+            "price_plan_id_fkey",
+        ):
+            c.execute(text(f"ALTER TABLE price.price DROP CONSTRAINT IF EXISTS {fk}"))
+        for idx in ("price.price_code_facility_idx", "price.price_plan_code_idx"):
+            c.execute(text(f"DROP INDEX IF EXISTS {idx}"))
+    print("work database ready (links to the live database dropped; price checks kept)")
+
+
+def cmd_clear_staged(args: argparse.Namespace, engine: Engine) -> None:
+    """Free the live database's disk (D-059): files still waiting from runs that
+    staged prices there are set aside with a reason, and every staged price
+    row that isn't the published copy's source is removed. Published prices
+    (the Parquet files the site reads) are not touched."""
+    from .. import publish
+
+    with engine.begin() as conn:
+        waiting = publish.pending_reviews(conn)
+        for p in waiting:
+            publish.reject(
+                conn,
+                uuid.UUID(p.dataset_version_id),
+                publish.AUTO_REVIEWER,
+                "staged in the live database by an earlier run; read again by the next load",
+            )
+        removed = conn.execute(
+            text(
+                "DELETE FROM price.price p USING src.dataset_version dv "
+                "WHERE dv.id = p.dataset_version_id AND dv.status <> 'published'"
+            )
+        ).rowcount
+    with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as conn:
+        for part in conn.execute(
+            text("SELECT relid::regclass::text FROM pg_partition_tree('price.price') WHERE isleaf")
+        ).scalars():
+            conn.execute(text(f"VACUUM FULL {part}"))
+    print(f"set aside {len(waiting)} waiting files; removed {removed} staged price rows")
+
+
 def cmd_price_files(args: argparse.Namespace, engine: Engine) -> None:
     """Download each assigned price file, check it, delete it (step 2a)."""
     import tempfile
@@ -385,15 +446,25 @@ def cmd_price_files(args: argparse.Namespace, engine: Engine) -> None:
         publish_now = load and os.environ.get("PUBLISH_AS_YOU_GO") == "1"
         allow_first = os.environ.get("AUTO_PUBLISH_FIRST_FILES") == "1"
         after = None
+        rows_conn: Connection | None = None
         if publish_now:
             from .. import publish
 
             store = _store()
+            work_url = os.environ.get("WORK_DATABASE_URL", "").strip()
+            if work_url:
+                # D-059: price rows go to a throwaway database on this computer;
+                # the live database only gets the results (files, summaries)
+                from procedurescout_core.db_url import sqlalchemy_url
+
+                rows_conn = create_engine(sqlalchemy_url(_local_only(work_url))).connect()
 
             def after(conn: Connection, facility_id: str) -> None:
-                publish.auto_publish_pending(conn, store, allow_first, facility_id)
+                publish.auto_publish_pending(conn, store, allow_first, facility_id, rows=rows_conn)
                 publish.prune_published(conn, facility_id)
                 conn.commit()
+                if rows_conn is not None:
+                    rows_conn.commit()
 
         limit = os.environ.get("PRICE_FILE_LIMIT", "").strip()
         budget = os.environ.get("PRICE_TIME_BUDGET_MINUTES", "").strip()
@@ -411,6 +482,7 @@ def cmd_price_files(args: argparse.Namespace, engine: Engine) -> None:
                 after_load=after,
                 max_files=int(limit) if limit else None,
                 stop_at_ns=stop_at_ns,
+                rows_conn=rows_conn,
             ),
             source_file="assigned price files (downloaded, checked, deleted)",
             parameters={
@@ -420,6 +492,7 @@ def cmd_price_files(args: argparse.Namespace, engine: Engine) -> None:
                 "publish_as_you_go": publish_now,
                 "auto_publish_first_files": publish_now and allow_first,
                 "file_limit": limit or None,
+                "rows_on_loading_computer": rows_conn is not None,
                 "time_budget_minutes": budget or None,
             },
             commits_inside=publish_now,
@@ -984,6 +1057,8 @@ def build_parser() -> argparse.ArgumentParser:
     sp = sub.add_parser("probe", help="size/date check of known price files (no download)")
     sp.add_argument("--state", default=None, type=str.upper, help="only this state's files")
     sub.add_parser("storage-experiment", help="measure storage layouts for loaded prices")
+    sub.add_parser("prepare-work-db", help="ready the throwaway work database (D-059)")
+    sub.add_parser("clear-staged", help="free the live database's disk of staged rows (D-059)")
 
     sub.add_parser(
         "catalog", help="provider types, services, bundles, poverty guidelines, policies"
@@ -1082,6 +1157,8 @@ def main(argv: list[str] | None = None) -> None:
             "discover": lambda: cmd_discover(args, engine),
             "manual-sources": lambda: cmd_manual_sources(args, engine),
             "probe": lambda: cmd_probe(args, engine),
+            "prepare-work-db": lambda: cmd_prepare_work_db(args, engine),
+            "clear-staged": lambda: cmd_clear_staged(args, engine),
             "price-files": lambda: cmd_price_files(args, engine),
             "storage-experiment": lambda: cmd_storage_experiment(args, engine),
             "review-list": lambda: cmd_review_list(args, engine),
