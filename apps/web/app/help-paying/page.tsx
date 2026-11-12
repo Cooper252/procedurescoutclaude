@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useId, useState, type FormEvent } from "react";
 import { useApp } from "@/components/AppState";
+import { STATE_LAWS } from "@/lib/stateLaws";
 import { ExtText } from "@/components/ExtText";
 import { CareFields } from "@/components/FreeCare";
 import { Heart, Lock, Phone } from "@/components/Icons";
@@ -11,7 +12,7 @@ import { cleanIncome } from "@/lib/money";
 import type { AssistanceCheck, AssistanceMessage, HealthCenter } from "@/lib/types";
 
 export default function HelpPaying() {
-  const { t, care, setCare, place, setPlace } = useApp();
+  const { t, lang, care, setCare, place, setPlace } = useApp();
   const id = useId();
   const [size, setSize] = useState(care?.householdSize ?? 1);
   const [income, setIncome] = useState(care?.income ?? "");
@@ -252,17 +253,15 @@ export default function HelpPaying() {
         </section>
       )}
 
-      {place?.state === "NV" && (
+      {place?.state && STATE_LAWS[place.state] && (
+        // the person's state's own law on hospital bills (D-056, lib/stateLaws.ts)
         <section className="coverage">
-          <h2>{t.nvLawTitle}</h2>
-          <p>{t.nvLawBody}</p>
-          <p className="small muted">{t.nvLawFine}</p>
-          <a
-            className="btn ghost"
-            href="https://www.leg.state.nv.us/NRS/NRS-439B.html#NRS439BSec260"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
+          <h2>{STATE_LAWS[place.state]!.title[lang === "es" ? 1 : 0]}</h2>
+          <p>{STATE_LAWS[place.state]!.body[lang === "es" ? 1 : 0]}</p>
+          <p className="small muted">
+            {STATE_LAWS[place.state]!.fine[lang === "es" ? 1 : 0]} {t.lawNotAdvice}
+          </p>
+          <a className="btn ghost" href={STATE_LAWS[place.state]!.source} target="_blank" rel="noopener noreferrer">
             {t.nvLawLink}
           </a>
         </section>

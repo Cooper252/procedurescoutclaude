@@ -2,6 +2,12 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-12 — State laws on hospital bills (D-056)
+
+Implemented: Help paying shows the person's state's law on hospital bills for 13 states: Nevada (30% off for some uninsured stays), California (Hospital Fair Pricing Act, 400% FPL, Medicare/Medi-Cal cap), New York (PHL 2807-k(9-a)), New Jersey (115% of Medicare under 500% FPL), Illinois (Uninsured Patient Discount Act, 20% of income cap), Colorado (Hospital Discounted Care, 250% FPL), Maryland (HG 19-214.1), Washington (RCW 70.170.060), Oregon (ORS 442.614), Connecticut (CGS 19a-673), Vermont (18 V.S.A. 9482), Rhode Island (216-RICR-40-10-23.14), Maine (22 M.R.S. 1716-A). Each is from the state's statute, regulation or agency page, linked on the page, in English and Spanish (`apps/web/lib/stateLaws.ts`, `app/help-paying/page.tsx`).
+
+Tested: `lib/stateLaws.test.mts` (every entry has an official https source and both languages); `npm test`, `tsc` clean; browser check: the Nevada box shows for a Las Vegas ZIP.
+
 ## 2026-11-12 — Live check after deploy; two fixes
 
 Checked on procedurescout.com after Cooper's push (deployed): card-reader files served (`/ocr/worker.min.js` 200), page counting answers 204, "birth" suggests "Vaginal birth (hospital stay)" with its explanation, the pediatrician type exists, insurance near Birmingham lists Blue Cross Blue Shield of Alabama and Viva Health plans from the new naming rules.

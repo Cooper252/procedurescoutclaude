@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start -p 3000",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --no-warnings lib/estimate.test.mts && node --experimental-strip-types --no-warnings lib/cardRead.test.mts",
+    "test": "node --experimental-strip-types --no-warnings lib/estimate.test.mts && node --experimental-strip-types --no-warnings lib/cardRead.test.mts && node --experimental-strip-types --no-warnings lib/stateLaws.test.mts",
     "prebuild": "node scripts/copy-ocr.mjs"
   },
   "dependencies": {

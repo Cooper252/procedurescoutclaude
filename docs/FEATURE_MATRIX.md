@@ -94,3 +94,4 @@ Status levels are separate on purpose. A cell is filled only with evidence. Depl
 | PLAN-04 | Read an insurance card photo on the device | 3 | Yes | Yes | — | — | `lib/cardRead.ts`, `InsurancePicker.tsx`, `scripts/copy-ocr.mjs`; `lib/cardRead.test.mts` |
 | NAT-03 | Find sister hospitals through a system's price-file header address | 2 | Yes | Yes (synthetic) | — | — | `discovery.py` (`head=`), `website_verify.py`; `test_a_listed_location_is_matched_by_its_price_file_address` |
 | NRM-02 | Reviewed insurer naming rules for every state's spellings | 2–3 | Yes (AL, RI, DE, VT insurers) | Yes | — | — | `plan_resolver.py`, `data/reference/payer_name_rules.csv`, `payers.csv`; `test_reviewed_insurer_names_place_real_hospital_spellings` |
+| FA-05 | State laws on hospital bills, per state (13 states) | 3 | Yes | Yes | — | — | `apps/web/lib/stateLaws.ts`, `app/help-paying/page.tsx`; `lib/stateLaws.test.mts` |
