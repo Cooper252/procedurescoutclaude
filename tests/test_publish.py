@@ -389,3 +389,37 @@ def test_rows_kept_elsewhere_publish_with_summaries(conn: Connection, tmp_path: 
     assert codes > 0 and left == 0
     fid = uuid.UUID(p.facility_id)
     assert find_prices(conn, store, [fid], "CPT", "99999")
+
+
+def test_places_with_prices_are_not_pushed_out_by_nearer_offices(
+    conn: Connection, staged: publish.Pending, tmp_path: Path
+) -> None:
+    """First live load: the 50 nearest places were all unpriced offices, so the
+    hospitals with prices never showed. Places that can answer now come first."""
+    from procedurescout_core.search import search
+    from procedurescout_ingest.code_index import rebuild_code_index
+
+    store = LocalStore(tmp_path / "store")
+    publish.approve(conn, uuid.UUID(staged.dataset_version_id), "Synthetic Reviewer", store)
+    rebuild_code_index(conn)
+    conn.execute(
+        text(
+            "UPDATE ref.facility SET geom = ST_SetSRID(ST_MakePoint(:x, 36.10), 4326)::geography, "
+            "geocode_source = 'census_geocoder', geocode_precision = 'address' "
+            "WHERE ccn = :c"
+        ),
+        [{"x": -115.10, "c": "SYN501"}, {"x": -115.0001, "c": "SYN503"}],
+    )
+    r = search(
+        conn,
+        store,
+        latitude=Decimal("36.10"),
+        longitude=Decimal("-115.00"),
+        radius_miles=Decimal(25),
+        code_system="CPT",
+        code="99999",
+        max_facilities=1,
+        mode="list",
+    )
+    assert [f.facility_id for f in r.facilities] == [staged.facility_id]
+    assert r.facilities[0].headline is not None

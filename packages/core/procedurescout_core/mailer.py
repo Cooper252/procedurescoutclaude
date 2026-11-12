@@ -34,12 +34,21 @@ class ResendSender:
     api_key: str
     from_address: str
     endpoint: str = "https://api.resend.com/emails"
+    reply_to: str = ""  # a real inbox (e.g. at IONOS) that replies go to
 
     def send(self, to: str, subject: str, body: str) -> None:
+        payload: dict[str, object] = {
+            "from": self.from_address,
+            "to": [to],
+            "subject": subject,
+            "text": body,
+        }
+        if self.reply_to:
+            payload["reply_to"] = self.reply_to
         r = httpx.post(
             self.endpoint,
             headers={"Authorization": f"Bearer {self.api_key}"},
-            json={"from": self.from_address, "to": [to], "subject": subject, "text": body},
+            json=payload,
             timeout=15,
         )
         if r.status_code >= 300:
@@ -53,11 +62,14 @@ class SmtpSender:
     username: str
     password: str
     from_address: str
+    reply_to: str = ""
 
     def send(self, to: str, subject: str, body: str) -> None:
         msg = EmailMessage()
         msg["From"] = self.from_address
         msg["To"] = to
+        if self.reply_to:
+            msg["Reply-To"] = self.reply_to
         msg["Subject"] = subject
         msg.set_content(body)
         context = ssl.create_default_context()
@@ -80,14 +92,17 @@ def sender_from(
     smtp_port: int = 587,
     smtp_username: str = "",
     smtp_password: str = "",
+    reply_to: str = "",
 ) -> Sender | None:
     """The configured sender, or None when email is not set up yet."""
     if not from_address:
         return None
     if provider == "resend" and resend_api_key:
-        return ResendSender(resend_api_key, from_address)
+        return ResendSender(resend_api_key, from_address, reply_to=reply_to.strip())
     if provider == "smtp" and smtp_host and smtp_username and smtp_password:
-        return SmtpSender(smtp_host, smtp_port, smtp_username, smtp_password, from_address)
+        return SmtpSender(
+            smtp_host, smtp_port, smtp_username, smtp_password, from_address, reply_to.strip()
+        )
     return None
 
 

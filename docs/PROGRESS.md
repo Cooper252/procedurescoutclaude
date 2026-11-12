@@ -8,6 +8,7 @@ Status levels: Implemented → Tested → Deployed → Verified in production. O
 - `main.py`: the API now retries waiting emails every 5 minutes by itself (`_retry_mail_forever`), so a link queued while the email key was missing still goes out.
 - Test fix: the rolled-back test connection's "don't commit" flag stayed on the pooled connection and leaked into later tests; `conftest.conn` clears it.
 - Tested: `test_sign_in_email_is_really_sent_after_the_row_is_saved` (real commits), `test_waiting_emails_are_retried_every_few_minutes`. Full run: `363 passed, 1 skipped`. ruff and mypy clean.
+- Second cause, found in the Render logs: `TypeError: sender_from() takes from 2 to 7 positional arguments but 8 were given`. The updated `mailer.py` (reply-to support) had never been copied into the repo, while `settings.py` had. Fixed by copying it; every file changed on 2026-11-10/11 was then compared with the repo copy (only `mailer.py` and `tests/test_publish.py` were missing).
 - Not yet deployed or verified in production (Cooper to push, then retry sign-in).
 
 ## 2026-11-11 — Resend verified; replies go to a real inbox
