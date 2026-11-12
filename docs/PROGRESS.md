@@ -2,6 +2,34 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-12 — Upload hardened before the next all-states run; logo; first approved assistance policies
+
+**Upload (Cooper: "anticipate anything that could go wrong")**
+- One file's trouble no longer ends a state: `price_files.check_price_files` wraps every hospital; any error (storage, a dropped live connection, an unexpected file) is recorded as `file_failed`, both connections are reset (a dropped one reconnects), and the next hospital is read. Three failures in a row wait 30 s to 10 min; eight stop the state cleanly ("run again"). Tested: `test_one_files_trouble_never_stops_the_state`, `test_files_failing_in_a_row_wait_then_stop_cleanly`, `test_a_dropped_database_connection_reconnects` (kills a real connection).
+- The live run saves after every hospital and before each download (no transaction open during a 40-minute download): `test_the_live_run_saves_after_each_hospital`.
+- A slow server can't hold a run: 40-minute cap per download (`test_a_slow_download_is_stopped`). Disk check scales with the file (3× its size). The work database is emptied (TRUNCATE) before each file.
+- Map locations: chunks of 2,000, saved one by one, four sent at a time, with a time limit; when the Census geocoder is down or time runs out, places get their ZIP location now, marked `census_zcta_deferred`, and the exact address is tried next run; one-address-at-a-time fallback only for under 200 addresses (`test_geocoding_in_saved_chunks_with_retry_next_run`).
+- `load-all-states.yml` rewritten as a chain: each run loads one state and starts the next (the old matrix stalled on "Queued"); a state whose price files didn't all get tried (no "done" note) or whose offices failed is run again, up to 4 passes; one state's trouble never stops the others; every step has a time limit (325 of 350 minutes), so "Start the next run" always runs; the national provider list is downloaded once (resumable, retried) and cached for later states; its monthly link is found automatically. The chain's shell logic was run here for 7 cases (finished, unfinished, offices failed, pass 4, last state, offices done, monthly).
+- `load-state-production.yml`: same limits, retries and geocode step.
+
+**Logo:** original mark, a price tag with a medical cross in the brand teal (`components/Icons.tsx`); browser-tab icon `app/icon.svg`, `app/favicon.ico` (16/32/48), `app/apple-icon.png` (180). Checked on light and dark tabs.
+
+**Assistance policies (D-060):** all 13 Nevada drafts checked against each hospital's own document and approved as `Claude (delegated by Cooper, D-060)`; Renown and Banner corrected to their exact published tiers; UMC copays and residency, HCA emergency-only noted. They reach the live site with the next state load (catalog step). Nevada hospitals without a findable policy (e.g. Valley Health System) stay "not reviewed" (never guessed).
+
+Full run: `375 passed, 1 skipped`; ruff, mypy, tsc clean.
+
+## 2026-11-12 — Full go-live check, part 2
+
+- **Live API checked** (through the website, as visitors call it): services, kinds of care, suggestions (including script text), ZIPs (good, unknown, invalid), cities, nearby, plans, insurer names, bundles, help-paying message and health centers, and searches by service, code, list price, insurance and online, plus bad inputs (unknown service, out-of-range location). All answered correctly; only speed was a problem (fixed in part 1).
+- **Price accuracy:** North Vista Hospital's own file (`649HOS47_NorthVistaHospital_standardcharges.json`, read in the browser up to the 50 MB limit) for CPT 45385 shows discounted cash 1301, gross 3686.44 and Aetna Commercial 1210 / Aetna Medicare 1301.6. The live site shows exactly $1,301, $3,686.44 and $1,210 (to $1,301.60).
+- **Staff link:** `MeOut.staff`; the account page shows "Staff review" links for staff. Review pages opened in a browser without a sign-in go to the account page (sign-in / authenticator) instead of JSON (`main._review_pages_in_a_browser`).
+- **A place's service list:** `/v1/services?provider_types=` and the facility page show only services that kind of place offers (a hospital listed Botox and braces). This found 17 core services with no kinds of care in `service_catalog.csv` (MRI, CT, colonoscopy, blood tests, Botox, filler...); filled in, and `test_every_service_names_the_kinds_of_care_that_offer_it` keeps it so. The live catalog updates with the next state load (its catalog step).
+- **Sitemap** split into files of 40,000 (`app/sitemaps/sitemap.ts`), listed at `/sitemap.xml`; built against a stand-in API with 54,120 addresses: 2 files (40,000 + 14,120).
+- **CI** now builds and tests the website (`website` job, passed on GitHub). **Uptime:** `site-check.yml` runs every 15 minutes.
+- **Help paying (live):** the check works (Medicaid and marketplace limits match 2026 guidelines, health centers, Nevada 30% law), but no hospital policy is approved yet, so every hospital says "not reviewed" (decision Q37 for Cooper).
+- **Spanish (live)** search page fully translated.
+- Tested: full run `369 passed, 1 skipped` with the local settings and again with CI's exact settings; ruff, mypy, tsc and `npm test` clean.
+
 ## 2026-11-12 — Full go-live check, part 1 (Cooper: "test everything")
 
 - **Repo vs GitHub:** a fresh clone of GitHub (commit 9b08240) matches this workspace file-for-file (code, workflows, data). The fresh clone passes ruff, mypy, `365 passed, 1 skipped`, `npm test`, and the website build with `RENDER=true`.

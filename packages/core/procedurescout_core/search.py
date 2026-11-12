@@ -204,33 +204,51 @@ def search(
     facilities = conn.execute(
         text(
             """
+            -- Only the places that can answer (a published hospital file, or a
+            -- provider price for this service) plus the nearest :n others are
+            -- looked at, using the map index (2026-11-12: measuring and checking
+            -- every one of thousands of Las Vegas offices took 8-11 seconds).
+            WITH p AS (
+                SELECT CAST(ST_SetSRID(ST_MakePoint(:lng, :lat), 4326) AS geography) AS pt
+            ),
+            answers AS (
+                SELECT pf.facility_id AS id FROM price.published_file pf
+                UNION
+                SELECT pl.facility_id FROM prov.published_listing pl
+                WHERE pl.service_slug = CAST(:slug AS text)
+                   OR pl.code_system || ':' || pl.code = ANY(:codes)
+            ),
+            cand AS (
+                (SELECT f.id FROM ref.facility f, p
+                 WHERE f.id IN (SELECT id FROM answers)
+                   AND f.geom IS NOT NULL AND f.status = 'active'
+                   AND ST_DWithin(f.geom, p.pt, :meters)
+                   AND (CAST(:ptype AS text) IS NULL OR EXISTS (
+                        SELECT 1 FROM ref.facility_provider_type x
+                        WHERE x.facility_id = f.id AND x.provider_type = :ptype)))
+                UNION
+                (SELECT f.id FROM ref.facility f, p
+                 WHERE f.geom IS NOT NULL AND f.status = 'active'
+                   AND ST_DWithin(f.geom, p.pt, :meters)
+                   AND (CAST(:ptype AS text) IS NULL OR EXISTS (
+                        SELECT 1 FROM ref.facility_provider_type x
+                        WHERE x.facility_id = f.id AND x.provider_type = :ptype))
+                 ORDER BY f.geom <-> p.pt
+                 LIMIT :n)
+            )
             SELECT f.id, f.name, f.city, f.state_code,
                    round(CAST(ST_Distance(f.geom, p.pt) AS numeric) / :mpm, 1) AS miles,
                    coalesce(array_agg(fpt.provider_type ORDER BY fpt.provider_type)
                             FILTER (WHERE fpt.provider_type IS NOT NULL), '{}') AS types
-            FROM ref.facility f
-            CROSS JOIN (
-                SELECT CAST(ST_SetSRID(ST_MakePoint(:lng, :lat), 4326) AS geography) AS pt
-            ) p
+            FROM cand
+            JOIN ref.facility f ON f.id = cand.id
+            CROSS JOIN p
             LEFT JOIN ref.facility_provider_type fpt ON fpt.facility_id = f.id
-            WHERE f.geom IS NOT NULL AND f.status = 'active'
-              AND ST_DWithin(f.geom, p.pt, :meters)
-              AND (CAST(:ptype AS text) IS NULL OR EXISTS (
-                    SELECT 1 FROM ref.facility_provider_type x
-                    WHERE x.facility_id = f.id AND x.provider_type = :ptype))
             GROUP BY f.id, f.name, f.city, f.state_code, p.pt, f.geom
-            -- places that can answer come first (a published hospital file, or a
-            -- provider price for this service), then the nearest of the rest:
+            -- places that can answer come first, then the nearest of the rest:
             -- otherwise thousands of nearby offices push the hospitals out of
             -- the first 50 (first live Nevada load, 2026-11-11)
-            ORDER BY (EXISTS (SELECT 1 FROM price.published_file pf
-                              WHERE pf.facility_id = f.id)
-                      OR EXISTS (SELECT 1 FROM prov.published_listing pl
-                                 WHERE pl.facility_id = f.id
-                                   AND (pl.service_slug = CAST(:slug AS text)
-                                        OR pl.code_system || ':' || pl.code = ANY(:codes))))
-                     DESC,
-                     miles, f.name
+            ORDER BY (f.id IN (SELECT id FROM answers)) DESC, miles, f.name
             LIMIT :n
             """
         ),
@@ -442,23 +460,29 @@ def nearby(
     rows = conn.execute(
         text(
             """
+            WITH p AS (
+                SELECT CAST(ST_SetSRID(ST_MakePoint(:lng, :lat), 4326) AS geography) AS pt
+            ),
+            cand AS (  -- nearest first, straight from the map index (2026-11-12)
+                SELECT f.id FROM ref.facility f, p
+                WHERE f.geom IS NOT NULL AND f.status = 'active'
+                   AND ST_DWithin(f.geom, p.pt, :meters)
+                   AND (CAST(:ptype AS text) IS NULL OR EXISTS (
+                        SELECT 1 FROM ref.facility_provider_type x
+                        WHERE x.facility_id = f.id AND x.provider_type = :ptype))
+                ORDER BY f.geom <-> p.pt
+                LIMIT :n
+            )
             SELECT f.id, f.name, f.city, f.state_code,
                    round(CAST(ST_Distance(f.geom, p.pt) AS numeric) / :mpm, 1) AS miles,
                    coalesce(array_agg(fpt.provider_type ORDER BY fpt.provider_type)
                             FILTER (WHERE fpt.provider_type IS NOT NULL), '{}') AS types
-            FROM ref.facility f
-            CROSS JOIN (
-                SELECT CAST(ST_SetSRID(ST_MakePoint(:lng, :lat), 4326) AS geography) AS pt
-            ) p
+            FROM cand
+            JOIN ref.facility f ON f.id = cand.id
+            CROSS JOIN p
             LEFT JOIN ref.facility_provider_type fpt ON fpt.facility_id = f.id
-            WHERE f.geom IS NOT NULL AND f.status = 'active'
-              AND ST_DWithin(f.geom, p.pt, :meters)
-              AND (CAST(:ptype AS text) IS NULL OR EXISTS (
-                    SELECT 1 FROM ref.facility_provider_type x
-                    WHERE x.facility_id = f.id AND x.provider_type = :ptype))
             GROUP BY f.id, f.name, f.city, f.state_code, p.pt, f.geom
             ORDER BY miles, f.name
-            LIMIT :n
             """
         ),
         {

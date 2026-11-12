@@ -58,6 +58,7 @@ export type Me = {
   mfa_enabled: boolean;
   mfa_passed: boolean;
   memberships: Membership[];
+  staff?: boolean; // can use the review pages (/admin)
 };
 export type MediaItem = { id: string; kind: "logo" | "photo"; status: string; alt_text: string | null; url: string };
 export type ProfileEdit = {

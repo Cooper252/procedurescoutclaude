@@ -36,6 +36,7 @@ GEOCODER_BATCH_URL = "https://geocoding.geo.census.gov/geocoder/geographies/addr
 GEOCODER_BENCHMARK = "Public_AR_Current"
 GEOCODER_VINTAGE = "Current_Current"
 GEOCODER_MAX_BATCH = 10_000
+SINGLE_FALLBACK_MAX = 200
 GEOCODER_SINGLE_URL = "https://geocoding.geo.census.gov/geocoder/geographies/address"
 
 REL_COLUMNS = (
@@ -347,6 +348,10 @@ def census_geocode(client: httpx.Client, rows: list[AddressRow]) -> dict[str, Ge
     try:
         return census_batch_geocode(client, rows)
     except SourceError:
+        # one address per request only for small sets: 2,000 at a time would
+        # take hours (2026-11-12); larger sets get ZIP locations and retry later
+        if len(rows) > SINGLE_FALLBACK_MAX:
+            raise
         return census_single_geocode(client, rows)
 
 

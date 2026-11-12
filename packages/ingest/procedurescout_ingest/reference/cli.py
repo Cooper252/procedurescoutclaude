@@ -246,10 +246,15 @@ def cmd_nppes(args: argparse.Namespace, engine: Engine) -> None:
 def cmd_geocode(args: argparse.Namespace, engine: Engine) -> None:
     with new_client() as client:
         coder = None if args.no_census else (lambda rows: census.census_geocode(client, rows))
+        budget = os.environ.get("GEOCODE_TIME_BUDGET_MINUTES", "").strip()
+        stop_at_ns = time.monotonic_ns() + int(budget) * 60 * 10**9 if budget else None
         _run(
             engine,
             "census_geocoder",
-            lambda c: geocode.geocode_facilities(c, args.state, coder),
+            lambda c: geocode.geocode_facilities(
+                c, args.state, coder, stop_at_ns=stop_at_ns, commit=c.commit, parallel=4
+            ),
+            commits_inside=True,
             source_url=census.GEOCODER_BATCH_URL,
             parameters={
                 "state": args.state,
@@ -480,7 +485,7 @@ def cmd_price_files(args: argparse.Namespace, engine: Engine) -> None:
         limit = os.environ.get("PRICE_FILE_LIMIT", "").strip()
         budget = os.environ.get("PRICE_TIME_BUDGET_MINUTES", "").strip()
         stop_at_ns = time.monotonic_ns() + int(budget) * 60 * 10**9 if budget else None
-        _run(
+        stats = _run(
             engine,
             "price_file_check",
             lambda c: price_files.check_price_files(
@@ -494,6 +499,7 @@ def cmd_price_files(args: argparse.Namespace, engine: Engine) -> None:
                 max_files=int(limit) if limit else None,
                 stop_at_ns=stop_at_ns,
                 rows_conn=rows_conn,
+                commit=c.commit if publish_now else None,
             ),
             source_file="assigned price files (downloaded, checked, deleted)",
             parameters={
@@ -508,6 +514,15 @@ def cmd_price_files(args: argparse.Namespace, engine: Engine) -> None:
             },
             commits_inside=publish_now,
         )
+        # the all-states run reads these to decide whether to run the state
+        # again (2026-11-12): "done" only when every file was tried
+        early = stats.summary.get("stopped_early")
+        unfinished = os.environ.get("STATE_UNFINISHED_FILE", "").strip()
+        done = os.environ.get("STATE_PRICES_DONE_FILE", "").strip()
+        if early and unfinished:
+            Path(unfinished).write_text(f"{args.state}: {early}\n")
+        if not early and done:
+            Path(done).write_text(f"{args.state}: all price files tried\n")
 
 
 def cmd_storage_experiment(args: argparse.Namespace, engine: Engine) -> None:

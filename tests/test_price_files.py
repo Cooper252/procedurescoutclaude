@@ -6,7 +6,7 @@ from datetime import date
 from pathlib import Path
 
 import httpx
-from sqlalchemy import Connection, text
+from sqlalchemy import Connection, Engine, text
 
 from procedurescout_core.enums import FileFormat
 from procedurescout_ingest.discovery import discover, load_co_listed
@@ -473,3 +473,128 @@ def test_newer_template_version_is_a_note(conn: Connection, tmp_path: Path) -> N
     rules = {(r.rule, r.message.split(" | ", 1)[-1]) for r in stats.rejects}
     assert ("file_note", "version '4.0.0' is newer than the CMS templates we know") in rules
     assert not any(rule == "file_problem" and "version" in msg for rule, msg in rules)
+
+
+def _two_hospitals(conn: Connection) -> dict[str, Path]:
+    setup_hospitals(conn)
+    load_websites(conn, websites_csv())
+    approved = load_co_listed(
+        conn,
+        "location_name,parent_ccn,note,reviewed_by,reviewed_at\n"
+        "Synthetic Valley North Campus,SYN503,listed in its file,tester,2026-11-06\n",
+        LoadStats(),
+    )
+    discover(conn, "NV", fake_fetcher, co_listed=approved)
+    return {f"{SITE}/mrf/valley.json": JSON_FILE, f"{SITE}/mrf/shared.json": TALL}
+
+
+def _copying(files: dict[str, Path], calls: list[str]):  # type: ignore[no-untyped-def]
+    import hashlib
+
+    def downloader(url: str, dest: Path) -> Download:
+        calls.append(url)
+        dest.write_bytes(files[url].read_bytes())
+        data = dest.read_bytes()
+        return Download(url, dest, hashlib.sha256(data).hexdigest(), len(data), 200, url)
+
+    return downloader
+
+
+def test_one_files_trouble_never_stops_the_state(conn: Connection, tmp_path: Path) -> None:
+    """2026-11-12: an error while publishing one hospital (storage, a dropped
+    connection) used to end the whole state's run; now it is recorded for that
+    file and the next hospital is read."""
+    files = _two_hospitals(conn)
+    calls: list[str] = []
+    published: list[str] = []
+
+    def after(c: Connection, facility_id: str) -> None:
+        if not published:
+            published.append("boom")
+            raise RuntimeError("storage unavailable")
+        published.append(facility_id)
+
+    stats = check_price_files(
+        conn,
+        "NV",
+        _copying(files, calls),
+        tmp_path / "w",
+        today=date(2026, 11, 6),
+        load=True,
+        min_free_bytes=0,
+        after_load=after,
+        sleep=lambda _s: None,
+    )
+    assert len(calls) == 2  # the second hospital was still read
+    assert stats.summary["file_failed"] == 1
+    assert [r.rule for r in stats.rejects if r.rule == "file_failed"] == ["file_failed"]
+    assert len(published) == 2 and published[0] == "boom"
+    conn.execute(text("SELECT 1"))  # the connection is usable afterwards
+
+
+def test_files_failing_in_a_row_wait_then_stop_cleanly(conn: Connection, tmp_path: Path) -> None:
+    from procedurescout_ingest import price_files as pf
+
+    files = _two_hospitals(conn)
+    calls: list[str] = []
+    waits: list[int] = []
+
+    def broken(url: str, dest: Path) -> Download:
+        calls.append(url)
+        raise OSError("disk unavailable")
+
+    old = pf.MAX_FAILURES_IN_A_ROW
+    pf.MAX_FAILURES_IN_A_ROW = 2
+    try:
+        stats = check_price_files(
+            conn, "NV", broken, tmp_path / "w", today=date(2026, 11, 6), sleep=waits.append
+        )
+    finally:
+        pf.MAX_FAILURES_IN_A_ROW = old
+    assert len(calls) == 2 and stats.summary["file_failed"] == 2
+    assert "failed in a row" in stats.summary["stopped_early"]
+    assert len(files) == 2
+
+
+def test_a_slow_download_is_stopped(tmp_path: Path) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, content=b"x" * 10_000)
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        dl = http_downloader(client, sleep=lambda _s: None, max_seconds=-1)
+        got = dl("https://h.example/slow.json", tmp_path / "s")
+    assert got.error is not None and "longer than" in got.error
+    assert got.path is None and not (tmp_path / "s").exists()
+
+
+def test_a_dropped_database_connection_reconnects(engine: Engine) -> None:
+    """The safety net relies on this: after the server drops a connection and
+    it is rolled back, the next statement reconnects (live load, 2026-11-12)."""
+    import contextlib
+
+    with engine.connect() as c, engine.connect() as killer:
+        pid = c.execute(text("SELECT pg_backend_pid()")).scalar_one()
+        killer.execute(text("SELECT pg_terminate_backend(:p)"), {"p": pid})
+        killer.commit()
+        with contextlib.suppress(Exception):
+            c.execute(text("SELECT 1"))
+        c.rollback()
+        assert c.execute(text("SELECT 1")).scalar_one() == 1
+        assert c.execute(text("SELECT pg_backend_pid()")).scalar_one() != pid
+
+
+def test_the_live_run_saves_after_each_hospital(conn: Connection, tmp_path: Path) -> None:
+    """The live run passes `commit`: it saves before each download (no open
+    transaction while a file downloads) and after each hospital."""
+    files = _two_hospitals(conn)
+    saves: list[int] = []
+    calls: list[str] = []
+    check_price_files(
+        conn,
+        "NV",
+        _copying(files, calls),
+        tmp_path / "w",
+        today=date(2026, 11, 6),
+        commit=lambda: saves.append(1),
+    )
+    assert len(calls) == 2 and len(saves) == 4

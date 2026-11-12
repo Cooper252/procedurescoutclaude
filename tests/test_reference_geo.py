@@ -285,3 +285,48 @@ def test_outage_does_not_add_per_row_noise(conn: Connection) -> None:
 
     stats = geocode_facilities(conn, "NV", down)
     assert [r.rule for r in stats.rejects] == ["geocoder_unavailable"]
+
+
+def test_geocoding_in_saved_chunks_with_retry_next_run(conn: Connection) -> None:
+    """2026-11-12: big states are geocoded in chunks saved one by one; when the
+    geocoder is down (or time runs out) places get their ZIP location for now
+    and the exact address is tried again on the next run."""
+    import time
+
+    from procedurescout_ingest.reference.geocode import DEFERRED
+
+    load_lookups(conn)
+    load_hospitals(
+        conn,
+        [hospital(f"SYN4{i:02d}", f"{i} MATCH WAY", "89990") for i in range(5)],
+        "NV",
+        date(2026, 7, 22),
+    )
+    calls: list[int] = []
+    saves: list[int] = []
+
+    def down(rows: list[AddressRow]) -> dict[str, GeocodeResult]:
+        calls.append(len(rows))
+        raise SourceError("down")
+
+    geocode_facilities(conn, "NV", down, chunk_size=2, commit=lambda: saves.append(1))
+    assert calls == [2, 2]  # stops asking after two failed chunks in a row
+    assert len(saves) == 1 + 3  # counties, then every chunk
+    sources = conn.execute(text("SELECT geocode_source FROM ref.facility")).scalars().all()
+    assert all(s.startswith(DEFERRED) for s in sources)  # ZIP location for now
+
+    def up(rows: list[AddressRow]) -> dict[str, GeocodeResult]:
+        m = GeocodeResult("match", True, "x", Decimal("-115.1"), Decimal("36.1"), "32", "003")
+        return {r.id: m for r in rows}
+
+    geocode_facilities(conn, "NV", up, chunk_size=1, parallel=3)  # next run, 3 at a time
+    precision = conn.execute(text("SELECT geocode_precision FROM ref.facility")).scalars().all()
+    assert set(precision) == {"address"}
+
+    load_hospitals(conn, [hospital("SYN499", "9 LATE ST", "89990")], "NV", date(2026, 7, 22))
+    late = geocode_facilities(conn, "NV", up, stop_at_ns=time.monotonic_ns() - 1)
+    assert "stopped_for_time" in late.summary
+    src = conn.execute(
+        text("SELECT geocode_source FROM ref.facility WHERE ccn = 'SYN499'")
+    ).scalar_one()
+    assert src.startswith(DEFERRED)  # out of time: ZIP now, address next run

@@ -1,17 +1,21 @@
 name: Load every state into the live site
 
-# The same steps as "Load a state into the live site" (load-state-production.yml;
-# keep the two in step), for every state one after another, so nobody has to
-# start 51 runs. Each state is its own job (up to 6 hours); a state that hits
-# the 4.5-hour price-file limit is finished by the next run (finished
-# hospitals are skipped). Runs by hand, and on the 1st of each month to pick
-# up hospitals' new price files (offices are not reloaded then).
+# Loads states one after another into the live site. Each run loads ONE
+# state, then starts the next run itself with the states still to do
+# (2026-11-12: the old one-run-for-all-states version stalled on "Queued"
+# after the first state). A state whose price files did not all finish in
+# time is run again (up to 4 passes; finished hospitals are skipped). One
+# state's trouble never stops the others. Runs by hand, and on the 1st of
+# each month to pick up hospitals' new price files (offices not reloaded).
+#
+# To stop the chain: cancel the run that is going, and the queued one if any.
+# Don't start "Load a state into the live site" while this is running.
 
 on:
   workflow_dispatch:
     inputs:
       states:
-        description: "all, or a list such as AZ,CA,TX"
+        description: "all, or a list such as AZ,CA,TX (the first one is loaded now)"
         required: true
         default: "all"
       download_price_files:
@@ -23,47 +27,38 @@ on:
         type: boolean
         default: true
       load_offices:
-        description: "Load offices from the national provider list (about 1.1 GB download per state)"
+        description: "Load offices from the national provider list"
         type: boolean
         default: true
       nppes_url:
-        description: "NPPES monthly file (see download.cms.gov/nppes/NPI_Files.html)"
+        description: "NPPES monthly file: latest (found on download.cms.gov/nppes/NPI_Files.html), or a full link"
         required: false
-        default: "https://download.cms.gov/nppes/NPPES_Data_Dissemination_November_2026_V2.zip"
+        default: "latest"
       nucc_url:
         description: "NUCC taxonomy CSV (see nucc.org)"
         required: false
         default: "https://www.nucc.org/images/stories/CSV/nucc_taxonomy_261.csv"
+      pass:
+        description: "Leave at 1 (the chain counts passes of an unfinished state itself)"
+        required: false
+        default: "1"
+      offices_done:
+        description: "Leave unchecked (the chain sets it when a state's offices are already loaded)"
+        type: boolean
+        default: false
   schedule:
     - cron: "23 7 1 * *"  # 07:23 UTC on the 1st of each month
 
 permissions:
   contents: read
+  actions: write  # to start the next state's run
 
 concurrency:
-  group: production-load  # never at the same time as a single-state load
+  group: production-load  # never two live loads at once
   cancel-in-progress: false
 
 jobs:
-  plan:
-    runs-on: ubuntu-24.04
-    outputs:
-      states: ${{ steps.pick.outputs.states }}
-    steps:
-      - id: pick
-        env:
-          STATES_IN: ${{ inputs.states || 'all' }}
-        run: |
-          ALL="AL AK AZ AR CA CO CT DE DC FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY"
-          IN=$(printf '%s' "$STATES_IN" | tr '[:lower:]' '[:upper:]' | tr -c 'A-Z\n' ' ')
-          if [ "$(echo $IN)" = "ALL" ]; then IN="$ALL"; fi
-          OUT=""
-          for s in $IN; do case " $ALL " in *" $s "*) OUT="$OUT\"$s\",";; esac; done
-          echo "states=[${OUT%,}]" >> "$GITHUB_OUTPUT"
-          echo "states=[${OUT%,}]"
-
   load:
-    needs: plan
     runs-on: ubuntu-24.04
     timeout-minutes: 350
     services:
@@ -80,11 +75,6 @@ jobs:
           --health-cmd "pg_isready -U postgres"
           --health-interval 5s
           --health-retries 20
-    strategy:
-      fail-fast: false  # one state's trouble never stops the others
-      max-parallel: 1   # one state at a time: the live database is small
-      matrix:
-        state: ${{ fromJSON(needs.plan.outputs.states) }}
     env:
       DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
       PRICE_STORE_DIR: ${{ secrets.PRICE_STORE_DIR }}
@@ -93,9 +83,44 @@ jobs:
       PRICE_STORE_SECRET: ${{ secrets.PRICE_STORE_SECRET }}
       PYTHONPATH: packages/core:packages/ingest
       WORK_DATABASE_URL: postgresql+psycopg://ps_owner:ps_owner_dev@localhost:5432/procedurescout
-      STATE_IN: ${{ matrix.state }}
+      STATES_IN: ${{ inputs.states || 'all' }}
+      PASS_IN: ${{ inputs.pass || '1' }}
+      DOWNLOADS: ${{ (github.event_name == 'schedule' || inputs.download_price_files) && '1' || '0' }}
+      FIRST_AUTO: ${{ (github.event_name == 'schedule' || inputs.first_files_automatic) && '1' || '0' }}
+      OFFICES: ${{ (github.event_name != 'schedule' && inputs.load_offices) && '1' || '0' }}
+      OFFICES_DONE: ${{ inputs.offices_done && '1' || '0' }}
+      NPPES_URL_IN: ${{ inputs.nppes_url || 'latest' }}
+      NUCC_URL: ${{ inputs.nucc_url || 'https://www.nucc.org/images/stories/CSV/nucc_taxonomy_261.csv' }}
     steps:
+      - name: Pick this run's state
+        id: pick
+        run: |
+          ALL="AL AK AZ AR CA CO CT DE DC FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY"
+          IN=$(printf '%s' "$STATES_IN" | tr '[:lower:]' '[:upper:]' | tr -c 'A-Z\n' ' ')
+          if [ "$(echo $IN)" = "ALL" ]; then IN="$ALL"; fi
+          LIST=""
+          for s in $IN; do case " $ALL " in *" $s "*) LIST="$LIST $s";; esac; done
+          set -- $LIST
+          if [ $# -eq 0 ]; then echo "no valid states in: $STATES_IN"; exit 1; fi
+          STATE=$1; shift; REST=$(echo "$@" | tr ' ' ',')
+          PASS=$(printf '%s' "$PASS_IN" | tr -cd '0-9'); PASS=${PASS:-1}
+          # the national provider list's link changes every month: find the
+          # current monthly file (not a weekly one) unless a link was given
+          NPPES_URL="$NPPES_URL_IN"
+          if [ "$NPPES_URL" = "latest" ] || [ -z "$NPPES_URL" ]; then
+            FILE=$(curl -fsL --retry 5 --retry-delay 10 https://download.cms.gov/nppes/NPI_Files.html \
+              | grep -oE 'NPPES_Data_Dissemination_[A-Za-z]+_[0-9]{4}(_V[0-9]+)?\.zip' | head -1 || true)
+            NPPES_URL="https://download.cms.gov/nppes/${FILE:-NPPES_Data_Dissemination_November_2026_V2.zip}"
+          fi
+          echo "NPPES_URL=$NPPES_URL" >> "$GITHUB_ENV"
+          echo "National provider list: $NPPES_URL" >> "$GITHUB_STEP_SUMMARY"
+          echo "state=$STATE" >> "$GITHUB_OUTPUT"
+          echo "rest=$REST" >> "$GITHUB_OUTPUT"
+          echo "pass=$PASS" >> "$GITHUB_OUTPUT"
+          echo "### $STATE (pass $PASS)" >> "$GITHUB_STEP_SUMMARY"
+          echo "Still to do after this: ${REST:-none}" >> "$GITHUB_STEP_SUMMARY"
       - name: Stop if hosting is not set up
+        id: secrets
         run: |
           if [ -z "$DATABASE_URL" ] || [ -z "$PRICE_STORE_DIR" ]; then
             echo "Live database or R2 secrets are missing; set them up first (docs/DEPLOYMENT_PLAN.md)."
@@ -103,7 +128,8 @@ jobs:
           fi
       - name: Make room on the disk
         run: |
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL || true
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost || true
+          sudo docker image prune --all --force >/dev/null 2>&1 || true
           df -h /
       - uses: actions/checkout@v4
         with:
@@ -111,8 +137,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
       - run: pip install -r requirements.txt
+        timeout-minutes: 10
       - name: Stop if the live database is not on the newest version
+        id: version
         run: |
           python - <<'PY'
           import os, sys
@@ -124,11 +154,10 @@ jobs:
           with create_engine(sqlalchemy_url(os.environ["DATABASE_URL"])).connect() as c:
               now = c.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
           print(f"live database at {now}, code expects {head}")
-          # a newer database is fine (the site was updated during a long run;
-          # changes only ever add); an older one means the API wasn't deployed
           sys.exit(0 if int(now) >= int(head) else "deploy the API first (it upgrades the database), then run this again")
           PY
       - name: Set up the work database on this computer
+        timeout-minutes: 10
         env:
           PGPASSWORD: postgres_ci_only
         run: |
@@ -136,37 +165,127 @@ jobs:
           DATABASE_URL="$WORK_DATABASE_URL" python -m alembic upgrade head
           python -m procedurescout_ingest.reference.cli prepare-work-db
       - name: Load reference data, websites, price files (publish as they pass)
+        id: prices
+        timeout-minutes: 180
         env:
-          PRICE_FILE_DOWNLOADS: ${{ (github.event_name == 'schedule' || inputs.download_price_files) && '1' || '0' }}
-          PRICE_LOAD: ${{ (github.event_name == 'schedule' || inputs.download_price_files) && '1' || '0' }}
+          PRICE_FILE_DOWNLOADS: ${{ env.DOWNLOADS }}
+          PRICE_LOAD: ${{ env.DOWNLOADS }}
           PUBLISH_AS_YOU_GO: "1"
-          AUTO_PUBLISH_FIRST_FILES: ${{ (github.event_name == 'schedule' || inputs.first_files_automatic) && '1' || '0' }}
-          # Stop reading price files after 4 hours so the run finishes inside
-          # GitHub's 6-hour limit; run the state again to carry on (finished
-          # hospitals are skipped).
-          PRICE_TIME_BUDGET_MINUTES: "240"
+          AUTO_PUBLISH_FIRST_FILES: ${{ env.FIRST_AUTO }}
+          # No new price file is started after this; the step's own limit
+          # (180 minutes) leaves room for a big file to finish. Every step
+          # has a limit and together they stay under the job's 350 minutes,
+          # so "Start the next run" always runs.
+          PRICE_TIME_BUDGET_MINUTES: "130"
+          GEOCODE_TIME_BUDGET_MINUTES: "10"  # hospitals only here; offices are mapped below
+          STATE_UNFINISHED_FILE: state-unfinished.txt
+          STATE_PRICES_DONE_FILE: state-prices-done.txt
+          STATE: ${{ steps.pick.outputs.state }}
         run: |
           set -o pipefail
-          STATE=$(printf '%s' "$STATE_IN" | tr '[:lower:]' '[:upper:]' | tr -cd 'A-Z' | cut -c1-2)
-          python -m procedurescout_ingest.reference.cli nv-all --state "$STATE" | tee load-report.txt
-      - name: Load offices from the national provider list
-        if: ${{ github.event_name != 'schedule' && inputs.load_offices }}
-        env:
-          NPPES_URL: ${{ inputs.nppes_url }}
-          NUCC_URL: ${{ inputs.nucc_url }}
+          python -m procedurescout_ingest.reference.cli nv-all --state "$STATE" 2>&1 | tee load-report.txt
+      - name: Reuse the national provider list from an earlier state
+        id: nppes_cache
+        if: ${{ env.OFFICES == '1' && env.OFFICES_DONE != '1' && !cancelled() && steps.version.outcome == 'success' }}
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/nppes
+          key: nppes-${{ env.NPPES_URL }}-${{ env.NUCC_URL }}
+      - name: Download the national provider list
+        id: nppes_get
+        if: ${{ env.OFFICES == '1' && env.OFFICES_DONE != '1' && !cancelled() && steps.version.outcome == 'success' && steps.nppes_cache.outputs.cache-hit != 'true' }}
+        timeout-minutes: 20
         run: |
-          STATE=$(printf '%s' "$STATE_IN" | tr '[:lower:]' '[:upper:]' | tr -cd 'A-Z' | cut -c1-2)
-          python -m procedurescout_ingest.reference.cli nppes-offices --file "$NPPES_URL" --nucc "$NUCC_URL" --state "$STATE"
-          python -m procedurescout_ingest.reference.cli geocode --state "$STATE"
+          mkdir -p ~/nppes
+          # resumable, with retries; saved for the next states right away
+          curl -fL --retry 8 --retry-all-errors --retry-delay 20 -C - -o ~/nppes/npi.zip.part "$NPPES_URL"
+          mv ~/nppes/npi.zip.part ~/nppes/npi.zip
+          curl -fL --retry 8 --retry-all-errors --retry-delay 20 -o ~/nppes/nucc.csv "$NUCC_URL"
+          unzip -tq ~/nppes/npi.zip >/dev/null
+      - name: Save the national provider list for the next states
+        if: ${{ steps.nppes_get.outcome == 'success' }}
+        uses: actions/cache/save@v4
+        with:
+          path: ~/nppes
+          key: nppes-${{ env.NPPES_URL }}-${{ env.NUCC_URL }}
+      - name: Load offices from the national provider list
+        id: offices
+        if: ${{ env.OFFICES == '1' && env.OFFICES_DONE != '1' && !cancelled() && steps.version.outcome == 'success' && (steps.nppes_cache.outputs.cache-hit == 'true' || steps.nppes_get.outcome == 'success') }}
+        timeout-minutes: 45
+        env:
+          STATE: ${{ steps.pick.outputs.state }}
+        run: python -m procedurescout_ingest.reference.cli nppes-offices --file ~/nppes/npi.zip --nucc ~/nppes/nucc.csv --state "$STATE"
+      - name: Map locations for new places
+        if: ${{ !cancelled() && steps.version.outcome == 'success' }}
+        timeout-minutes: 40
+        env:
+          GEOCODE_TIME_BUDGET_MINUTES: "30"
+          STATE: ${{ steps.pick.outputs.state }}
+        run: python -m procedurescout_ingest.reference.cli geocode --state "$STATE"
       - name: Refresh code index, insurance names and clean up
-        if: always()
+        if: ${{ always() && steps.version.outcome == 'success' }}
+        timeout-minutes: 20
         run: |
           python -m procedurescout_ingest.reference.cli resolve-plans || true
           python -m procedurescout_ingest.reference.cli code-index
           python -m procedurescout_ingest.reference.cli prune-published
+      - name: Summary
+        if: always()
+        env:
+          PRICES: ${{ steps.prices.outcome }}
+          OFFICES_OUT: ${{ steps.offices.outcome }}
+        run: |
+          {
+            echo "- Price files: ${PRICES:-skipped}"
+            echo "- Offices: ${OFFICES_OUT:-skipped}"
+            [ -f state-unfinished.txt ] && echo "- Not finished: $(cat state-unfinished.txt)"
+            [ -f state-prices-done.txt ] && echo "- $(cat state-prices-done.txt)"
+            grep -E '"dataset": "price_file_check"' load-report.txt 2>/dev/null | tail -1 | cut -c1-1500 || true
+          } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: load-${{ matrix.state }}
+          name: load-${{ steps.pick.outputs.state }}-pass${{ steps.pick.outputs.pass }}
           path: load-report.txt
           if-no-files-found: ignore
+      - name: Start the next run
+        # always, so one state's trouble never stops the others; but not when
+        # hosting isn't set up or the live database is behind (every state
+        # would fail the same way), or when someone cancelled this run
+        if: ${{ !cancelled() && steps.secrets.outcome == 'success' && steps.version.outcome == 'success' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STATE: ${{ steps.pick.outputs.state }}
+          REST: ${{ steps.pick.outputs.rest }}
+          PASS: ${{ steps.pick.outputs.pass }}
+          PRICES: ${{ steps.prices.outcome }}
+          OFFICES_OUT: ${{ steps.offices.outcome }}
+        run: |
+          # Run this state again only for what didn't finish: its price files
+          # (no "done" note: stopped for time, cut off, or the database was
+          # unreachable) or its offices. Up to 4 passes; then move on.
+          PRICES_LEFT=0
+          if [ "$DOWNLOADS" = "1" ] && [ ! -f state-prices-done.txt ]; then PRICES_LEFT=1; fi
+          OFFICES_LEFT=0
+          if [ "$OFFICES" = "1" ] && [ "$OFFICES_DONE" != "1" ] && [ "$OFFICES_OUT" != "success" ]; then OFFICES_LEFT=1; fi
+          if [ $((PRICES_LEFT + OFFICES_LEFT)) -gt 0 ] && [ "$PASS" -lt 4 ]; then
+            NEXT="$STATE${REST:+,$REST}"; NEXT_PASS=$((PASS + 1))
+            NEXT_OFFICES_DONE=$([ "$OFFICES_LEFT" = "1" ] && echo false || echo true)
+          elif [ -n "$REST" ]; then
+            NEXT="$REST"; NEXT_PASS=1; NEXT_OFFICES_DONE=false
+          else
+            echo "All states done." >> "$GITHUB_STEP_SUMMARY"; exit 0
+          fi
+          echo "Next run: $NEXT (pass $NEXT_PASS)" >> "$GITHUB_STEP_SUMMARY"
+          for i in 1 2 3 4 5; do
+            gh workflow run load-all-states.yml --repo "$GITHUB_REPOSITORY" --ref "$GITHUB_REF_NAME" \
+              -f states="$NEXT" -f pass="$NEXT_PASS" \
+              -f download_price_files=$([ "$DOWNLOADS" = "1" ] && echo true || echo false) \
+              -f first_files_automatic=$([ "$FIRST_AUTO" = "1" ] && echo true || echo false) \
+              -f load_offices=$([ "$OFFICES" = "1" ] && echo true || echo false) \
+              -f offices_done="$NEXT_OFFICES_DONE" \
+              -f nppes_url="$NPPES_URL" -f nucc_url="$NUCC_URL" && exit 0
+            sleep 30
+          done
+          echo "Could not start the next run; start it by hand with states=$NEXT" >> "$GITHUB_STEP_SUMMARY"
+          exit 1

@@ -11,6 +11,7 @@ publish date of its file.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Iterator
 from decimal import Decimal
 from typing import Annotated
@@ -39,6 +40,7 @@ from procedurescout_core.search import (
 from .settings import get_settings
 
 router = APIRouter(prefix="/v1", tags=["search"])
+_PTYPE_CODE = re.compile(r"^[a-z][a-z_]{1,40}$")
 _engine: Engine | None = None
 
 
@@ -344,12 +346,26 @@ def _s(value: Decimal | None) -> str | None:
 
 
 @router.get("/services", response_model=list[Service])
-def services(conn: Conn) -> list[Service]:
+def services(
+    conn: Conn,
+    provider_types: Annotated[str | None, Query(max_length=400)] = None,
+) -> list[Service]:
+    """All services, or (with provider_types=a,b) only those offered by those
+    kinds of care, for a place's own price picker (2026-11-12: a hospital's
+    page listed Botox and braces)."""
+    types = sorted({t.strip() for t in (provider_types or "").split(",") if t.strip()})
+    if any(not _PTYPE_CODE.match(t) for t in types) or len(types) > 10:
+        raise HTTPException(status_code=422, detail="unknown kind of care")
     rows = conn.execute(
         text(
-            "SELECT slug, consumer_name, category, unit FROM ref.procedure "
-            "WHERE review_state = 'approved' AND kind = 'service' ORDER BY category, consumer_name"
-        )
+            "SELECT p.slug, p.consumer_name, p.category, p.unit FROM ref.procedure p "
+            "WHERE p.review_state = 'approved' AND p.kind = 'service' "
+            "AND (cardinality(CAST(:t AS text[])) = 0 OR EXISTS ("
+            "  SELECT 1 FROM ref.procedure_provider_type x "
+            "  WHERE x.procedure_id = p.id AND x.provider_type = ANY(CAST(:t AS text[])))) "
+            "ORDER BY p.category, p.consumer_name"
+        ),
+        {"t": types},
     ).all()
     return [Service(slug=r[0], name=r[1], category=r[2], unit=r[3]) for r in rows]
 

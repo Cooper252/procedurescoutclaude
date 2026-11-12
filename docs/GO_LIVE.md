@@ -11,6 +11,7 @@ noted and were checked 2026-11-08 to 2026-11-09 (see DEPLOYMENT_PLAN.md).
 | Done | Domain: procedurescout.com (D-057). | |
 | Q25 | **Lawyer review** of the terms of use, privacy notice and disclaimers (English and Spanish), the review rules, and health-data privacy laws. | Should happen before the public launch. |
 | Done | Nevada uninsured discount confirmed by Claude from the law's text (D-056); state rules are Claude's job from now on. | |
+| Done | Hospital financial-assistance policies: Claude approves each from the hospital's own document (D-060). | |
 
 ## 1b. Before signing up: test every state for free
 
@@ -41,6 +42,23 @@ After sign-up: add the GitHub secrets for the live-load run, run `add-staff` for
 Search, provider pages, accounts with the authenticator app, reviews, provider prices and specials, counts, wrong-price reports, review pages with per-person logins, email sending, rate limits, billing (off), offices from the national provider list (tested on real Nevada data: 8,238 offices), any-state runs, automatic website checks, file-by-file publishing.
 
 ## 5. Before opening to the public (Claude unless noted)
+
+**Go-live check, 2026-11-12** (details in PROGRESS):
+
+| Area | Result |
+|---|---|
+| Code on GitHub = tested code | Pass: fresh clone matches file for file; all checks pass on it |
+| Searches (cash, list, insurance, online, by code, bad input) | Pass; Las Vegas was 8-11 s, fixed (0.02 s with 12,000 offices) |
+| Prices match the hospital's own file | Pass: North Vista colonoscopy cash $1,301, list $3,686.44, Aetna $1,210 |
+| Sign-in emails | Fixed twice (sent before saved; re-sent every 5 min); Cooper confirms the next sign-in |
+| Review pages | Were off live; fixed (`OWNER_EMAILS`), Cooper signs in to confirm |
+| Restricted database roles | Tests now run as the hosted roles (found the email bug) |
+| Rate limits | Fixed: real visitor address; website server not limited |
+| Sitemap | Fixed: split under 50,000 per file |
+| Website pages (220, desktop + phone), Spanish, help paying | Pass (preview crawl and live checks) |
+| Website checked before deploy | Added to CI; Render deploys only after CI passes |
+| Uptime alert | `site-check.yml` every 15 minutes (GitHub emails on failure) |
+| Service lists per kind of care | Fixed: 17 core services had no kinds of care |
 
 - First live load (Nevada), then check the hosted site end to end in a browser: search, a provider page, sign-in email arrives, a review, the review pages.
 - A person tries the site with a screen reader (automatic checks pass).

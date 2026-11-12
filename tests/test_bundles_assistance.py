@@ -63,7 +63,12 @@ def test_committed_files_load(conn: Connection) -> None:
     for row in csv.DictReader(
         io.StringIO((ROOT / "data/reference/assistance_policies.csv").read_text())
     ):
-        assert row["reviewed_by"] == "" and row["source"] == "ai_suggested"
+        # unreviewed, or approved by Claude from the hospital's own document (D-060)
+        if row["reviewed_by"]:
+            assert row["reviewed_by"] == "Claude (delegated by Cooper, D-060)"
+            assert row["reviewed_at"] and "Checked" in row["evidence"]
+        else:
+            assert row["reviewed_at"] == "" and row["source"] == "ai_suggested"
         assert row["policy_url"].startswith("https://") and row["evidence"]
         for part in row["tiers"].split(";"):
             assert catalog._TIER.match(part), part

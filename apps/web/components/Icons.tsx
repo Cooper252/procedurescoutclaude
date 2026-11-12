@@ -60,11 +60,17 @@ export const TrendUp = ({ size, className }: P) => (
 );
 
 export function Logo({ size = 30 }: { size?: number }) {
-  // original mark: a rounded tag with a check, in the brand teal
+  // original mark (2026-11-12): a price tag with a medical cross, in the brand
+  // teal; the same drawing is the browser-tab icon (app/icon.svg, favicon.ico)
   return (
-    <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true">
-      <rect x="2" y="2" width="28" height="28" rx="9" fill="var(--brand)" />
-      <path d="M10 16.5l4 4 8-9" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+    <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden="true">
+      <rect width="64" height="64" rx="15" fill="var(--brand)" />
+      <path
+        d="M11 29.4V14a3 3 0 0 1 3-3h15.4a3 3 0 0 1 2.1.9l20.6 20.6a3 3 0 0 1 0 4.2L36.7 52.1a3 3 0 0 1-4.2 0L11.9 31.5a3 3 0 0 1-.9-2.1Z"
+        fill="#fff"
+      />
+      <circle cx="21.5" cy="21.5" r="4" fill="var(--brand)" />
+      <path d="M34.5 28.5v13M28 35h13" stroke="var(--brand)" strokeWidth="4.6" strokeLinecap="round" />
     </svg>
   );
 }

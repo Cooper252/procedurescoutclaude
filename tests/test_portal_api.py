@@ -326,7 +326,11 @@ def test_owner_email_becomes_admin_on_first_sign_in(
     get_settings.cache_clear()
     staff = _admin()
     assert staff.get("/admin/providers").status_code == 401  # not signed in
-    _sign_in(staff, "owner@synthetic.test")
+    # a browser goes to the account page (sign-in / authenticator) instead of JSON
+    r = staff.get("/admin/providers", headers={"Accept": "text/html"}, follow_redirects=False)
+    assert r.status_code == 303 and r.headers["location"] == "/providers/account"
+    me = _sign_in(staff, "owner@synthetic.test")
+    assert me["staff"] is True  # the account page shows the review links
     page = staff.get("/admin/providers")
     assert page.status_code == 200 and "owner@synthetic.test" in page.text
     role = conn.execute(
@@ -337,8 +341,10 @@ def test_owner_email_becomes_admin_on_first_sign_in(
     ).scalar_one()
     assert role == "admin"
     other = _admin()
-    _sign_in(other, "stranger@synthetic.test")
+    assert _sign_in(other, "stranger@synthetic.test")["staff"] is False
     assert other.get("/admin/providers").status_code == 403  # not on the list
+    page = other.get("/admin/providers", headers={"Accept": "text/html"})
+    assert page.status_code == 403 and "can't use the review pages" in page.text
     from procedurescout_api.settings import Settings
 
     monkeypatch.delenv("ADMIN_DATABASE_URL", raising=False)

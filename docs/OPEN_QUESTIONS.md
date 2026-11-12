@@ -50,3 +50,8 @@
 - CPT licensing: no license at launch (D-002).
 - Keep procedurescout.com up during rebuild: no.
 - Old price files: none exist; download fresh.
+
+## Q37 — Hospital financial-assistance policies (2026-11-12) — RESOLVED: Claude approves them (D-060)
+
+Who approves each hospital's financial-assistance policy (income limits for free and discounted care) before the free-care check uses it: Cooper in the review pages, or Claude from each hospital's own policy document with the source recorded (like D-047 and D-056)? Until then every hospital shows "we have not reviewed its policy yet".
+

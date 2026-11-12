@@ -75,6 +75,15 @@ export default function Account() {
         <Mfa me={me} onDone={setMe} p={p} />
       ) : (
         <>
+          {me.staff && (
+            <div className="notice">
+              <strong>{p.staffTitle}</strong>
+              <ul>
+                <li><a href="/admin/reviews">{p.staffFiles}</a></li>
+                <li><a href="/admin/providers">{p.staffProviders}</a></li>
+              </ul>
+            </div>
+          )}
           {active.length > 1 && (
             <div className="field acct-switch">
               <select value={fid} onChange={(e) => setFid(e.target.value)} aria-label="Facility">

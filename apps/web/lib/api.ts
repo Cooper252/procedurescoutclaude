@@ -63,7 +63,11 @@ async function detail(res: Response): Promise<string> {
 const later = <T,>(v: T) => new Promise<T>((r) => setTimeout(() => r(v), 120));
 
 export const api = {
-  services: (): Promise<Service[]> => (DEMO ? later(demo.DEMO_SERVICES) : get("/v1/services")),
+  // providerTypes: only services those kinds of care offer (a place's own picker)
+  services: (providerTypes?: string[]): Promise<Service[]> =>
+    DEMO
+      ? later(demo.DEMO_SERVICES)
+      : get("/v1/services", providerTypes?.length ? { provider_types: providerTypes.join(",") } : undefined),
   suggest: (q: string): Promise<Suggestion[]> =>
     DEMO ? later(demo.demoSuggest(q)) : get("/v1/services/suggest", { q }),
   providerTypes: (): Promise<ProviderType[]> =>

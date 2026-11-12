@@ -418,10 +418,15 @@ class MeOut(BaseModel):
     mfa_enabled: bool
     mfa_passed: bool
     memberships: list[MembershipOut]
+    staff: bool = False  # can use the review pages (shown as a link on the account page)
 
 
 def _me(conn: Connection, a: auth.Account) -> MeOut:
+    staff = auth.staff_role(conn, a) is not None or (
+        a.mfa_passed and a.email.lower() in get_settings().owner_email_set
+    )
     return MeOut(
+        staff=staff,
         email=a.email,
         display_name=a.display_name,
         mfa_enabled=a.mfa_enabled,

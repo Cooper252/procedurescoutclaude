@@ -123,30 +123,44 @@ jobs:
         if: ${{ inputs.clear_leftover_staged }}
         run: python -m procedurescout_ingest.reference.cli clear-staged
       - name: Load reference data, websites, price files (publish as they pass)
+        timeout-minutes: 190
         env:
           PRICE_FILE_DOWNLOADS: ${{ inputs.download_price_files && '1' || '0' }}
           PRICE_LOAD: ${{ inputs.download_price_files && '1' || '0' }}
           PUBLISH_AS_YOU_GO: "1"
           AUTO_PUBLISH_FIRST_FILES: ${{ inputs.first_files_automatic && '1' || '0' }}
-          # Stop reading price files after 4.5 hours so the run finishes inside
-          # GitHub's 6-hour limit; run the state again to carry on (finished
-          # hospitals are skipped).
-          PRICE_TIME_BUDGET_MINUTES: "270"
+          # No new price file is started after 140 minutes; every step has a
+          # limit so the whole run fits GitHub's 6 hours (2026-11-12). Run the
+          # state again to carry on (finished hospitals are skipped).
+          PRICE_TIME_BUDGET_MINUTES: "140"
+          GEOCODE_TIME_BUDGET_MINUTES: "10"
         run: |
           set -o pipefail
           STATE=$(printf '%s' "$STATE_IN" | tr '[:lower:]' '[:upper:]' | tr -cd 'A-Z' | cut -c1-2)
-          python -m procedurescout_ingest.reference.cli nv-all --state "$STATE" | tee load-report.txt
+          python -m procedurescout_ingest.reference.cli nv-all --state "$STATE" 2>&1 | tee load-report.txt
       - name: Load offices from the national provider list
-        if: ${{ inputs.load_offices }}
+        if: ${{ inputs.load_offices && !cancelled() }}
+        timeout-minutes: 65
         env:
           NPPES_URL: ${{ inputs.nppes_url }}
           NUCC_URL: ${{ inputs.nucc_url }}
         run: |
           STATE=$(printf '%s' "$STATE_IN" | tr '[:lower:]' '[:upper:]' | tr -cd 'A-Z' | cut -c1-2)
-          python -m procedurescout_ingest.reference.cli nppes-offices --file "$NPPES_URL" --nucc "$NUCC_URL" --state "$STATE"
+          mkdir -p ~/nppes
+          curl -fL --retry 8 --retry-all-errors --retry-delay 20 -C - -o ~/nppes/npi.zip "$NPPES_URL"
+          curl -fL --retry 8 --retry-all-errors --retry-delay 20 -o ~/nppes/nucc.csv "$NUCC_URL"
+          python -m procedurescout_ingest.reference.cli nppes-offices --file ~/nppes/npi.zip --nucc ~/nppes/nucc.csv --state "$STATE"
+      - name: Map locations for new places
+        if: ${{ !cancelled() }}
+        timeout-minutes: 30
+        env:
+          GEOCODE_TIME_BUDGET_MINUTES: "20"
+        run: |
+          STATE=$(printf '%s' "$STATE_IN" | tr '[:lower:]' '[:upper:]' | tr -cd 'A-Z' | cut -c1-2)
           python -m procedurescout_ingest.reference.cli geocode --state "$STATE"
       - name: Refresh code index, insurance names and clean up
         if: always()
+        timeout-minutes: 20
         run: |
           python -m procedurescout_ingest.reference.cli resolve-plans || true
           python -m procedurescout_ingest.reference.cli code-index

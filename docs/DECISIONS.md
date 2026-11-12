@@ -2,6 +2,9 @@
 
 Newest first. Each entry: decision, reason, consequences.
 
+## 2026-11-12 — D-060: Claude approves hospital financial-assistance policies, with sources
+Cooper delegated this (2026-11-12: "You approve them"). Claude approves a hospital's policy only from the hospital's own policy document (or its plain-language summary) with the document URL and the exact limits recorded; `reviewed_by = "Claude (delegated by Cooper, D-060)"`. A limit that cannot be read clearly from the document is not guessed: that hospital keeps "we have not reviewed its policy yet". Cooper is never asked to review policies.
+
 ## 2026-11-11 — D-059: Price rows are staged on the loading computer, not in the live database
 First live Nevada load: staging one hospital's file in the live database (10 GB disk, 1 GB memory) took it down (University Medical Center's file is 15.5 million prices, about 6 GB with indexes; the run's log shows "service temporarily unavailable"). Now each live run starts a throwaway PostGIS database on the GitHub computer (migrated, links to live-only tables dropped, every price check kept); a file's rows are staged there, checked, written to Parquet in R2, summarised into the live database, and deleted. The live database holds only hospitals, files, summaries and decisions. Because the rows don't stay anywhere, a file that fails the automatic checks is set aside with its reasons (reviewer "automatic checks (D-035)") instead of waiting for a person; it is read again when the hospital posts a new file. `clear-staged` (a tick box on the single-state run, Cooper's OK) removes rows earlier runs left in the live database; published prices are untouched. Also: the bucket address is accepted with the bucket name on the end, as Cloudflare shows it.
 

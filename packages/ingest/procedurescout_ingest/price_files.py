@@ -22,6 +22,7 @@ numbers are read as Decimal and only counted.
 
 from __future__ import annotations
 
+import contextlib
 import csv
 import hashlib
 import io
@@ -49,6 +50,9 @@ from .discovery import RATE_LIMIT_WAITS, RETRY_STATUSES
 from .reference.common import LoadStats
 
 DEFAULT_MAX_BYTES = 4 * 1024 * 1024 * 1024  # 4 GiB; Cooper approved ~5 GB in total
+DEFAULT_MAX_DOWNLOAD_SECONDS = 40 * 60  # one slow server can't use up a run
+FAILURE_WAITS = (30, 60, 120, 300, 600)  # after 3, 4, 5... files fail in a row
+MAX_FAILURES_IN_A_ROW = 8  # then the run stops cleanly and the next run carries on
 CHUNK = 1024 * 1024
 MAX_PAYER_NAMES = 2000
 MAX_TEXT = 2000
@@ -78,6 +82,7 @@ def http_downloader(
     client: httpx.Client,
     max_bytes: int = DEFAULT_MAX_BYTES,
     sleep: Callable[[int], None] = time.sleep,
+    max_seconds: int = DEFAULT_MAX_DOWNLOAD_SECONDS,
 ) -> Downloader:
     """Plain GET, streamed to `dest`. One retry after a 429/502/503/504 or a
     dropped connection; any other refusal (403, 404, ...) is recorded as it is."""
@@ -85,6 +90,7 @@ def http_downloader(
     def once(url: str, dest: Path) -> Download:
         digest = hashlib.sha256()
         n = 0
+        started = time.monotonic_ns()
         try:
             with client.stream("GET", url) as resp:
                 base = {
@@ -98,6 +104,14 @@ def http_downloader(
                     return Download(**base, error="HTTP error")
                 with dest.open("wb") as out:
                     for chunk in resp.iter_bytes(CHUNK):
+                        if time.monotonic_ns() - started > max_seconds * 10**9:
+                            # a slow server must not hold the whole run (2026-11-12)
+                            out.close()
+                            dest.unlink(missing_ok=True)
+                            return Download(
+                                **base,
+                                error=f"took longer than {max_seconds // 60} minutes; stopped",
+                            )
                         n += len(chunk)
                         if n > max_bytes:
                             out.close()
@@ -621,6 +635,8 @@ def check_price_files(
     max_files: int | None = None,
     stop_at_ns: int | None = None,
     rows_conn: Connection | None = None,
+    sleep: Callable[[int], None] = time.sleep,
+    commit: Callable[[], None] | None = None,
 ) -> LoadStats:
     """Download, check and delete each file; with `load`, also read its prices
     into a staged dataset (price_load) before deleting it.
@@ -651,17 +667,9 @@ def check_price_files(
             Severity.INFO,
         )
     workdir.mkdir(parents=True, exist_ok=True)
-    total = 0
-    downloads = 0
-    for c in chosen:
-        if stop_at_ns is not None and time.monotonic_ns() >= stop_at_ns:
-            stats.count("stopped_for_time")
-            stats.summary["stopped_early"] = "time limit reached; run again to continue"
-            break
-        if max_files is not None and downloads >= max_files:
-            stats.summary["stopped_early"] = f"file limit {max_files} reached"
-            break
-        stats.rows_in += 1
+    totals = {"bytes": 0, "downloads": 0}
+
+    def one(c: Candidate) -> None:
         who = f"ccn:{c.ccn}"
         last = (
             conn.execute(
@@ -688,9 +696,13 @@ def check_price_files(
             and last[1] == c.reported_bytes
         ):
             stats.count("unchanged_skipped")
-            continue
+            return
+        if commit is not None:
+            # don't leave a transaction open on the live database while a
+            # big file downloads (up to 40 minutes)
+            commit()
         dest = workdir / f"price-file-{c.ccn}-{c.source_id[:8]}"
-        downloads += 1
+        totals["downloads"] += 1
         started = time.monotonic()
         d = downloader(c.url, dest)
         try:
@@ -702,18 +714,23 @@ def check_price_files(
                     f"{c.name} | {c.url} | {d.error} (status {d.http_status})",
                     Severity.WARNING,
                 )
-                continue
+                return
             try:
                 check = read_file(d.path)
             except (OSError, zipfile.BadZipFile, UnicodeError, ValueError) as exc:
                 check = FileCheck(problems=[f"could not read: {type(exc).__name__}: {exc}"])
             seconds = round(time.monotonic() - started)
-            total += d.nbytes
+            totals["bytes"] += d.nbytes
             file_id = _record(conn, c, d, check, today, stats, seconds)
             if load and last is not None and last[3] and last[2] == d.sha256:
                 stats.count("same_content_not_reloaded")
-                continue
+                return
             if load:
+                if rows_conn is not None:
+                    # the work database holds one file at a time: start empty
+                    # so its disk never fills with leftovers (2026-11-12)
+                    rows_conn.execute(text("TRUNCATE price.price"))
+                    rows_conn.commit()
                 _load(
                     conn,
                     c,
@@ -732,6 +749,59 @@ def check_price_files(
             dest.unlink(missing_ok=True)
             if d.path is not None:
                 d.path.unlink(missing_ok=True)
+
+    failures_in_a_row = 0
+    for c in chosen:
+        if stop_at_ns is not None and time.monotonic_ns() >= stop_at_ns:
+            stats.count("stopped_for_time")
+            stats.summary["stopped_early"] = "time limit reached; run again to continue"
+            break
+        if max_files is not None and totals["downloads"] >= max_files:
+            stats.summary["stopped_early"] = f"file limit {max_files} reached"
+            break
+        stats.rows_in += 1
+        # The live run saves after every hospital (`commit`); without it (tests,
+        # one-off runs inside a bigger transaction) each file gets a savepoint.
+        savepoint = conn.begin_nested() if commit is None else None
+        try:
+            one(c)
+            if savepoint is not None:
+                savepoint.commit()
+            elif commit is not None:
+                commit()
+            failures_in_a_row = 0
+        except Exception as exc:
+            # One file's trouble (a dropped database connection, storage or a
+            # file nobody expected) never stops the state (2026-11-12). Both
+            # connections are reset; a dropped one reconnects on next use.
+            failures_in_a_row += 1
+            if savepoint is not None:
+                with contextlib.suppress(Exception):
+                    savepoint.rollback()
+            else:
+                with contextlib.suppress(Exception):  # broken: next use reconnects
+                    conn.rollback()
+            if rows_conn is not None:
+                with contextlib.suppress(Exception):
+                    rows_conn.rollback()
+            stats.count("file_failed")
+            stats.reject(
+                f"ccn:{c.ccn}",
+                "file_failed",
+                f"{c.name} | {c.url} | {type(exc).__name__}: {exc}"[:2000],
+                Severity.WARNING,
+            )
+            if failures_in_a_row >= MAX_FAILURES_IN_A_ROW:
+                stats.summary["stopped_early"] = (
+                    f"{failures_in_a_row} files failed in a row (database or storage "
+                    "unreachable?); run again to continue"
+                )
+                break
+            if failures_in_a_row >= 3:
+                wait = FAILURE_WAITS[min(failures_in_a_row - 3, len(FAILURE_WAITS) - 1)]
+                stats.count("waited_after_failures")
+                sleep(wait)
+    total = totals["bytes"]
     stats.summary["bytes_downloaded"] = total
     stats.summary["files_chosen"] = len(chosen)
     if load:
@@ -768,7 +838,9 @@ def _load(
         stats.count("load_skipped_format")
         return
     free = shutil.disk_usage(workdir).free
-    if free < min_free_bytes:
+    # the staged rows take several times the file's size (2026-11-12)
+    need = max(min_free_bytes, 3 * path.stat().st_size)
+    if free < need:
         stats.count("load_skipped_low_disk")
         stats.reject(
             who,

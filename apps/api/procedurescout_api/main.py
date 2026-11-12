@@ -7,8 +7,11 @@ import asyncio
 import contextlib
 from collections.abc import AsyncIterator
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.exception_handlers import http_exception_handler
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from pydantic import BaseModel
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from procedurescout_core import __version__ as core_version
 
@@ -51,6 +54,26 @@ app = FastAPI(
 )
 
 from .ratelimit import middleware as rate_limit  # noqa: E402
+
+
+@app.exception_handler(StarletteHTTPException)
+async def _review_pages_in_a_browser(request: Request, exc: StarletteHTTPException) -> Response:
+    """Someone opening a review page in a browser without being signed in goes
+    to the sign-in page instead of seeing a line of JSON (go-live check,
+    2026-11-12). Everything else keeps the normal JSON errors."""
+    browser = request.method == "GET" and "text/html" in request.headers.get("accept", "")
+    if browser and request.url.path.startswith("/admin"):
+        if exc.status_code == 401:
+            return RedirectResponse("/providers/account", status_code=303)
+        if exc.status_code == 403:
+            return HTMLResponse(
+                "<!doctype html><title>ProcedureScout review</title>"
+                "<p>This account can't use the review pages. "
+                '<a href="/providers/account">Back to your account</a></p>',
+                status_code=403,
+            )
+    return await http_exception_handler(request, exc)
+
 
 app.middleware("http")(rate_limit)
 app.include_router(search_router)
