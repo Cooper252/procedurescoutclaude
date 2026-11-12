@@ -45,3 +45,29 @@ jobs:
         run: mypy
       - name: Tests
         run: pytest
+
+  # The website: type check, "What will I pay?" math tests and a full build in
+  # live mode (2026-11-12: website changes were never checked before deploying).
+  website:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - name: Install
+        run: npm ci
+      - name: Tests
+        run: npm test
+      - name: Type check
+        run: npx tsc --noEmit -p .
+      - name: Build (live mode; no API is reachable here, so pages build empty)
+        env:
+          API_URL: http://127.0.0.1:9
+          NEXT_PUBLIC_SITE_URL: https://procedurescout.com
+        run: npm run build
