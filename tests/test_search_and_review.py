@@ -225,8 +225,12 @@ def test_review_page_needs_a_sign_in_without_the_shared_password(
     """Since 2026-11-12 the review pages use the hosting's owner connection, so
     they are on wherever the site runs; without ADMIN_TOKEN only a signed-in
     staff member gets in (and the shared password never works in production)."""
+    import os
+
     monkeypatch.delenv("ADMIN_TOKEN", raising=False)
     monkeypatch.setenv("ADMIN_TOKEN", "")
+    monkeypatch.delenv("ADMIN_DATABASE_URL", raising=False)
+    monkeypatch.setenv("DATABASE_URL", os.environ["TEST_DATABASE_URL"])  # as hosting sets it
     get_settings.cache_clear()
     try:
         assert TestClient(app).get("/admin/reviews", headers=auth("Cooper")).status_code == 401
@@ -345,3 +349,21 @@ def test_bare_admin_address_goes_to_the_review_page() -> None:
 
     r = TestClient(app).get("/admin", follow_redirects=False)
     assert r.status_code == 303 and r.headers["location"] == "/admin/reviews"
+
+
+def test_a_places_service_list_fits_its_kind_of_care(client: TestClient, conn: Connection) -> None:
+    """Go-live check (2026-11-12): a hospital's price picker listed Botox and braces."""
+    from tests.test_catalog_offers import load_all
+
+    load_all(conn)
+    every = {s["slug"] for s in client.get("/v1/services").json()}
+    hospital = {s["slug"] for s in client.get("/v1/services?provider_types=hospital").json()}
+    spa = {s["slug"] for s in client.get("/v1/services?provider_types=medical_spa").json()}
+    assert hospital and hospital < every
+    assert "botox-per-unit" in spa and "botox-per-unit" not in hospital
+    assert "braces-full-adult" not in hospital
+    both = {
+        s["slug"] for s in client.get("/v1/services?provider_types=hospital,medical_spa").json()
+    }
+    assert both == hospital | spa
+    assert client.get("/v1/services?provider_types=DROP%20TABLE").status_code == 422

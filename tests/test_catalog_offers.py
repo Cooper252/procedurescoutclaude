@@ -149,3 +149,19 @@ def test_offer_wording_and_math() -> None:
     ):
         with pytest.raises(OfferError):
             check(Decimal(129), bad)
+
+
+def test_every_service_names_the_kinds_of_care_that_offer_it() -> None:
+    """Go-live check (2026-11-12): 17 core services (MRI, colonoscopy, blood
+    tests, Botox...) had none, so they were missing from price templates and
+    from a place's own service list."""
+    import csv
+    from pathlib import Path
+
+    path = Path(__file__).resolve().parents[1] / "data/reference/service_catalog.csv"
+    types_path = path.with_name("provider_types.csv")
+    known = {r["code"] for r in csv.DictReader(types_path.open(encoding="utf-8"))}
+    for row in csv.DictReader(path.open(encoding="utf-8")):
+        types = [t for t in row["provider_types"].split("|") if t.strip()]
+        assert types, f"{row['slug']} has no kinds of care"
+        assert set(types) <= known, (row["slug"], set(types) - known)

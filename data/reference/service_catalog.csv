@@ -1,21 +1,21 @@
 slug,name,category,unit,codes,source,reviewed_by,reviewed_at,notes,includes,provider_types
-mri-brain-without-contrast,MRI of the brain (no contrast),Imaging,per_service,CPT:70551@2026,ai_suggested,Cooper,2026-11-08,approved by Cooper with the full list (2026-11-08),,
-mri-lower-back-without-contrast,MRI of the lower back (no contrast),Imaging,per_service,CPT:72148@2026,ai_suggested,Cooper,2026-11-08,approved by Cooper with the full list (2026-11-08),,
-mri-knee-without-contrast,MRI of the knee (no contrast),Imaging,per_service,CPT:73721@2026,ai_suggested,Cooper,2026-11-08,approved by Cooper with the full list (2026-11-08),,
-ct-head-without-contrast,CT scan of the head (no contrast),Imaging,per_service,CPT:70450@2026,ai_suggested,Cooper,2026-11-08,approved by Cooper with the full list (2026-11-08),,
-chest-x-ray-two-views,Chest X-ray (2 views),Imaging,per_service,CPT:71046@2026,ai_suggested,Cooper,2026-11-08,approved by Cooper with the full list (2026-11-08),,
-colonoscopy-diagnostic,Colonoscopy,Procedures,per_service,CPT:45378@2026,ai_suggested,Cooper,2026-11-08,approved by Cooper with the full list (2026-11-08),,
-colonoscopy-with-biopsy,Colonoscopy with biopsy,Procedures,per_service,CPT:45380@2026,ai_suggested,Cooper,2026-11-08,approved by Cooper with the full list (2026-11-08),,
-cataract-surgery,Cataract surgery,Surgery,per_service,CPT:66984@2026,ai_suggested,Cooper,2026-11-08,approved by Cooper with the full list (2026-11-08),,
-knee-arthroscopy-meniscus,Knee arthroscopy (meniscus repair or trim),Surgery,per_service,CPT:29881@2026,ai_suggested,Cooper,2026-11-08,approved by Cooper with the full list (2026-11-08),,
-hip-or-knee-replacement-hospital-stay,Hip or knee replacement (hospital stay),Surgery,per_service,MS-DRG:470@v44,ai_suggested,Cooper,2026-11-08,approved by Cooper with the full list (2026-11-08); DRG 470 is the stay without major complications,,
-blood-panel-comprehensive,Comprehensive metabolic blood panel,Lab tests,per_service,CPT:80053@2026,ai_suggested,Cooper,2026-11-08,approved by Cooper with the full list (2026-11-08),,
-complete-blood-count,Complete blood count (CBC),Lab tests,per_service,CPT:85025@2026,ai_suggested,Cooper,2026-11-08,approved by Cooper with the full list (2026-11-08),,
-cholesterol-panel,Cholesterol (lipid) panel,Lab tests,per_service,CPT:80061@2026,ai_suggested,Cooper,2026-11-08,approved by Cooper with the full list (2026-11-08),,
-ekg,EKG (heart rhythm test),Tests,per_service,CPT:93000@2026,ai_suggested,Cooper,2026-11-08,approved by Cooper with the full list (2026-11-08),,
-botox-per-unit,Botox (per unit),Cosmetic,per_unit,HCPCS:J0585@2026,ai_suggested,Cooper,2026-11-08,approved by Cooper with the full list (2026-11-08); J0585 is onabotulinumtoxinA per unit; cosmetic prices come from providers,,
-dermal-filler-per-syringe,Dermal filler (per syringe),Cosmetic,per_syringe,,ai_suggested,Cooper,2026-11-08,approved by Cooper with the full list (2026-11-08); no billing code; provider-entered prices only,,
-weight-loss-program-monthly,Medical weight-loss program (per month),Weight loss,per_month,,ai_suggested,Cooper,2026-11-08,approved by Cooper with the full list (2026-11-08); no billing code; provider-entered prices only,,
+mri-brain-without-contrast,MRI of the brain (no contrast),Imaging,per_service,CPT:70551@2026,ai_suggested,Cooper,2026-11-08,approved by Cooper with the full list (2026-11-08),,hospital|imaging_center
+mri-lower-back-without-contrast,MRI of the lower back (no contrast),Imaging,per_service,CPT:72148@2026,ai_suggested,Cooper,2026-11-08,approved by Cooper with the full list (2026-11-08),,hospital|imaging_center
+mri-knee-without-contrast,MRI of the knee (no contrast),Imaging,per_service,CPT:73721@2026,ai_suggested,Cooper,2026-11-08,approved by Cooper with the full list (2026-11-08),,hospital|imaging_center
+ct-head-without-contrast,CT scan of the head (no contrast),Imaging,per_service,CPT:70450@2026,ai_suggested,Cooper,2026-11-08,approved by Cooper with the full list (2026-11-08),,hospital|imaging_center
+chest-x-ray-two-views,Chest X-ray (2 views),Imaging,per_service,CPT:71046@2026,ai_suggested,Cooper,2026-11-08,approved by Cooper with the full list (2026-11-08),,hospital|imaging_center|urgent_care
+colonoscopy-diagnostic,Colonoscopy,Procedures,per_service,CPT:45378@2026,ai_suggested,Cooper,2026-11-08,approved by Cooper with the full list (2026-11-08),,hospital|surgery_center|gastroenterology
+colonoscopy-with-biopsy,Colonoscopy with biopsy,Procedures,per_service,CPT:45380@2026,ai_suggested,Cooper,2026-11-08,approved by Cooper with the full list (2026-11-08),,hospital|surgery_center|gastroenterology
+cataract-surgery,Cataract surgery,Surgery,per_service,CPT:66984@2026,ai_suggested,Cooper,2026-11-08,approved by Cooper with the full list (2026-11-08),,hospital|surgery_center|eye_care
+knee-arthroscopy-meniscus,Knee arthroscopy (meniscus repair or trim),Surgery,per_service,CPT:29881@2026,ai_suggested,Cooper,2026-11-08,approved by Cooper with the full list (2026-11-08),,hospital|surgery_center|orthopedics
+hip-or-knee-replacement-hospital-stay,Hip or knee replacement (hospital stay),Surgery,per_service,MS-DRG:470@v44,ai_suggested,Cooper,2026-11-08,approved by Cooper with the full list (2026-11-08); DRG 470 is the stay without major complications,,hospital|orthopedics
+blood-panel-comprehensive,Comprehensive metabolic blood panel,Lab tests,per_service,CPT:80053@2026,ai_suggested,Cooper,2026-11-08,approved by Cooper with the full list (2026-11-08),,laboratory|hospital|physician_office|urgent_care
+complete-blood-count,Complete blood count (CBC),Lab tests,per_service,CPT:85025@2026,ai_suggested,Cooper,2026-11-08,approved by Cooper with the full list (2026-11-08),,laboratory|hospital|physician_office|urgent_care
+cholesterol-panel,Cholesterol (lipid) panel,Lab tests,per_service,CPT:80061@2026,ai_suggested,Cooper,2026-11-08,approved by Cooper with the full list (2026-11-08),,laboratory|hospital|physician_office|urgent_care
+ekg,EKG (heart rhythm test),Tests,per_service,CPT:93000@2026,ai_suggested,Cooper,2026-11-08,approved by Cooper with the full list (2026-11-08),,hospital|physician_office|urgent_care|cardiology
+botox-per-unit,Botox (per unit),Cosmetic,per_unit,HCPCS:J0585@2026,ai_suggested,Cooper,2026-11-08,approved by Cooper with the full list (2026-11-08); J0585 is onabotulinumtoxinA per unit; cosmetic prices come from providers,,medical_spa|dermatology|plastic_surgery
+dermal-filler-per-syringe,Dermal filler (per syringe),Cosmetic,per_syringe,,ai_suggested,Cooper,2026-11-08,approved by Cooper with the full list (2026-11-08); no billing code; provider-entered prices only,,medical_spa|dermatology|plastic_surgery
+weight-loss-program-monthly,Medical weight-loss program (per month),Weight loss,per_month,,ai_suggested,Cooper,2026-11-08,approved by Cooper with the full list (2026-11-08); no billing code; provider-entered prices only,,weight_loss_clinic|physician_office
 teeth-cleaning-adult,Teeth cleaning (adult),Dental,per_visit,CDT:D1110@2026,ai_suggested,Cooper,2026-11-08,approved by Cooper with the full list (2026-11-08); CDT code number only (Q16),,dental_office
 dental-exam-new-patient,"Dental exam, new patient (comprehensive)",Dental,per_visit,CDT:D0150@2026,ai_suggested,Cooper,2026-11-08,"approved by Cooper with the standard list (2026-11-08, D-042)",Full exam by the dentist at a first visit. X-rays and cleaning are separate.,dental_office
 dental-exam-checkup,Dental checkup exam (existing patient),Dental,per_visit,CDT:D0120@2026,ai_suggested,Cooper,2026-11-08,"approved by Cooper with the standard list (2026-11-08, D-042)",Routine exam by the dentist for an existing patient. X-rays and cleaning are separate.,dental_office

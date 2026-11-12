@@ -45,12 +45,25 @@ function Facility() {
   const [own, setOwn] = useState<PP | null>(null);
   const [types, setTypes] = useState<ProviderType[]>([]);
 
+  // only services this kind of place offers; all services if none are linked
+  useEffect(() => {
+    if (!f) return;
+    const all = () => api.services().then(setServices).catch(() => setServices([]));
+    if (!f.provider_types.length) {
+      all();
+      return;
+    }
+    api
+      .services(f.provider_types)
+      .then((list) => (list.length ? setServices(list) : all()))
+      .catch(() => setServices([]));
+  }, [f]);
+
   useEffect(() => {
     api.facility(id).then(setF).catch(() => setMissing(true));
     portal.page(id).then(setPage).catch(() => setPage(null));
     portal.providerPrices(id).then(setOwn).catch(() => setOwn(null));
     track(id, "page_view");
-    api.services().then(setServices).catch(() => setServices([]));
     api.bundles().then(setBundles).catch(() => setBundles([]));
     api.providerTypes().then(setTypes).catch(() => setTypes([]));
   }, [id]);
