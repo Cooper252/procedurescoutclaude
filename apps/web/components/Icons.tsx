@@ -60,17 +60,20 @@ export const TrendUp = ({ size, className }: P) => (
 );
 
 export function Logo({ size = 30 }: { size?: number }) {
-  // original mark (2026-11-12): a price tag with a medical cross, in the brand
-  // teal; the same drawing is the browser-tab icon (app/icon.svg, favicon.ico)
+  // original mark (chosen by Cooper 2026-11-12): a map pin with a coral
+  // medical cross, in the brand teal; the same drawing is the browser-tab icon
+  // (app/icon.svg, favicon.ico, apple-icon.png)
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden="true">
       <rect width="64" height="64" rx="15" fill="var(--brand)" />
+      <path d="M32 57s-17-15.4-17-29a17 17 0 0 1 34 0c0 13.6-17 29-17 29Z" fill="#fff" />
       <path
-        d="M11 29.4V14a3 3 0 0 1 3-3h15.4a3 3 0 0 1 2.1.9l20.6 20.6a3 3 0 0 1 0 4.2L36.7 52.1a3 3 0 0 1-4.2 0L11.9 31.5a3 3 0 0 1-.9-2.1Z"
-        fill="#fff"
+        d="M28.5 18h7v7h7v7h-7v7h-7v-7h-7v-7h7Z"
+        fill="#ff8a65"
+        stroke="#ff8a65"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
       />
-      <circle cx="21.5" cy="21.5" r="4" fill="var(--brand)" />
-      <path d="M34.5 28.5v13M28 35h13" stroke="var(--brand)" strokeWidth="4.6" strokeLinecap="round" />
     </svg>
   );
 }
