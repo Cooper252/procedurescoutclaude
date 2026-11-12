@@ -202,6 +202,77 @@ def test_loads_offices_skips_people_other_states_and_unmapped(
     )
 
 
+def test_bulk_load_counts_moves_and_leaves_hospitals_alone(
+    conn: Connection, tmp_path: Path
+) -> None:
+    """The office writer is set-based since 2026-11-12; same results as before."""
+    load_all(conn)
+    hosp = conn.execute(
+        text(
+            "INSERT INTO ref.facility (name, facility_type, address_line1, city, state_code, "
+            "zip5, source_dataset, status) VALUES ('Synthetic Hospital', 'acute_care_hospital', "
+            "'1 Synthetic Rd', 'Las Vegas', 'NV', '89101', 'cms_pos', 'active') RETURNING id"
+        )
+    ).scalar_one()
+    conn.execute(
+        text(
+            "INSERT INTO ref.facility_npi (facility_id, npi, source) "
+            "VALUES (:f, '1000000009', 'cms_pos')"
+        ),
+        {"f": hosp},
+    )
+    first = [
+        _row("1000000011", "2", "SYNTHETIC ONE DENTAL", "NV", ["SYN0000001X"]),
+        _row("1000000012", "2", "SYNTHETIC TWO IMAGING", "NV", ["SYN0000003X", "SYN0000001X"]),
+        _row("1000000009", "2", "SYNTHETIC HOSPITAL NPI", "NV", ["SYN0000003X"]),
+    ]
+    stats = _run(conn, _zip(tmp_path, first))
+    assert stats.rows_loaded == 2
+    assert stats.summary["inserted"] == 2
+    assert stats.summary["already_listed_hospital_or_surgery_center"] == 1
+    assert stats.summary["type:dental_office"] == 2
+    assert stats.summary["type:imaging_center"] == 1
+    name = conn.execute(text("SELECT name FROM ref.facility WHERE id = :f"), {"f": hosp})
+    assert name.scalar_one() == "Synthetic Hospital"
+    conn.execute(
+        text(
+            "UPDATE ref.facility f SET geom = ST_SetSRID(ST_MakePoint(-115.1, 36.1), 4326)"
+            "::geography, geocode_source = 'census_geocoder', geocode_precision = 'address' "
+            "FROM ref.facility_npi n WHERE n.facility_id = f.id"
+            " AND n.npi IN ('1000000011', '1000000012')"
+        )
+    )
+    moved = _row(
+        "1000000011",
+        "2",
+        "SYNTHETIC ONE DENTAL",
+        "NV",
+        ["SYN0000001X"],
+        **{"Provider First Line Business Practice Location Address": "200 NEW WAY"},
+    )
+    stats = _run(
+        conn,
+        _zip(tmp_path, [moved, _row("1000000012", "2", "SYNTHETIC TWO", "NV", ["SYN0000003X"])]),
+    )
+    assert stats.summary["updated"] == 2
+    rows = dict(
+        conn.execute(
+            text(
+                "SELECT n.npi, f.geom IS NULL FROM ref.facility f JOIN ref.facility_npi n "
+                "ON n.facility_id = f.id WHERE n.npi IN ('1000000011', '1000000012')"
+            )
+        ).all()
+    )
+    assert rows == {"1000000011": True, "1000000012": False}  # only the move is re-mapped
+    types = conn.execute(
+        text(
+            "SELECT t.provider_type FROM ref.facility_provider_type t JOIN ref.facility_npi n "
+            "ON n.facility_id = t.facility_id WHERE n.npi = '1000000012'"
+        )
+    ).scalars()
+    assert list(types) == ["imaging_center"]  # dental dropped when the file dropped it
+
+
 def test_missing_columns_stop_the_load(tmp_path: Path) -> None:
     p = tmp_path / "synthetic_bad.csv"
     p.write_text("NPI,Something\n1000000001,x\n")

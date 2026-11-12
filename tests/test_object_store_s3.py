@@ -133,3 +133,10 @@ def test_duckdb_reads_exact_amounts_from_the_bucket(store: S3Store, parquet: Pat
     assert row is not None
     assert row[0] == "0270"
     assert Decimal(str(row[1])) == Decimal("1234.567890123456789")
+    # the DuckDB is shared between searches: a second read after the first
+    # cursor closed still works (2026-11-12)
+    with store.duckdb() as duck:
+        again = duck.execute(
+            "SELECT count(*) FROM read_parquet(?)", [[store.local_path(key)]]
+        ).fetchone()
+    assert again is not None and again[0] == 1

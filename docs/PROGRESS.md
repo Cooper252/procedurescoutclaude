@@ -2,6 +2,22 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-12 — Live checks: search slowdowns, the Alabama load, faster office loading
+
+- **Verified in production:** Las Vegas search for "MRI of the brain" shows 7 hospitals with prices (UMC $75 cash, Sunrise $241, ...), priced places first.
+- **Found in the Render logs:** search-engine crawlers on the city/service pages used up the API's 5 + 10 database connections (`QueuePool limit of size 5 overflow 10 reached`), so real searches waited 30 s and failed. Fixes:
+  - `search_routes.get_conn`: pool 10 + 15, 10 s wait, pre-ping.
+  - `object_store.S3Store.duckdb`: one shared DuckDB per store setup (cursor per request) with file-footer and data caches on, instead of a fresh DuckDB + httpfs + secret on every search.
+  - `provider_stats.record_search`: impressions written in 2 set-based statements (was 2 per place shown, ~100 round trips per search, queuing on row locks in the database log).
+  - Website: page data kept 6 hours (`lib/server.ts` REVALIDATE_SECONDS); `robots.ts` asks crawlers for a 2-second delay.
+- **Alabama (first state of "Load every state"):** price files loaded; the office step failed after 18 minutes with `SSL connection has been closed unexpectedly` (no database restart in the logs: the connection was cut). Fixes:
+  - `cli.cmd_nppes_offices`: the national file is read before the database connection opens.
+  - `cli._engine`: TCP keepalives and pre-ping.
+  - `nppes_offices.load`: bulk COPY into a temporary table plus set-based updates (was 5-6 round trips per office: hours for big states over the internet).
+- The all-states run stayed "Queued" after Alabama without starting Alaska; to be cancelled and restarted after this push.
+- Tested: `test_bulk_load_counts_moves_and_leaves_hospitals_alone`, `test_a_search_listing_a_place_twice_counts_it_once`, the bucket test now reads twice through the shared DuckDB (runs on CI, where httpfs installs). Full run: `365 passed, 1 skipped`; ruff, mypy, `npm test` and `tsc` clean.
+- Not yet deployed.
+
 ## 2026-11-11 — Sign-in emails weren't sent (fixed), and a 5-minute retry
 
 - Found on the first live sign-in: FastAPI 0.162 runs background tasks *before* the request's database connection commits (checked: `['dep start', 'background', 'dep exit']`), so the email sender couldn't see the new email yet. `portal_routes._save_now` now commits before the email is queued (sign-in and review-request); `get_portal_conn` commits or rolls back explicitly.

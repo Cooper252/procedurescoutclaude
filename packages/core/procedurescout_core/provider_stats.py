@@ -109,31 +109,44 @@ def record_search(
         ),
         {"k": key, "p": place, "lat": str(clat), "lng": str(clng)},
     )
+    # Two set-based statements (not two per place shown): one search used to make
+    # 100 round trips that queued behind other searches' row locks (2026-11-12).
+    # Rows are written in facility order so concurrent searches can't deadlock.
+    seen: dict[str, int] = {}
     for position, fid in enumerate(shown[:100], start=1):
-        conn.execute(
-            text(
-                """
-                INSERT INTO stats.facility_daily (day, facility_id, metric, count, position_sum)
-                VALUES (current_date, CAST(:f AS uuid), 'search_impression', 1, :pos)
-                ON CONFLICT (day, facility_id, metric) DO UPDATE SET
-                    count = stats.facility_daily.count + 1,
-                    position_sum = stats.facility_daily.position_sum + EXCLUDED.position_sum
-                """
-            ),
-            {"f": fid, "pos": position},
-        )
-        conn.execute(
-            text(
-                """
-                INSERT INTO stats.facility_service_daily (day, facility_id, service_key,
-                    impressions)
-                VALUES (current_date, CAST(:f AS uuid), :k, 1)
-                ON CONFLICT (day, facility_id, service_key) DO UPDATE SET
-                    impressions = stats.facility_service_daily.impressions + 1
-                """
-            ),
-            {"f": fid, "k": key},
-        )
+        seen.setdefault(fid, position)
+    if not seen:
+        return
+    ids = sorted(seen)
+    params = {"f": ids, "pos": [seen[f] for f in ids], "k": key}
+    conn.execute(
+        text(
+            """
+            INSERT INTO stats.facility_daily (day, facility_id, metric, count, position_sum)
+            SELECT current_date, CAST(f AS uuid), 'search_impression', 1, pos
+            FROM unnest(CAST(:f AS text[]), CAST(:pos AS int[])) AS t(f, pos)
+            ORDER BY f
+            ON CONFLICT (day, facility_id, metric) DO UPDATE SET
+                count = stats.facility_daily.count + 1,
+                position_sum = stats.facility_daily.position_sum + EXCLUDED.position_sum
+            """
+        ),
+        params,
+    )
+    conn.execute(
+        text(
+            """
+            INSERT INTO stats.facility_service_daily (day, facility_id, service_key,
+                impressions)
+            SELECT current_date, CAST(f AS uuid), :k, 1
+            FROM unnest(CAST(:f AS text[])) AS t(f)
+            ORDER BY f
+            ON CONFLICT (day, facility_id, service_key) DO UPDATE SET
+                impressions = stats.facility_service_daily.impressions + 1
+            """
+        ),
+        {"f": ids, "k": key},
+    )
 
 
 @dataclass(frozen=True, slots=True)

@@ -45,7 +45,15 @@ _engine: Engine | None = None
 def get_conn() -> Iterator[Connection]:
     global _engine
     if _engine is None:
-        _engine = create_engine(sqlalchemy_url(get_settings().api_database_url))
+        # 2026-11-12: crawlers on the city pages used up the default 5 + 10
+        # connections; waiting callers now fail fast instead of hanging 30 s.
+        _engine = create_engine(
+            sqlalchemy_url(get_settings().api_database_url),
+            pool_size=10,
+            max_overflow=15,
+            pool_timeout=10,
+            pool_pre_ping=True,
+        )
     with _engine.connect() as conn:
         yield conn
 

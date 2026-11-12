@@ -36,9 +36,14 @@ export const STATES: Record<string, string> = {
   wv: "West Virginia", wi: "Wisconsin", wy: "Wyoming",
 };
 
+// Prices change monthly; search engines crawl thousands of city/service pages,
+// so each page's data is kept for 6 hours (2026-11-12: hourly refreshes from
+// crawlers used up the API's database connections).
+const REVALIDATE_SECONDS = 21600;
+
 async function get<T>(path: string): Promise<T | null> {
   try {
-    const res = await fetch(`${API}${path}`, { next: { revalidate: 3600 }, headers: { Accept: "application/json" } });
+    const res = await fetch(`${API}${path}`, { next: { revalidate: REVALIDATE_SECONDS }, headers: { Accept: "application/json" } });
     if (!res.ok) return null;
     return (await res.json()) as T;
   } catch {

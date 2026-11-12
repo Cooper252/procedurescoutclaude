@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import re
 import shutil
+import threading
 import uuid
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol
@@ -23,6 +24,7 @@ from urllib.parse import urlparse
 
 if TYPE_CHECKING:
     import duckdb
+    from duckdb import DuckDBPyConnection
 
 _KEY = re.compile(r"^published/[A-Z]{2}/[0-9a-f-]{36}/[0-9a-f-]{36}\.parquet$")
 # Provider logos and photos (D-050): served only after review.
@@ -226,17 +228,43 @@ class S3Store:
         return bytes(obj["Body"].read())
 
     def duckdb(self) -> duckdb.DuckDBPyConnection:
-        import duckdb
+        """A cursor on one shared DuckDB per store setup. Sharing keeps httpfs
+        loaded and caches file footers and data blocks between searches, so a
+        search doesn't re-download the same headers (2026-11-12: every search
+        opened a fresh DuckDB and held a database connection for seconds).
+        Each caller gets its own cursor, which is safe across threads."""
+        settings = (
+            self._extension_dir,
+            self._key_id,
+            self._secret,
+            self._host,
+            self._region,
+            self._ssl,
+        )
+        with _SHARED_LOCK:
+            base = _SHARED.get(settings)
+            if base is None:
+                base = self._new_duckdb()
+                _SHARED[settings] = base
+        return base.cursor()
 
-        duck = duckdb.connect()
+    def _new_duckdb(self) -> DuckDBPyConnection:
+        import duckdb as ddb
+
+        duck = ddb.connect()
         if self._extension_dir:
             duck.execute(f"SET extension_directory = {_q(self._extension_dir)}")
         try:
             duck.execute("LOAD httpfs")
-        except duckdb.Error:
+        except ddb.Error:
             # Production installs the extension at build time; this is a fallback.
             duck.execute("INSTALL httpfs")
             duck.execute("LOAD httpfs")
+        for setting in CACHE_SETTINGS:
+            try:
+                duck.execute(setting)
+            except ddb.Error:  # a setting this DuckDB version doesn't have
+                pass
         # DuckDB does not take parameters in CREATE SECRET; values are quoted here.
         duck.execute(
             f"CREATE TEMPORARY SECRET store (TYPE s3, KEY_ID {_q(self._key_id)}, "
@@ -244,6 +272,18 @@ class S3Store:
             f"URL_STYLE 'path', USE_SSL {'true' if self._ssl else 'false'})"
         )
         return duck
+
+
+# one DuckDB per store setup, shared by every request (see S3Store.duckdb)
+_SHARED: dict[tuple[str, str, str, str, str, bool], DuckDBPyConnection] = {}
+_SHARED_LOCK = threading.Lock()
+CACHE_SETTINGS = (
+    "SET enable_http_metadata_cache = true",
+    "SET parquet_metadata_cache = true",
+    "SET enable_object_cache = true",
+    "SET memory_limit = '512MB'",
+    "SET threads = 4",
+)
 
 
 def open_store(

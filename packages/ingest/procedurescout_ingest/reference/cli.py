@@ -95,7 +95,18 @@ def _engine() -> Engine:
         sys.exit("DATABASE_URL is not set (see .env.example)")
     from procedurescout_core.db_url import sqlalchemy_url
 
-    return create_engine(sqlalchemy_url(url))
+    # Long loads talk to the live database over the internet; keepalives stop
+    # an idle-looking connection from being cut mid-load (AL, 2026-11-12).
+    return create_engine(
+        sqlalchemy_url(url),
+        pool_pre_ping=True,
+        connect_args={
+            "keepalives": 1,
+            "keepalives_idle": 30,
+            "keepalives_interval": 10,
+            "keepalives_count": 5,
+        },
+    )
 
 
 def _run(
@@ -573,16 +584,21 @@ def cmd_nppes_offices(args: argparse.Namespace, engine: Engine) -> None:
         map_text = Path(args.map).read_text()
         states = {s.upper() for s in args.state}
 
+        # Read the national file (minutes) BEFORE touching the database, so the
+        # live connection is only open while offices are written (AL, 2026-11-12:
+        # a connection held open during the long read was cut).
+        read_stats = LoadStats()
+        mapping = no.read_map(map_text, read_stats)
+        found: list[no.Office] = []
+        if mapping:
+            code_types = no.codes_for(nucc, mapping, read_stats)
+            found = list(no.offices(no.open_npi_csv(npi_file), states, code_types, read_stats))
+
         def work(conn: Connection) -> LoadStats:
-            stats = LoadStats()
-            mapping = no.read_map(map_text, stats)
             if not mapping:
-                stats.summary["note"] = "no reviewed taxonomy rows; nothing loaded"
-                return stats
-            code_types = no.codes_for(nucc, mapping, stats)
-            return no.load(
-                conn, no.offices(no.open_npi_csv(npi_file), states, code_types, stats), stats
-            )
+                read_stats.summary["note"] = "no reviewed taxonomy rows; nothing loaded"
+                return read_stats
+            return no.load(conn, found, read_stats)
 
         _run(
             engine,

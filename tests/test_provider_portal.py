@@ -333,6 +333,21 @@ def test_counts_hide_small_numbers_and_estimate_boosts(conn: Connection) -> None
     assert stats.service_key("bad slug!", None, None) is None
 
 
+def test_a_search_listing_a_place_twice_counts_it_once(conn: Connection) -> None:
+    """Impressions are written in one statement per search (2026-11-12)."""
+    fid = _facility(conn)
+    stats.record_search(conn, "svc:x-ray", Decimal("36.17"), Decimal("-115.15"), [fid, fid])
+    stats.record_search(conn, "svc:x-ray", Decimal("36.17"), Decimal("-115.15"), [])
+    row = conn.execute(
+        text(
+            "SELECT count, position_sum FROM stats.facility_daily "
+            "WHERE facility_id = :f AND metric = 'search_impression'"
+        ),
+        {"f": fid},
+    ).one()
+    assert (row[0], row[1]) == (1, 1)
+
+
 def test_unknown_facility_ids_are_refused(conn: Connection) -> None:
     _, account = _with_mfa(conn, "x@synthetic.test")
     with pytest.raises(auth.AuthError):

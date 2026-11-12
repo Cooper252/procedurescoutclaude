@@ -275,105 +275,154 @@ def offices(
 
 # -------------------------------------------------------------------- load
 def load(conn: Connection, items: Iterable[Office], stats: LoadStats) -> LoadStats:
-    for o in items:
-        existing = conn.execute(
-            text(
-                "SELECT n.facility_id, f.source_dataset FROM ref.facility_npi n "
-                "JOIN ref.facility f ON f.id = n.facility_id WHERE n.npi = :n"
-            ),
-            {"n": o.npi},
-        ).first()
-        if existing is not None and existing[1] != DATASET:
-            stats.count("already_listed_hospital_or_surgery_center")
-            continue
-        if not o.active:
-            if existing is not None:
-                conn.execute(
-                    text(
-                        "UPDATE ref.facility SET status = 'inactive', updated_at = now() "
-                        "WHERE id = :f"
-                    ),
-                    {"f": existing[0]},
-                )
-                stats.count("deactivated")
-            continue
-        params = {
-            "name": o.name,
-            "a": o.address,
-            "c": o.city,
-            "s": o.state,
-            "z": o.zip5,
-            "p": o.phone,
-            "t": list(o.taxonomies),
-            "ds": DATASET,
-        }
-        if existing is None:
-            fid = conn.execute(
-                text(
-                    """
-                    INSERT INTO ref.facility (name, facility_type, address_line1, city,
-                        state_code, zip5, phone, taxonomy_codes, source_dataset, status,
-                        source_updated_at)
-                    VALUES (:name, 'other', :a, :c, :s, :z, :p, :t, :ds, 'active', now())
-                    RETURNING id
-                    """
-                ),
-                params,
-            ).scalar_one()
-            conn.execute(
-                text(
-                    "INSERT INTO ref.facility_npi (facility_id, npi, taxonomy_code, source) "
-                    "VALUES (:f, :n, :tc, :ds)"
-                ),
-                {
-                    "f": fid,
-                    "n": o.npi,
-                    "tc": o.taxonomies[0] if o.taxonomies else None,
-                    "ds": DATASET,
-                },
-            )
-            stats.count("inserted")
-        else:
-            fid = existing[0]
-            moved = conn.execute(
-                text("SELECT address_line1 IS DISTINCT FROM :a FROM ref.facility WHERE id = :f"),
-                {"a": o.address, "f": fid},
-            ).scalar()
-            conn.execute(
-                text(
-                    """
-                    UPDATE ref.facility SET name = :name, address_line1 = :a, city = :c,
-                        state_code = :s, zip5 = :z, phone = :p, taxonomy_codes = :t,
-                        status = 'active', source_updated_at = now(), updated_at = now()
-                    WHERE id = :f
-                    """
-                ),
-                {**params, "f": fid},
-            )
-            if moved:  # a new address needs a new map location
-                conn.execute(
-                    text(
-                        "UPDATE ref.facility SET geom = NULL, geocode_source = NULL, "
-                        "geocode_precision = NULL WHERE id = :f"
-                    ),
-                    {"f": fid},
-                )
-            stats.count("updated")
-        conn.execute(
-            text(
-                "DELETE FROM ref.facility_provider_type WHERE facility_id = :f "
-                "AND source = 'nppes_taxonomy' AND provider_type <> ALL(:t)"
-            ),
-            {"f": fid, "t": list(o.types)},
+    """Write offices in bulk: one COPY into a temporary table, then a few
+    set-based statements (2026-11-12). The old row-by-row version made 5-6
+    round trips per office to the live database over the internet, which was
+    too slow for big states and held a connection long enough to be cut."""
+    conn.execute(
+        text(
+            """
+            CREATE TEMPORARY TABLE nppes_in (
+                npi text PRIMARY KEY, name text, address text, city text, state text,
+                zip5 text, phone text, taxonomies text[], types text[], active boolean,
+                facility_id uuid, dataset text, new_id uuid DEFAULT gen_random_uuid()
+            ) ON COMMIT DROP
+            """
         )
-        for t in o.types:
-            conn.execute(
-                text(
-                    "INSERT INTO ref.facility_provider_type (facility_id, provider_type, source) "
-                    "VALUES (:f, :t, 'nppes_taxonomy') ON CONFLICT DO NOTHING"
-                ),
-                {"f": fid, "t": t},
-            )
-            stats.count(f"type:{t}")
-        stats.rows_loaded += 1
+    )
+    raw = conn.connection.driver_connection
+    seen: set[str] = set()
+    with raw.cursor() as cur:  # type: ignore[union-attr]
+        with cur.copy(
+            "COPY nppes_in (npi, name, address, city, state, zip5, phone, taxonomies, "
+            "types, active) FROM STDIN"
+        ) as cp:
+            cp.set_types(["text"] * 7 + ["text[]", "text[]", "bool"])
+            for o in items:
+                if o.npi in seen:  # the national file lists each NPI once; be safe
+                    continue
+                seen.add(o.npi)
+                cp.write_row(
+                    [
+                        o.npi,
+                        o.name,
+                        o.address,
+                        o.city,
+                        o.state,
+                        o.zip5,
+                        o.phone,
+                        list(o.taxonomies),
+                        list(o.types),
+                        o.active,
+                    ]
+                )
+    if not seen:
+        return stats
+    conn.execute(  # what is already on the site for each NPI
+        text(
+            """
+            UPDATE nppes_in i SET facility_id = n.facility_id, dataset = f.source_dataset
+            FROM ref.facility_npi n JOIN ref.facility f ON f.id = n.facility_id
+            WHERE n.npi = i.npi
+            """
+        )
+    )
+
+    def scalar(sql: str) -> int:
+        return int(conn.execute(text(sql), {"ds": DATASET}).scalar_one())
+
+    hospitals = scalar(
+        "SELECT count(*) FROM nppes_in WHERE facility_id IS NOT NULL AND dataset <> :ds"
+    )
+    if hospitals:
+        stats.count("already_listed_hospital_or_surgery_center", hospitals)
+    conn.execute(
+        text("DELETE FROM nppes_in WHERE facility_id IS NOT NULL AND dataset <> :ds"),
+        {"ds": DATASET},
+    )
+    deactivated = conn.execute(
+        text(
+            """
+            UPDATE ref.facility f SET status = 'inactive', updated_at = now()
+            FROM nppes_in i WHERE f.id = i.facility_id AND NOT i.active
+            """
+        )
+    ).rowcount
+    if deactivated:
+        stats.count("deactivated", deactivated)
+    conn.execute(text("DELETE FROM nppes_in WHERE NOT active"))
+    # existing offices: a new address needs a new map location
+    conn.execute(
+        text(
+            """
+            UPDATE ref.facility f SET geom = NULL, geocode_source = NULL,
+                geocode_precision = NULL
+            FROM nppes_in i
+            WHERE f.id = i.facility_id AND f.address_line1 IS DISTINCT FROM i.address
+            """
+        )
+    )
+    updated = conn.execute(
+        text(
+            """
+            UPDATE ref.facility f SET name = i.name, address_line1 = i.address, city = i.city,
+                state_code = i.state, zip5 = i.zip5, phone = i.phone,
+                taxonomy_codes = i.taxonomies, status = 'active',
+                source_updated_at = now(), updated_at = now()
+            FROM nppes_in i WHERE f.id = i.facility_id
+            """
+        )
+    ).rowcount
+    inserted = conn.execute(
+        text(
+            """
+            INSERT INTO ref.facility (id, name, facility_type, address_line1, city,
+                state_code, zip5, phone, taxonomy_codes, source_dataset, status,
+                source_updated_at)
+            SELECT new_id, name, 'other', address, city, state, zip5, phone, taxonomies,
+                   :ds, 'active', now()
+            FROM nppes_in WHERE facility_id IS NULL ORDER BY npi
+            """
+        ),
+        {"ds": DATASET},
+    ).rowcount
+    conn.execute(
+        text(
+            """
+            INSERT INTO ref.facility_npi (facility_id, npi, taxonomy_code, source)
+            SELECT new_id, npi, taxonomies[1], :ds FROM nppes_in WHERE facility_id IS NULL
+            """
+        ),
+        {"ds": DATASET},
+    )
+    conn.execute(text("UPDATE nppes_in SET facility_id = new_id WHERE facility_id IS NULL"))
+    if inserted:
+        stats.count("inserted", inserted)
+    if updated:
+        stats.count("updated", updated)
+    conn.execute(
+        text(
+            """
+            DELETE FROM ref.facility_provider_type t USING nppes_in i
+            WHERE t.facility_id = i.facility_id AND t.source = 'nppes_taxonomy'
+              AND t.provider_type <> ALL(i.types)
+            """
+        )
+    )
+    conn.execute(
+        text(
+            """
+            INSERT INTO ref.facility_provider_type (facility_id, provider_type, source)
+            SELECT i.facility_id, t, 'nppes_taxonomy' FROM nppes_in i, unnest(i.types) AS t
+            ORDER BY 1, 2
+            ON CONFLICT DO NOTHING
+            """
+        )
+    )
+    for t, n in conn.execute(
+        text("SELECT t, count(*) FROM nppes_in, unnest(types) AS t GROUP BY t ORDER BY t")
+    ).all():
+        stats.count(f"type:{t}", int(n))
+    stats.rows_loaded += inserted + updated
+    conn.execute(text("DROP TABLE nppes_in"))
     return stats
