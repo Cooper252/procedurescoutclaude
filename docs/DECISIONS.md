@@ -2,6 +2,9 @@
 
 Newest first. Each entry: decision, reason, consequences.
 
+## 2026-11-12 — D-061: Claude approves new services, everyday words and cost bundles, with sources
+Cooper delegated this (2026-11-12: "Yes. You approve them. Not me."). Claude approves a new service, a search word for it, a plain-language explanation, or a bundle (the pieces of one whole procedure, e.g. hospital stay + doctor + epidural + newborn care) only from official code definitions (CMS MS-DRG definitions, CMS HCPCS files, the CPT code numbers hospitals publish; never AMA descriptor text, D-002) and records the source in `notes`; `reviewed_by = "Claude (delegated by Cooper, D-061)"`. Cooper is never asked to review services or bundles.
+
 ## 2026-11-12 — D-060: Claude approves hospital financial-assistance policies, with sources
 Cooper delegated this (2026-11-12: "You approve them"). Claude approves a hospital's policy only from the hospital's own policy document (or its plain-language summary) with the document URL and the exact limits recorded; `reviewed_by = "Claude (delegated by Cooper, D-060)"`. A limit that cannot be read clearly from the document is not guessed: that hospital keeps "we have not reviewed its policy yet". Cooper is never asked to review policies.
 

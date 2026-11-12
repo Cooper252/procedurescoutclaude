@@ -48,15 +48,40 @@ class Badges:
     notes: tuple[str, ...] = field(default_factory=tuple)
 
 
-def headline(prices: Sequence[PublishedPrice], mode: str) -> Headline | None:
+def _parts(
+    prices: Sequence[PublishedPrice], mode: str
+) -> tuple[list[PublishedPrice], list[PublishedPrice]]:
+    """(main rows, doctor's rows) of one price type. Where a hospital published
+    both its own part (facility) and the doctor's part (professional) of a
+    service, the headline is the hospital's part and the doctor's part is shown
+    beside it, never mixed into one "lowest" number (Cooper, 2026-11-12: a
+    radiologist's $66 fee was shown as the MRI's price)."""
     ptype = MODE_PRICE_TYPE[mode]
     rows = [p for p in prices if p.price_type == ptype and p.amount is not None]
+    doctor = [p for p in rows if p.billing_class == "professional"]
+    main = [p for p in rows if p.billing_class != "professional"]
+    return (main, doctor) if main and doctor else (rows, [])
+
+
+def doctor_fee(prices: Sequence[PublishedPrice], mode: str) -> Headline | None:
+    """The doctor's part, when published separately from the hospital's part."""
+    _, doctor = _parts(prices, mode)
+    if not doctor:
+        return None
+    clean = [p for p in doctor if not (set(p.quality_flags) & POSSIBLE_ERROR_FLAGS)]
+    use = clean or doctor
+    amounts = sorted(p.amount for p in use if p.amount is not None)
+    return Headline(amounts[0], amounts[-1], MODE_PRICE_TYPE[mode], possible_error=not clean)
+
+
+def headline(prices: Sequence[PublishedPrice], mode: str) -> Headline | None:
+    rows, _ = _parts(prices, mode)
     if not rows:
         return None
     clean = [p for p in rows if not (set(p.quality_flags) & POSSIBLE_ERROR_FLAGS)]
     use = clean or rows
     amounts = sorted(p.amount for p in use if p.amount is not None)
-    return Headline(amounts[0], amounts[-1], ptype, possible_error=not clean)
+    return Headline(amounts[0], amounts[-1], MODE_PRICE_TYPE[mode], possible_error=not clean)
 
 
 def _nearest_rank(sorted_values: Sequence[Decimal], percentile: int) -> Decimal:

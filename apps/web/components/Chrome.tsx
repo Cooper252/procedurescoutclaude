@@ -5,15 +5,44 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
-import { DEMO } from "@/lib/api";
+import { useEffect, useRef, useState } from "react";
+import { api, DEMO } from "@/lib/api";
 import { useApp } from "./AppState";
 import { Alert, Globe, Heart, Logo } from "./Icons";
+
+// the kind of page, for the owner's analytics (never the full address)
+function pageKind(path: string): string {
+  if (path === "/") return "home";
+  const first = path.split("/")[1] ?? "";
+  const kinds: Record<string, string> = {
+    search: "search",
+    facility: "facility",
+    "help-paying": "help_paying",
+    bill: "bill",
+    bundles: "bundles",
+    learn: "learn",
+    prices: "prices",
+    "how-it-works": "how_it_works",
+    review: "review",
+    terms: "legal",
+    privacy: "legal",
+    disclaimer: "legal",
+  };
+  if (first === "providers") return path.startsWith("/providers/") ? "provider_portal" : "providers";
+  return kinds[first] ?? "other";
+}
 
 export function Header() {
   const { t, lang, setLang } = useApp();
   const path = usePathname();
   const [open, setOpen] = useState(false);
+  const firstView = useRef(true);
+  useEffect(() => {
+    // the referring site only on the first page of a visit
+    api.visit({ page: pageKind(path), lang, referrer: firstView.current ? document.referrer || null : null });
+    firstView.current = false;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [path]);
   const nav = [
     { href: "/", label: t.navSearch },
     { href: "/help-paying", label: t.navHelp },

@@ -199,6 +199,11 @@ def test_api_plans_and_plan_search(client: TestClient, conn: Connection) -> None
             "plan": "Gold PPO",
             "product_type": "ppo",
             "segment": "commercial",
+            "payer_id": str(
+                conn.execute(
+                    text("SELECT id FROM ref.payer WHERE canonical_name = 'Synthetic Health'")
+                ).scalar()
+            ),
         }
     ]
     r = client.get(
@@ -355,3 +360,149 @@ def test_several_kinds_of_care_in_one_search(conn: Connection, world: LocalStore
     assert both.facilities and not only_spa.facilities  # type: ignore[attr-defined]
     with pytest.raises(SearchError):
         run(conn, world, provider_type="hospital,not_a_kind")
+
+
+def test_insurance_picker_lists_only_insurers_near_the_person(
+    client: TestClient, conn: Connection
+) -> None:
+    """Cooper (2026-11-12): typing "Blue Cross" listed ~15 insurers from every
+    state. With a location, only plans and insurer names published nearby."""
+    near = {"lat": "36.17", "lng": "-115.14"}
+    far = {"lat": "40.71", "lng": "-74.00"}  # New York: no synthetic places
+    assert [p["plan"] for p in client.get("/v1/plans", params=near).json()] == ["Gold PPO"]
+    assert client.get("/v1/plans", params=far).json() == []
+    assert client.get("/v1/plans", params={"lat": "36.17"}).status_code == 422
+    # names as written: nearby only, and names already on the card list left out
+    names = client.get("/v1/payers/suggest", params={"q": "synthetic", **near}).json()
+    assert names == [{"name": "Synthetic Payer Two", "facilities": 1}]
+    assert client.get("/v1/payers/suggest", params={"q": "synthetic", **far}).json() == []
+    everywhere = client.get("/v1/payers/suggest", params={"q": "synthetic"}).status_code
+    assert everywhere == 200
+
+
+def test_not_sure_which_plan_shows_the_insurers_range(
+    client: TestClient, conn: Connection, world: LocalStore
+) -> None:
+    """Cooper (2026-11-12): people who know their insurer but not their plan see
+    the range of its work and individual plans, labeled; Medicare and Medicaid
+    plans never mix into that range."""
+    catalog.load_payers(
+        conn,
+        ",".join(catalog.PAYER_COLUMNS)
+        + "\nSynthetic Health,Synthetic Medicare,hmo,medicare_advantage,tester,2026-11-08\n",
+    )
+    catalog.load_payer_aliases(
+        conn,
+        ALIASES_HEADER
+        + "Synthetic Payer Two,HMO,Synthetic Health,Synthetic Medicare,tester,2026-11-08,\n",
+    )
+    payer_id = str(
+        conn.execute(
+            text("SELECT id FROM ref.payer WHERE canonical_name = 'Synthetic Health'")
+        ).scalar()
+    )
+    res = run(conn, world, mode="plan", payer_id=payer_id)
+    first = res.facilities[0]  # type: ignore[attr-defined]
+    negotiated = {p.payer_name_raw for p in first.prices if p.price_type == "negotiated"}
+    assert negotiated == {"Synthetic Payer One"}  # the Medicare plan's rate is left out
+    assert res.insurer_unsure == "Synthetic Health"  # type: ignore[attr-defined]
+    medicare = run(conn, world, mode="plan", plan_id=_plan_id(conn, "Synthetic Medicare"))
+    assert {
+        p.payer_name_raw
+        for p in medicare.facilities[0].prices
+        if p.price_type == "negotiated"  # type: ignore[attr-defined]
+    } == {"Synthetic Payer Two"}  # still findable by choosing that plan
+    with pytest.raises(SearchError):
+        run(conn, world, mode="plan", payer_id=payer_id, plan_id=_plan_id(conn, "Gold PPO"))
+    with pytest.raises(SearchError):
+        run(conn, world, mode="plan", payer_id=str(uuid.uuid4()))
+    r = client.get(
+        "/v1/search",
+        params={
+            "lat": "36.17",
+            "lng": "-115.14",
+            "service": "synthetic-service",
+            "mode": "plan",
+            "payer_id": payer_id,
+        },
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["insurer_unsure"] == "Synthetic Health"
+
+
+def test_doctor_part_is_shown_beside_the_hospital_part_not_as_the_price() -> None:
+    """Cooper (2026-11-12): a hospital listed its own MRI rates and the
+    radiologist's $66.36 fee for the same plan; the lowest of all of them was
+    shown as the MRI price. The hospital's part is the headline and the
+    doctor's part is reported separately."""
+    from dataclasses import replace
+
+    hospital = [
+        replace(price("negotiated", a), billing_class="facility") for a in ("128.27", "194.63")
+    ]
+    doctor = [replace(price("negotiated", "66.36"), billing_class="professional")]
+    h = pricing.headline(hospital + doctor, "plan")
+    assert h is not None and (h.amount, h.highest) == (Decimal("128.27"), Decimal("194.63"))
+    d = pricing.doctor_fee(hospital + doctor, "plan")
+    assert d is not None and d.amount == Decimal("66.36")
+    # a doctor's office that only publishes its own fee: that fee is the price
+    only = pricing.headline(doctor, "plan")
+    assert only is not None and only.amount == Decimal("66.36")
+    assert pricing.doctor_fee(doctor, "plan") is None
+    # not stated by the hospital: unchanged, lowest to highest of everything
+    plain = pricing.headline([price("negotiated", "66.36"), price("negotiated", "128.27")], "plan")
+    assert plain is not None and (plain.amount, plain.highest) == (
+        Decimal("66.36"),
+        Decimal("128.27"),
+    )
+
+
+def test_email_this_to_me(client: TestClient, conn: Connection, world: LocalStore) -> None:
+    """Cooper (2026-11-12): email the prices, a link to the hospital's own file,
+    and how to find the code in it."""
+    from procedurescout_core import price_email
+
+    fid = str(conn.execute(text("SELECT id FROM ref.facility WHERE ccn = 'SYN501'")).scalar())
+    mail = price_email.compose(
+        conn, world, facility_id=fid, service_slug="synthetic-service", site_url="https://x.test"
+    )
+    assert "Press Ctrl+F" in mail.body and "Billing code(s) to ask about" in mail.body
+    assert "https://x.test/facility/" in mail.body
+    assert "$80.00" in mail.body  # the cash price, exactly as published
+    plan = price_email.compose(
+        conn,
+        world,
+        facility_id=fid,
+        service_slug="synthetic-service",
+        mode="plan",
+        plan_id=_plan_id(conn, "Gold PPO"),
+        plan_label="Synthetic Health · Gold PPO",
+        lang="es",
+    )
+    assert "Synthetic Health · Gold PPO" in plan.body and "$75.25" in plan.body
+    assert "Ctrl+F" in plan.body and "Precio" in plan.body
+    with pytest.raises(price_email.PriceEmailError):
+        price_email.queue(conn, "not-an-email", mail)
+    for _ in range(price_email.MAX_PER_ADDRESS_PER_DAY):
+        price_email.queue(conn, "someone@example.test", mail)
+    with pytest.raises(price_email.PriceEmailError):  # no flooding one inbox
+        price_email.queue(conn, "someone@example.test", mail)
+
+
+def test_email_this_to_me_through_the_api(
+    client: TestClient, conn: Connection, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from procedurescout_api import email_routes
+    from tests.test_portal_api import _FakeEngine
+
+    monkeypatch.setattr(email_routes, "portal_engine", lambda: _FakeEngine(conn))
+    monkeypatch.setattr(email_routes, "send_mail_soon", lambda: None)
+    fid = str(conn.execute(text("SELECT id FROM ref.facility WHERE ccn = 'SYN501'")).scalar())
+    body = {"email": "person@example.test", "facility_id": fid, "service": "synthetic-service"}
+    r = client.post("/v1/email-prices", json=body)
+    assert r.status_code == 200, r.text
+    queued = conn.execute(
+        text("SELECT subject FROM prov.outbox WHERE to_email = 'person@example.test'")
+    ).scalar()
+    assert queued and "Synthetic" in queued
+    assert client.post("/v1/email-prices", json={**body, "email": "nope"}).status_code == 422

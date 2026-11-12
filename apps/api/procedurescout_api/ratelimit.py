@@ -25,6 +25,7 @@ RULES: tuple[tuple[str, tuple[str, ...], int, int], ...] = (
     ("/v1/portal/sign-in", ("POST",), 10, 600),
     ("/v1/reviews/request", ("POST",), 10, 600),
     ("/v1/price-reports", ("POST",), 20, 600),
+    ("/v1/email-prices", ("POST",), 10, 3600),
     ("/v1/portal/mfa/verify", ("POST",), 20, 600),
     ("/v1/stripe/webhook", ("POST",), 600, 60),
     ("/v1/events", ("POST",), 120, 60),
@@ -57,6 +58,13 @@ def _public(ip: str) -> bool:
     except ValueError:
         return False
     return not any(a.version == n.version and a in n for n in _INTERNAL)
+
+
+def public_ip(request: Request) -> str | None:
+    """The right-most public address in the forwarding chain (see _client)."""
+    chain = [x.strip() for x in request.headers.get("x-forwarded-for", "").split(",")]
+    chain.append(request.client.host if request.client else "")
+    return next((x for x in reversed(chain) if _public(x)), None)
 
 
 def _client(request: Request) -> str | None:

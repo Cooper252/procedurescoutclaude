@@ -252,6 +252,9 @@ class EstimateIn(BaseModel):
     payer: str | None = Field(default=None, max_length=300)
     plan: str | None = Field(default=None, max_length=300)
     include_optional: list[str] | None = Field(default=None, max_length=50)
+    # a card-name plan, or an insurer for "not sure which plan" (2026-11-12)
+    plan_id: str | None = Field(default=None, max_length=36)
+    payer_id: str | None = Field(default=None, max_length=36)
 
 
 class LineOut(BaseModel):
@@ -278,6 +281,9 @@ class EstimateOut(BaseModel):
     total_of_priced_pieces: str | None
     complete: bool
     explanation: str
+    # lowest and highest total when a piece has several published prices
+    total_low: str | None = None
+    total_high: str | None = None
 
 
 @router.post("/bundles/{slug}/estimate", response_model=EstimateOut)
@@ -294,6 +300,8 @@ def bundle_estimate(
             include_optional=body.include_optional,
             payer=body.payer,
             plan=body.plan,
+            plan_id=body.plan_id,
+            payer_id=body.payer_id,
         )
     except bundles.BundleError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
@@ -328,6 +336,8 @@ def bundle_estimate(
         total_of_priced_pieces=_s(est.total_of_priced),
         complete=est.complete,
         explanation=explanation,
+        total_low=_s(est.total_low),
+        total_high=_s(est.total_high),
     )
 
 

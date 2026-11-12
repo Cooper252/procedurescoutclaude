@@ -25,7 +25,7 @@ import type {
 } from "./types";
 
 export const DEMO_SERVICES: Service[] = [
-  { slug: "mri-brain-without-contrast", name: "MRI of the brain (no contrast)", category: "Imaging", unit: "per_service" },
+  { slug: "mri-brain-without-contrast", name: "MRI of the brain (no contrast)", category: "Imaging", unit: "per_service", about: "A detailed scan of the brain using a magnet, without dye. The radiologist's reading is often billed separately." },
   { slug: "mri-lower-back-without-contrast", name: "MRI of the lower back (no contrast)", category: "Imaging", unit: "per_service" },
   { slug: "mri-knee-without-contrast", name: "MRI of the knee (no contrast)", category: "Imaging", unit: "per_service" },
   { slug: "ct-head-without-contrast", name: "CT scan of the head (no contrast)", category: "Imaging", unit: "per_service" },
@@ -62,9 +62,10 @@ export const DEMO_PROVIDER_TYPES: ProviderType[] = [
 ];
 
 export const DEMO_PLANS: Plan[] = [
-  { plan_id: "00000000-0000-4000-8000-000000000001", payer: "Sample Health", plan: "Sample Health PPO", product_type: "ppo", segment: "commercial" },
-  { plan_id: "00000000-0000-4000-8000-000000000002", payer: "Sample Care", plan: "Sample Care HMO", product_type: "hmo", segment: "commercial" },
-  { plan_id: "00000000-0000-4000-8000-000000000003", payer: "Sample Health", plan: "Sample Health EPO", product_type: "epo", segment: "commercial" },
+  { plan_id: "00000000-0000-4000-8000-000000000001", payer: "Sample Health", plan: "Sample Health PPO", product_type: "ppo", segment: "commercial", payer_id: "p1" },
+  { plan_id: "00000000-0000-4000-8000-000000000002", payer: "Sample Care", plan: "Sample Care HMO", product_type: "hmo", segment: "commercial", payer_id: "p2" },
+  { plan_id: "00000000-0000-4000-8000-000000000003", payer: "Sample Health", plan: "Sample Health EPO", product_type: "epo", segment: "commercial", payer_id: "p1" },
+  { plan_id: "00000000-0000-4000-8000-000000000004", payer: "Sample Health", plan: "Sample Health Medicare Advantage", product_type: "hmo", segment: "medicare_advantage", payer_id: "p1" },
 ];
 const ALL_PLANS: Plan = { plan_id: "-", payer: "Sample Health", plan: "All Plans", product_type: "unknown", segment: "commercial" };
 
@@ -127,7 +128,9 @@ function pricesFor(f: DemoFacility, slug: string): Price[] {
   const list = cash * 3n;
   const provider = f.types.includes("dental_office") || f.types.includes("medical_spa");
   const src = provider ? "provider_entered" : "hospital_file";
-  const row = (price_type: string, amount: bigint, plan: Plan | null): Price => ({
+  const row = (price_type: string, amount: bigint, plan: Plan | null, part: "facility" | "professional" = "facility"): Price => ({
+    billing_class: provider ? null : part,
+    modifiers: part === "professional" ? ["26"] : [],
     price_source: src,
     code,
     description: "Sample item",
@@ -146,6 +149,9 @@ function pricesFor(f: DemoFacility, slug: string): Price[] {
     out.push(row("negotiated", (cash * 105n) / 100n, DEMO_PLANS[0]!));
     out.push(row("negotiated", (cash * 88n) / 100n, DEMO_PLANS[1]!));
     out.push(row("negotiated", (cash * 98n) / 100n, ALL_PLANS));
+    // the doctor's part, listed separately like many real hospital files
+    out.push(row("discounted_cash", (cash * 9n) / 100n, null, "professional"));
+    out.push(row("negotiated", (cash * 7n) / 100n, DEMO_PLANS[0]!, "professional"));
   }
   return out;
 }
@@ -173,7 +179,8 @@ export function demoPlace(zip: string): Place | null {
   return /^\d{5}$/.test(zip) ? { zip, state: "NV", lat: "36.17", lng: "-115.14" } : null;
 }
 
-export function demoSearch(slug: string, mode: Mode, planId: string | null, providerType: string | null, radius = "25"): SearchResult {
+export function demoSearch(slug: string, mode: Mode, planId: string | null, providerType: string | null, radius = "25", insurerId: string | null = null): SearchResult {
+  const insurer = insurerId ? DEMO_PLANS.find((p) => p.payer_id === insurerId) ?? null : null;
   const svc = DEMO_SERVICES.find((x) => x.slug === slug) ?? DEMO_SERVICES[0]!;
   const plan = DEMO_PLANS.find((p) => p.plan_id === planId) ?? null;
   const wanted = mode === "cash" ? "discounted_cash" : mode === "list" ? "gross" : "negotiated";
@@ -194,11 +201,22 @@ export function demoSearch(slug: string, mode: Mode, planId: string | null, prov
     const fallback = canFallBack
       ? neg.filter((p) => p.payer === plan!.payer && p.plan === ALL_PLANS.plan).map((p) => ({ ...p, plan_match: "all_plans" as const }))
       : [];
-    const pool = mode === "plan" ? (exact.length ? exact : fallback) : [];
+    // "not sure which plan": every work/individual plan of the insurer, as a range
+    const unsure = insurer
+      ? neg.filter((p) => p.payer === insurer.payer).map((p) => ({ ...p, plan_match: "plan" as const }))
+      : [];
+    const pool = mode === "plan" ? (insurer ? unsure : exact.length ? exact : fallback) : [];
     const allPlans = mode === "plan" && exact.length === 0 && fallback.length > 0;
     const shown = [...prices.filter((p) => p.price_type !== "negotiated"), ...pool];
-    const head = shown.find((p) => p.price_type === wanted);
-    const cash = shown.find((p) => p.price_type === "discounted_cash");
+    const typed = shown.filter((p) => p.price_type === wanted);
+    const docRows = typed.filter((p) => p.billing_class === "professional");
+    const mainRows = typed.filter((p) => p.billing_class !== "professional");
+    const split = docRows.length > 0 && mainRows.length > 0;
+    const heads = (split ? mainRows : typed).sort((a, b) => (BigInt(a.amount!) < BigInt(b.amount!) ? -1 : 1));
+    const docs = split ? docRows.sort((a, b) => (BigInt(a.amount!) < BigInt(b.amount!) ? -1 : 1)) : [];
+    const head = heads[0];
+    const top = heads[heads.length - 1];
+    const cash = shown.find((p) => p.price_type === "discounted_cash" && p.billing_class !== "professional");
     return {
       facility_id: f.id,
       name: f.name,
@@ -209,7 +227,9 @@ export function demoSearch(slug: string, mode: Mode, planId: string | null, prov
       status: prices.length ? "prices" : "no_published_prices",
       prices_published_at: f.published,
       headline: head?.amount ?? null,
-      headline_highest: null,
+      headline_highest: top?.amount ?? null,
+      doctor_fee: docs[0]?.amount ?? null,
+      doctor_fee_highest: docs[docs.length - 1]?.amount ?? null,
       headline_price_type: head?.price_type ?? null,
       headline_possible_error: false,
       lowest_near_you: false,
@@ -248,6 +268,7 @@ export function demoSearch(slug: string, mode: Mode, planId: string | null, prov
     codes: code && code !== "provider-entered" ? [code] : [],
     note: null,
     mode,
+    insurer_unsure: insurer?.payer ?? null,
     typical,
     facilities: rows,
   };
@@ -365,6 +386,14 @@ export function demoFacilityAssistance(id: string): { facility_id: string; messa
 // Sample bundles shaped like data/reference/bundles.csv (made-up prices).
 export const DEMO_BUNDLES: Bundle[] = [
   {
+    slug: "mri-brain-complete",
+    name: "MRI of the brain (no contrast), everything included",
+    components: [
+      { component_id: "m1", label: "The scan (the hospital's or imaging center's part)", role: "facility", requirement: "required", included_by_default: true, code: "CPT 70551", notes: null },
+      { component_id: "m2", label: "The radiologist's reading", role: "physician", requirement: "optional", included_by_default: true, code: "CPT 70551", notes: "often billed by a separate radiology group" },
+    ],
+  },
+  {
     slug: "colonoscopy-complete",
     name: "Colonoscopy, everything included",
     components: [
@@ -385,7 +414,7 @@ export const DEMO_BUNDLES: Bundle[] = [
   },
 ];
 
-const BUNDLE_PRICES: Record<string, bigint | null> = { c1: 1650n, c2: null, c3: 95n, b1: 9800n, b2: null, b3: 1400n, b4: 2100n };
+const BUNDLE_PRICES: Record<string, bigint | null> = { m1: 900n, m2: 81n, c1: 1650n, c2: null, c3: 95n, b1: 9800n, b2: null, b3: 1400n, b4: 2100n };
 
 export function demoEstimate(slug: string, facilityId: string, payment: "cash" | "list", include: string[]): Estimate {
   const b = DEMO_BUNDLES.find((x) => x.slug === slug) ?? DEMO_BUNDLES[0]!;

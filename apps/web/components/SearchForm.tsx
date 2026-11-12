@@ -6,7 +6,7 @@ import { api } from "@/lib/api";
 import { fill, SERVICE_ES } from "@/lib/i18n";
 import type { ProviderType, Suggestion } from "@/lib/types";
 import { useApp } from "./AppState";
-import { Locate, Pin, Search } from "./Icons";
+import { Locate, Pin, Search, Video } from "./Icons";
 import { InsurancePicker, type Insurance } from "./InsurancePicker";
 import { parseTypes, TypePicker } from "./TypePicker";
 
@@ -18,7 +18,10 @@ interface Props {
   initialType?: string | null;
   initialRadius?: string | null;
   initialInsurance?: Insurance | null;
+  initialOnline?: boolean;
   compact?: boolean;
+  // called after a search is started (the results page closes its edit form)
+  onSearch?: () => void;
 }
 
 export function SearchForm({
@@ -27,7 +30,9 @@ export function SearchForm({
   initialType = null,
   initialRadius = null,
   initialInsurance = null,
+  initialOnline = false,
   compact = false,
+  onSearch,
 }: Props) {
   const { t, lang, place, setPlace } = useApp();
   const router = useRouter();
@@ -43,9 +48,27 @@ export function SearchForm({
   const [radius, setRadius] = useState<string>(RADII.includes(initialRadius ?? "") ? initialRadius! : "25");
   const [paying, setPaying] = useState<"cash" | "plan">(initialInsurance ? "plan" : "cash");
   const [insurance, setInsurance] = useState<Insurance | null>(initialInsurance);
+  // online (video) visits, made easy to find (Cooper, 2026-11-12)
+  const [online, setOnline] = useState(initialOnline);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const coords = useRef<{ lat: string; lng: string } | null>(null);
+  // where the person is, so the insurance list shows only insurers nearby
+  const [near, setNear] = useState<{ lat: string; lng: string } | null>(null);
+  useEffect(() => {
+    if (!/^\d{5}$/.test(zip)) {
+      setNear(coords.current);
+      return;
+    }
+    let live = true;
+    api
+      .zip(zip)
+      .then((p) => live && setNear({ lat: p.lat, lng: p.lng }))
+      .catch(() => live && setNear(null));
+    return () => {
+      live = false;
+    };
+  }, [zip]);
 
   useEffect(() => {
     api.providerTypes().then(setTypes).catch(() => setTypes([]));
@@ -106,6 +129,7 @@ export function SearchForm({
       (pos) => {
         // two decimals (about half a mile) is enough for a 25-mile search
         coords.current = { lat: pos.coords.latitude.toFixed(2), lng: pos.coords.longitude.toFixed(2) };
+        setNear(coords.current);
         setZip("");
         setBusy(false);
         setError(null);
@@ -131,6 +155,7 @@ export function SearchForm({
     );
     if (kinds.length) params.set("type", kinds.join(","));
     if (radius !== "25") params.set("r", radius);
+    if (online) params.set("online", "1");
     if (paying === "plan") {
       if (!insurance) {
         setError(t.insurerPick);
@@ -138,6 +163,7 @@ export function SearchForm({
       }
       params.set("mode", "plan");
       if ("plan" in insurance) params.set("plan", insurance.plan);
+      else if ("insurer" in insurance) params.set("insurer", insurance.insurer);
       else params.set("payer", insurance.payer);
     }
     if (coords.current && !zip) {
@@ -161,6 +187,7 @@ export function SearchForm({
     }
     setBusy(false);
     router.push(`/search?${params.toString()}`);
+    onSearch?.();
   }
 
   return (
@@ -190,7 +217,12 @@ export function SearchForm({
         </div>
         {open && options.length > 0 && (
           <ul className="suggest" id={`${listId}-list`} role="listbox">
-            {options.map((o, i) => (
+            {options.map((o, i) => [
+              o.kind === "code" && options[i - 1]?.kind !== "code" ? (
+                <li key="codes-head" className="suggest-head" role="presentation">
+                  {t.codesHead}
+                </li>
+              ) : null,
               <li
                 key={o.slug}
                 id={`${listId}-opt-${i}`}
@@ -202,14 +234,26 @@ export function SearchForm({
                   choose(o);
                 }}
               >
-                <span>{o.kind === "code" ? `${o.matched} · ${o.name}` : label(o)}</span>
+                <span className="suggest-main">
+                  <span>{o.kind === "code" ? o.name : label(o)}</span>
+                  {/* a short plain explanation, so people can tell services apart (2026-11-12) */}
+                  {o.about && o.kind !== "code" && <span className="suggest-about">{o.about}</span>}
+                  {o.kind === "code" && (
+                    <span className="suggest-about">
+                      {o.matched}
+                      {o.about ? ` · ${t.theirWording}: “${o.about}”` : ""}
+                    </span>
+                  )}
+                </span>
                 {o.kind === "code" ? (
                   <span className="suggest-why">{t.codeTag}</span>
                 ) : (
-                  o.matched !== o.name && <span className="suggest-why">“{o.matched}”</span>
+                  o.matched !== o.name && o.matched.toLowerCase() !== label(o).toLowerCase() && (
+                    <span className="suggest-why">“{o.matched}”</span>
+                  )
                 )}
-              </li>
-            ))}
+              </li>,
+            ])}
           </ul>
         )}
       </div>
@@ -248,6 +292,20 @@ export function SearchForm({
         </div>
       )}
       {!compact && (
+        <fieldset className="field visit">
+          <legend>{t.visitHow}</legend>
+          <div className="segmented two" role="radiogroup">
+            <button type="button" role="radio" aria-checked={!online} className={!online ? "seg on" : "seg"} onClick={() => setOnline(false)}>
+              <Pin size={16} /> {t.visitInPerson}
+            </button>
+            <button type="button" role="radio" aria-checked={online} className={online ? "seg on" : "seg"} onClick={() => setOnline(true)}>
+              <Video size={16} /> {t.visitOnline}
+            </button>
+          </div>
+          {online && <p className="mode-hint">{t.visitOnlineHint}</p>}
+        </fieldset>
+      )}
+      {!compact && (
         <fieldset className="field paying">
           <legend>{t.payingHow}</legend>
           <div className="segmented two" role="radiogroup">
@@ -269,7 +327,7 @@ export function SearchForm({
               <label htmlFor={`${listId}-ins`} className="sr">
                 {t.insurerLabel}
               </label>
-              <InsurancePicker id={`${listId}-ins`} value={insurance} onChange={setInsurance} />
+              <InsurancePicker id={`${listId}-ins`} value={insurance} onChange={setInsurance} near={near} />
             </div>
           )}
         </fieldset>

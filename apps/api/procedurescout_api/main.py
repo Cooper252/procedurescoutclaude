@@ -17,7 +17,9 @@ from procedurescout_core import __version__ as core_version
 
 from .admin_portal_routes import router as admin_portal_router
 from .admin_routes import router as admin_router
+from .analytics_routes import router as analytics_router
 from .care_routes import router as care_router
+from .email_routes import router as email_router
 from .portal_routes import router as portal_router
 from .portal_routes import send_mail_soon
 from .search_routes import router as search_router
@@ -78,8 +80,10 @@ async def _review_pages_in_a_browser(request: Request, exc: StarletteHTTPExcepti
 app.middleware("http")(rate_limit)
 app.include_router(search_router)
 app.include_router(care_router)
+app.include_router(email_router)
 app.include_router(portal_router)
 app.include_router(admin_router)
+app.include_router(analytics_router)
 app.include_router(admin_portal_router)
 
 

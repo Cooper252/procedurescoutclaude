@@ -16,7 +16,13 @@ Rules (no price is better than a false price):
   formula rate is shown, not added;
 - a piece with several different published amounts (e.g. by setting) is shown
   with all of them and not added;
-- the total adds only priced pieces, and says whether it is complete.
+- the total adds only priced pieces, and says whether it is complete;
+- (2026-11-12) a piece with several amounts adds its lowest and highest to a
+  total range; a doctor's piece is priced from rows the hospital labeled as the
+  doctor's part (professional) and a hospital piece from its own part, when the
+  hospital labeled them; insurance can be one card-name plan (approved
+  spellings, rule 9) or "not sure which plan" (all of an insurer's work and
+  individual plans).
 """
 
 from __future__ import annotations
@@ -72,6 +78,8 @@ class BundleEstimate:
     lines: tuple[Line, ...]
     total_of_priced: Decimal | None
     complete: bool
+    total_low: Decimal | None = None  # with several-price pieces at their lowest
+    total_high: Decimal | None = None  # ... and at their highest
 
 
 def bundle_components(conn: Connection, slug: str) -> tuple[str, list[Component]]:
@@ -111,17 +119,25 @@ def bundle_components(conn: Connection, slug: str) -> tuple[str, list[Component]
     ]
 
 
+DOCTOR_ROLES = frozenset({"physician", "anesthesia", "pathology"})
+
+
 def _price_line(
     component: Component,
     prices: list[PublishedPrice],
     mode: str,
     payer: str | None,
     plan: str | None,
+    spellings: set[tuple[str, str]] | None = None,
 ) -> Line:
     if mode == "cash":
         rows = [p for p in prices if p.price_type == "discounted_cash"]
     elif mode == "list":
         rows = [p for p in prices if p.price_type == "gross"]
+    elif spellings is not None:
+        from .plans import matches
+
+        rows = [p for p in prices if p.price_type == "negotiated" and matches(p, spellings)]
     else:
         rows = [
             p
@@ -130,6 +146,14 @@ def _price_line(
             and p.payer_name_raw == payer
             and p.plan_name_raw == plan
         ]
+    # the doctor's piece from the doctor's part, the hospital's piece from its own
+    # part, when the hospital labeled them (otherwise every row, as before)
+    doctor = [p for p in rows if p.billing_class == "professional"]
+    own = [p for p in rows if p.billing_class in ("facility", "both")]
+    if component.role in DOCTOR_ROLES and doctor:
+        rows = doctor
+    elif component.role not in DOCTOR_ROLES and own:
+        rows = own
     if not rows:
         return Line(component, True, "not_published")
     amounts = sorted({p.amount for p in rows if p.amount is not None})
@@ -154,17 +178,38 @@ def estimate(
     include_optional: Collection[str] | None = None,
     payer: str | None = None,
     plan: str | None = None,
+    plan_id: str | None = None,
+    payer_id: str | None = None,
 ) -> BundleEstimate:
     if mode not in MODES:
         raise BundleError(f"payment must be one of {', '.join(MODES)}")
-    if (mode == "insurance") != (payer is not None and plan is not None):
+    by_id = plan_id is not None or payer_id is not None
+    if plan_id is not None and payer_id is not None:
+        raise BundleError("give a plan or an insurer, not both")
+    if (mode == "insurance") != (by_id or (payer is not None and plan is not None)):
         raise BundleError("insurance needs a payer and a plan (and only insurance does)")
+    spellings: set[tuple[str, str]] | None = None
+    if by_id:
+        from .plans import PlanError, approved_spellings, insurer_spellings
+
+        try:
+            spellings = (
+                approved_spellings(conn, plan_id)
+                if plan_id is not None
+                else insurer_spellings(conn, str(payer_id))[1]
+            )
+        except PlanError as exc:
+            raise BundleError(str(exc)) from exc
     try:
         fid = uuid.UUID(str(facility_id))
     except ValueError as exc:
         raise BundleError(str(exc)) from exc
     name, components = bundle_components(conn, bundle_slug)
-    if mode == "insurance" and (payer, plan) not in facility_payer_plans(conn, store, fid):
+    if (
+        mode == "insurance"
+        and not by_id
+        and (payer, plan) not in facility_payer_plans(conn, store, fid)
+    ):
         # only plans this facility actually publishes; never a similar-looking one
         raise BundleError("this facility does not publish prices for that payer and plan")
     known_ids = {c.component_id for c in components}
@@ -180,10 +225,16 @@ def estimate(
             lines.append(Line(comp, False, "left_out"))
             continue
         prices = find_prices(conn, store, [fid], comp.code_system, comp.code)
-        lines.append(_price_line(comp, prices, mode, payer, plan))
+        lines.append(_price_line(comp, prices, mode, payer, plan, spellings))
     priced = [ln.amount for ln in lines if ln.status == "priced" and ln.amount is not None]
     included_lines = [ln for ln in lines if ln.included]
     complete = bool(included_lines) and all(ln.status == "priced" for ln in included_lines)
+    lows = [ln.amount for ln in lines if ln.status == "priced" and ln.amount is not None]
+    highs = list(lows)
+    for ln in lines:
+        if ln.status == "several_prices" and ln.other_amounts:
+            lows.append(min(ln.other_amounts))
+            highs.append(max(ln.other_amounts))
     return BundleEstimate(
         bundle_slug=bundle_slug,
         bundle_name=name,
@@ -194,4 +245,6 @@ def estimate(
         lines=tuple(lines),
         total_of_priced=sum(priced, Decimal(0)) if priced else None,
         complete=complete,
+        total_low=sum(lows, Decimal(0)) if lows else None,
+        total_high=sum(highs, Decimal(0)) if highs else None,
     )

@@ -81,6 +81,7 @@ export default function Account() {
               <ul>
                 <li><a href="/admin/reviews">{p.staffFiles}</a></li>
                 <li><a href="/admin/providers">{p.staffProviders}</a></li>
+                <li><a href="/admin/analytics">{p.staffAnalytics}</a></li>
               </ul>
             </div>
           )}

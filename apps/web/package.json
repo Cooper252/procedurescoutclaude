@@ -7,13 +7,16 @@
     "build": "next build",
     "start": "next start -p 3000",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --no-warnings lib/estimate.test.mts"
+    "test": "node --experimental-strip-types --no-warnings lib/estimate.test.mts && node --experimental-strip-types --no-warnings lib/cardRead.test.mts",
+    "prebuild": "node scripts/copy-ocr.mjs"
   },
   "dependencies": {
+    "@tesseract.js-data/eng": "1.0.0",
     "next": "15.5.28",
     "react": "19.3.1",
     "react-dom": "19.3.1",
-    "server-only": "^0.0.1"
+    "server-only": "^0.0.1",
+    "tesseract.js": "7.0.0"
   },
   "devDependencies": {
     "@types/node": "22.20.5",

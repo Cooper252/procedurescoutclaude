@@ -5,7 +5,10 @@ import { useState } from "react";
 import { fill, TYPE_ES, TYPE_EN } from "@/lib/i18n";
 import { centsToDollars, estimate, type PlanDetails } from "@/lib/estimate";
 import { compareDecimal, formatMoney, money, subtractDecimal, unitLabel } from "@/lib/money";
-import type { Facility, Mode } from "@/lib/types";
+import type { Bundle, Facility, Mode } from "@/lib/types";
+import { PriceDetails } from "./PriceDetails";
+import { WholeCost } from "./WholeCost";
+import { EmailMe } from "./EmailMe";
 import { useApp } from "./AppState";
 import { Alert, Chevron, Heart, Pin, TrendDown, TrendUp } from "./Icons";
 import { Stars } from "./ProviderHome";
@@ -32,6 +35,14 @@ export function ResultCard({
   service,
   payer,
   plan,
+  unsure = null,
+  bundle = null,
+  planId = null,
+  insurerId = null,
+  payerRaw = null,
+  planLabel = null,
+  codeSystem = null,
+  code = null,
 }: {
   f: Facility;
   mode: Mode;
@@ -39,18 +50,36 @@ export function ResultCard({
   service?: string;
   payer?: string;
   plan?: PlanDetails | null;
+  unsure?: string | null; // insurer name: prices are a range across its plans
+  bundle?: Bundle | null; // the whole procedure's parts, when we have them
+  planId?: string | null;
+  insurerId?: string | null;
+  payerRaw?: string | null;
+  planLabel?: string | null;
+  codeSystem?: string | null;
+  code?: string | null;
 }) {
   const { t, lang } = useApp();
   // a rough "you'd pay" only from this plan's negotiated rate, never a list price
-  const est = mode === "plan" && plan && f.headline && f.headline_price_type === "negotiated" ? estimate(f.headline, plan) : null;
+  const est =
+    // only from one clear rate: with several published rates we can't tell which is yours
+    mode === "plan" && !unsure && plan && f.headline && f.headline_price_type === "negotiated" &&
+    !(f.headline_highest && compareDecimal(f.headline, f.headline_highest) !== 0)
+      ? estimate(f.headline, plan)
+      : null;
   const [open, setOpen] = useState(false);
-  const head = formatMoney(f.headline);
+  // "not sure which plan": lowest to highest rate across the insurer's plans
+  // several published rates of the same kind: show lowest to highest, not just the lowest
+  const ranged = !!(f.headline && f.headline_highest && compareDecimal(f.headline, f.headline_highest) !== 0);
+  const head = ranged ? { text: `${money(f.headline!)}–${money(f.headline_highest!)}` } : formatMoney(f.headline);
   const provider = f.prices.some((p) => p.price_source === "provider_entered");
   const label =
     provider && mode === "cash"
       ? t.regularPrice
       : mode === "plan" && f.no_plan_rate
         ? t.cash
+        : mode === "plan" && unsure
+          ? fill(t.rangeTag, { payer: unsure })
         : mode === "plan"
       ? f.plan_rate_is_all_plans
         ? fill(t.allPlansTag, { payer: payer ?? "" })
@@ -62,8 +91,9 @@ export function ResultCard({
     (lang === "es" ? TYPE_ES[c] : undefined) ?? TYPE_EN[c] ?? c.replace(/_/g, " ").replace(/^\w/, (x) => x.toUpperCase());
   const change = f.change_percent_since_last_file;
   // the lowest published cash price, for "Cash price is lower: $X"
-  const cashLow = f.prices
-    .filter((p) => p.price_type === "discounted_cash" && p.amount)
+  const cashRows = f.prices.filter((p) => p.price_type === "discounted_cash" && p.amount);
+  const cashMain = cashRows.filter((p) => p.billing_class !== "professional");
+  const cashLow = (cashMain.length ? cashMain : cashRows)
     .map((p) => p.amount as string)
     .sort(compareDecimal)[0];
   const isHospital = f.provider_types.includes("hospital");
@@ -102,6 +132,16 @@ export function ResultCard({
               <span className="price-label">{label}</span>
               <span className="price-num">{head.text}</span>
               <span className="price-unit">{unitLabel(unit, lang)}</span>
+              {f.doctor_fee && (
+                <span className="price-doctor">
+                  {fill(t.doctorFeeLine, {
+                    p:
+                      f.doctor_fee_highest && compareDecimal(f.doctor_fee, f.doctor_fee_highest) !== 0
+                        ? `${money(f.doctor_fee)}–${money(f.doctor_fee_highest)}`
+                        : money(f.doctor_fee),
+                  })}
+                </span>
+              )}
             </>
           ) : (
             <span className="price-none">
@@ -195,46 +235,29 @@ export function ResultCard({
         <a className="btn ghost sm" href={maps} target="_blank" rel="noopener noreferrer">
           <Pin size={16} /> {t.directions}
         </a>
+        {f.status === "prices" && (
+          <EmailMe
+            facilityId={f.facility_id}
+            service={service}
+            codeSystem={codeSystem}
+            code={code}
+            mode={mode}
+            planId={planId}
+            payerId={insurerId}
+            payer={payerRaw}
+            planLabel={planLabel}
+          />
+        )}
       </div>
+
+      {bundle && f.status === "prices" && (
+        <WholeCost bundle={bundle} facilityId={f.facility_id} mode={mode} planId={planId} insurerId={insurerId} />
+      )}
 
       {open && (
         <div className="details">
           <h4>{t.allPrices}</h4>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th scope="col">{t.colType}</th>
-                  <th scope="col">{t.colPlan}</th>
-                  <th scope="col" className="num">
-                    {t.colAmount}
-                  </th>
-                  <th scope="col">{t.colCode}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {f.prices.map((p, i) => {
-                  const m = formatMoney(p.amount);
-                  return (
-                    <tr key={i}>
-                      <td>{(PRICE_TYPE[p.price_type] ?? [p.price_type, p.price_type])[lang === "es" ? 1 : 0]}</td>
-                      <td>
-                        {p.plan ? `${p.payer ?? ""} · ${p.plan}` : "—"}
-                        {p.plan_match === "all_plans" && (
-                          <span className="badge info tag">{fill(t.allPlansTag, { payer: p.payer ?? "" })}</span>
-                        )}
-                      </td>
-                      <td className="num">
-                        {m ? money(p.amount) : p.percentage ? `${p.percentage}%` : p.algorithm ?? "—"}
-                        {m?.rounded && <span title={t.roundedNote}>*</span>}
-                      </td>
-                      <td className="code">{p.code}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <PriceDetails prices={f.prices} />
           {f.prices.some((p) => formatMoney(p.amount)?.rounded) && <p className="fine">* {t.roundedNote}</p>}
           {firstCode && <p className="tip">{fill(t.askTip, { c: firstCode })}</p>}
           <ReportPrice facilityId={f.facility_id} serviceKey={service ? `svc:${service}` : undefined} priceShown={f.headline} />

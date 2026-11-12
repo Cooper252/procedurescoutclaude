@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useApp } from "@/components/AppState";
-import { Heart } from "@/components/Icons";
-import { PayerAsWritten } from "@/components/PayerAsWritten";
+import { Heart, Pin, Video } from "@/components/Icons";
+import { InsurancePicker, type Insurance } from "@/components/InsurancePicker";
 import { ResultCard } from "@/components/ResultCard";
 import { portalText } from "@/lib/i18n_portal";
 import { SearchForm } from "@/components/SearchForm";
@@ -14,7 +14,7 @@ import { api } from "@/lib/api";
 import { fill, SERVICE_ES } from "@/lib/i18n";
 import { EMPTY_PLAN, type PlanDetails } from "@/lib/estimate";
 import { compareDecimal, money, unitLabel } from "@/lib/money";
-import type { Mode, Plan, ProviderType, SearchResult, Service } from "@/lib/types";
+import type { Bundle, Mode, Plan, ProviderType, SearchResult, Service } from "@/lib/types";
 
 const RADII = ["5", "10", "25", "50", "100"];
 
@@ -41,6 +41,8 @@ function Results() {
   const mode = (sp.get("mode") === "plan" ? "plan" : "cash") as Mode;
   const planId = sp.get("plan");
   const payerRaw = sp.get("payer");
+  // "not sure which plan": an insurance company's id (Cooper, 2026-11-12)
+  const insurerId = sp.get("insurer");
   const kinds = parseTypes(sp.get("type"));
   const ptype = kinds.length ? kinds.join(",") : null;
   const radius = RADII.includes(sp.get("r") ?? "") ? (sp.get("r") as string) : "25";
@@ -77,7 +79,17 @@ function Results() {
   const [loading, setLoading] = useState(false);
   const [editing, setEditing] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  // Cooper (2026-11-12): after "Change" -> "Search prices" nothing came up,
+  // because the edit form stayed open. Close it whenever the search changes.
+  const spKey = sp.toString();
+  useEffect(() => {
+    setEditing(false);
+  }, [spKey]);
 
+  const [bundles, setBundles] = useState<Bundle[]>([]);
+  useEffect(() => {
+    api.bundles().then(setBundles).catch(() => setBundles([]));
+  }, []);
   useEffect(() => {
     api.services().then(setServices).catch(() => setServices([]));
     api.providerTypes().then(setTypes).catch(() => setTypes([]));
@@ -86,6 +98,22 @@ function Results() {
   useEffect(() => {
     if (mode === "plan" && plans === null) api.plans().then(setPlans).catch(() => setPlans([]));
   }, [mode, plans]);
+  const chosen: Insurance | null =
+    mode !== "plan"
+      ? null
+      : planId
+        ? (() => {
+            const p = plans?.find((x) => x.plan_id === planId);
+            return { plan: planId, label: p ? `${p.payer} · ${p.plan}` : "" };
+          })()
+        : insurerId
+          ? (() => {
+              const p = plans?.find((x) => x.payer_id === insurerId);
+              return { insurer: insurerId, label: p ? t.insUnsureLabel.replace("{payer}", p.payer) : "" };
+            })()
+          : payerRaw
+            ? { payer: payerRaw, label: payerRaw }
+            : null;
 
   useEffect(() => {
     if (latParam && lngParam) {
@@ -107,7 +135,7 @@ function Results() {
 
   useEffect(() => {
     if (!coords || (!service && !code)) return;
-    if (mode === "plan" && !planId && !payerRaw) {
+    if (mode === "plan" && !planId && !payerRaw && !insurerId) {
       setResult(null);
       return;
     }
@@ -115,14 +143,14 @@ function Results() {
     setLoading(true);
     setError(null);
     api
-      .search({ lat: coords.lat, lng: coords.lng, service, codeSystem, code, mode, planId, payerRaw, providerType: ptype, radius, online })
+      .search({ lat: coords.lat, lng: coords.lng, service, codeSystem, code, mode, planId, payerRaw, insurerId, providerType: ptype, radius, online })
       .then((r) => live && setResult(r))
       .catch((e: Error) => live && setError(e.message))
       .finally(() => live && setLoading(false));
     return () => {
       live = false;
     };
-  }, [coords, service, codeSystem, code, mode, planId, payerRaw, ptype, radius, online, attempt]);
+  }, [coords, service, codeSystem, code, mode, planId, payerRaw, insurerId, ptype, radius, online, attempt]);
 
   const svc = services.find((s) => s.slug === service) ?? null;
   const name = code
@@ -148,6 +176,11 @@ function Results() {
       a.headline && b.headline ? compareDecimal(a.headline, b.headline) || byDistance(a, b) : a.headline ? -1 : b.headline ? 1 : byDistance(a, b),
     );
   }, [result, sort]);
+  // the whole procedure's parts: a bundle whose main piece is this service's code
+  const bundle = useMemo(
+    () => bundles.find((b) => b.components[0] && result?.codes.includes(b.components[0].code)) ?? null,
+    [bundles, result],
+  );
   const unpriced = useMemo(() => result?.facilities.filter((f) => f.status !== "prices") ?? [], [result]);
   const where = zip ?? (coords ? t.useLocation.toLowerCase() : "");
 
@@ -161,16 +194,9 @@ function Results() {
             initialZip={zip ?? ""}
             initialType={ptype}
             initialRadius={radius}
-            initialInsurance={
-              mode === "plan" && planId
-                ? (() => {
-                    const p = plans?.find((x) => x.plan_id === planId);
-                    return { plan: planId, label: p ? `${p.payer} · ${p.plan}` : "" };
-                  })()
-                : mode === "plan" && payerRaw
-                  ? { payer: payerRaw, label: payerRaw }
-                  : null
-            }
+            initialInsurance={chosen}
+            initialOnline={online}
+            onSearch={() => setEditing(false)}
           />
         </div>
         {error && <p className="form-error">{error}</p>}
@@ -196,13 +222,20 @@ function Results() {
               {t.change}
             </button>
           </div>
+          {svc?.about && !code && <p className="service-about">{svc.about}</p>}
           {code && result?.code_description && (
             <p className="code-wording">
               {t.codeWording}: “{result.code_description}”
             </p>
           )}
           <p className="results-where">
-            {t.near} <strong>{where}</strong> · {radius} mi
+            {online ? (
+              t.onlineWhere
+            ) : (
+              <>
+                {t.near} <strong>{where}</strong> · {radius} mi
+              </>
+            )}
           </p>
 
           <fieldset className="modes">
@@ -216,7 +249,12 @@ function Results() {
                   aria-checked={mode === x.m}
                   className={mode === x.m ? "seg on" : "seg"}
                   onClick={() =>
-                  setParam({ mode: x.m === "cash" ? null : x.m, plan: x.m === "plan" ? planId : null, payer: x.m === "plan" ? payerRaw : null })
+                  setParam({
+                    mode: x.m === "cash" ? null : x.m,
+                    plan: x.m === "plan" ? planId : null,
+                    payer: x.m === "plan" ? payerRaw : null,
+                    insurer: x.m === "plan" ? insurerId : null,
+                  })
                 }
                 >
                   {x.label}
@@ -226,38 +264,45 @@ function Results() {
             <p className="mode-hint">{modes.find((x) => x.m === mode)?.hint}</p>
           </fieldset>
 
-          {mode === "plan" && plans !== null && (
-            plans.length === 0 ? (
-              <p className="notice">{t.noPlansYet}</p>
-            ) : (
-              <div className="field plan-pick">
-                <label htmlFor="plan">{t.pickPlan}</label>
-                <select id="plan" value={planId ?? ""} onChange={(e) => setParam({ plan: e.target.value || null, payer: null })}>
-                  <option value="">—</option>
-                  {Array.from(new Set(plans.map((p) => p.payer))).map((payer) => (
-                    <optgroup key={payer} label={payer}>
-                      {plans
-                        .filter((p) => p.payer === payer)
-                        .map((p) => (
-                          <option key={p.plan_id} value={p.plan_id}>
-                            {p.payer} · {p.plan}
-                          </option>
-                        ))}
-                    </optgroup>
-                  ))}
-                </select>
-              </div>
-            )
-          )}
-          {mode === "plan" && plans !== null && (
-            <PayerAsWritten current={payerRaw} onPick={(name) => setParam({ payer: name, plan: null })} />
+          {/* in person or online, as visible as how you pay (Cooper, 2026-11-12) */}
+          <fieldset className="modes visit-modes">
+            <legend>{t.visitHow}</legend>
+            <div className="segmented two" role="radiogroup">
+              <button type="button" role="radio" aria-checked={!online} className={!online ? "seg on" : "seg"} onClick={() => setParam({ online: null })}>
+                <Pin size={16} /> {t.visitInPerson}
+              </button>
+              <button type="button" role="radio" aria-checked={online} className={online ? "seg on" : "seg"} onClick={() => setParam({ online: "1" })}>
+                <Video size={16} /> {t.visitOnline}
+              </button>
+            </div>
+            {online && <p className="mode-hint">{t.visitOnlineHint}</p>}
+          </fieldset>
+
+          {mode === "plan" && (
+            <div className="field plan-pick">
+              <label htmlFor="plan">{t.pickPlan}</label>
+              <InsurancePicker
+                id="plan"
+                value={chosen}
+                near={coords}
+                onChange={(v) =>
+                  v &&
+                  setParam({
+                    plan: "plan" in v ? v.plan : null,
+                    insurer: "insurer" in v ? v.insurer : null,
+                    payer: "payer" in v ? v.payer : null,
+                  })
+                }
+              />
+            </div>
           )}
         </div>
       </div>
 
       <div className="wrap results-body">
-        {mode === "plan" && !planId && !payerRaw && plans !== null && plans.length > 0 && (
-          <p className="notice">{t.choosePlanFirst}</p>
+        {mode === "plan" && !planId && !payerRaw && !insurerId && <p className="notice">{t.choosePlanFirst}</p>}
+        {mode === "plan" && result?.insurer_unsure && (
+          <p className="notice unsure-note">{t.insurerUnsureNote.replace("{payer}", result.insurer_unsure)}</p>
         )}
         {loading && <ResultsSkeleton />}
         {error && !loading && (
@@ -281,10 +326,6 @@ function Results() {
               </div>
             )}
             <div className="filters">
-              <label className="check filter-online">
-                <input type="checkbox" checked={online} onChange={(e) => setParam({ online: e.target.checked ? "1" : null })} />{" "}
-                {t.filterOnline}
-              </label>
               <div className="field">
                 <label htmlFor="f-r">{t.filterDistance}</label>
                 <select id="f-r" value={radius} onChange={(e) => setParam({ r: e.target.value === "25" ? null : e.target.value })}>
@@ -353,6 +394,14 @@ function Results() {
                   unit={unit}
                   service={service}
                   payer={plans?.find((p) => p.plan_id === planId)?.payer}
+                  unsure={result?.insurer_unsure ?? null}
+                  bundle={bundle}
+                  planId={planId}
+                  insurerId={insurerId}
+                  payerRaw={payerRaw}
+                  planLabel={chosen?.label ?? null}
+                  codeSystem={codeSystem}
+                  code={code}
                   plan={mode === "plan" ? myPlan : null}
                 />
               ))}

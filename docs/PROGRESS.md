@@ -2,6 +2,39 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-12 — Cooper's list: prices explained, whole cost, childbirth, online visits, email, analytics, card photos
+
+Implemented:
+- Several prices for one plan explained: published files' `billing_class`, `modifiers`, `other_codes` are now read (`price_store.py`); the headline is the hospital's part and the doctor's part is shown beside it (`pricing._parts`, `doctor_fee`); a card shows lowest–highest when several rates exist; the details list is grouped by part with plain notes, percentages explained ("24.99% of the hospital's total bill, not a set dollar amount") and duplicates shown once (`components/PriceDetails.tsx`). The "what you'd pay" estimate is shown only from one clear rate.
+- "Add up the whole cost" checkboxes on result cards for services with a bundle (`components/WholeCost.tsx`); bundles priced by part, for a plan or "not sure which plan", with a total range (`bundles.py`). Medical bundles approved and added: colonoscopy, upper endoscopy, vaginal birth, C-section, MRI of the brain, cataract surgery (D-061; migration 0025 lets a bundle list one code for two parts).
+- Childbirth and children's care: 14 new services (vaginal birth, with complications, C-section with complications, newborn care, epidural, doctor's pregnancy care, pregnancy ultrasounds, newborn exam, well-baby/child/teen checkups), 53 everyday words ("birth", "having a baby"…), explanations shown in suggestions and on results; services always before billing codes; exact words rank first; codes named in plain English (`code_names.py`).
+- Every major kind of care: 19 new provider types (pediatrician, community health center, pharmacy, midwife, birth center, general surgeon, neurosurgeon, speech/occupational therapy, dietitian, acupuncture, ABA, addiction treatment, dialysis, infusion, home health, hospice, nursing home, medical equipment) and 33 national-list mappings, incl. nurse practitioners and marriage & family therapists.
+- Online visits: "In person / Online (video visit)" on the home form and results page, an online-visits card on the home page; online search covers the whole state (`search.py`).
+- Fixed: after "Change", "Search prices" kept the form open.
+- "Email this to me" (`price_email.py`, `email_routes.py`, `components/EmailMe.tsx`).
+- Owner analytics at `/admin/analytics` (`site_stats.py`, `analytics_routes.py`, migration 0026): visitors, page views, devices, languages, referrers, searches by kind, most searched, searches with no prices, searches by state, emails sent; places, price files by state, kinds of care; provider accounts, claims, pages, prices, specials, reviews, requests, reports.
+- Read an insurance card photo on the device (`lib/cardRead.ts`, tesseract.js served from `/ocr`, copied by `scripts/copy-ocr.mjs` before each build).
+- D-061: Claude approves services, words, explanations and bundles from official code definitions.
+
+Tested: `test_doctor_part_is_shown_beside_the_hospital_part_not_as_the_price`, `test_a_bundle_prices_the_doctor_and_hospital_parts_from_their_own_rows`, `test_childbirth_is_findable_in_plain_words_with_an_explanation`, `test_online_visits_are_found_anywhere_in_the_state`, `test_email_this_to_me`, `test_email_this_to_me_through_the_api`, `test_visits_are_counted_once_per_visitor_per_day_without_addresses`, `test_owner_sees_the_analytics_page`, `lib/cardRead.test.mts`; full suite `387 passed, 1 skipped`; ruff, ruff format, mypy, tsc clean; `next build` compiled; browser check at 390 px (preview data): card photo read in about 2 s and matched the insurer and plan type, whole-cost total updates with the boxes, details grouped by part, email sent message, online toggle, Change → Search shows results, no page errors, no sideways scrolling.
+
+Not done yet: matching insurer spellings (incl. Medicare names) for Alabama, Rhode Island, Delaware and Vermont (D-047); Vermont load found websites for only 3 of 17 hospitals (see chat).
+
+Deployed / verified in production: not yet.
+
+## 2026-11-12 — Help people find their insurance plan (Cooper: "15 options came up and I don't know which one I belong to")
+
+Implemented:
+- The insurance list only shows insurers that places near the person's ZIP (or location) published prices for: `GET /v1/plans` and `/v1/payers/suggest` take `lat`/`lng` (`plans.nearby_published`, `plans.plans_near`, `search.payer_suggestions(facility_ids=)`), reading the new published-only view `price.published_payer` (migration `0025_published_payers.py`).
+- The list is grouped by insurance company with its plans underneath, and "Not sure which plan? See the range for <company>" first. That searches all the company's approved work and individual plans (`search(payer_id=)`, `plans.insurer_spellings`), shown as a lowest–highest range per place with a labeled note; Medicare Advantage and Medicaid plans are left out of the range (their rates are much lower). No "what you'd pay" estimate is shown for a range.
+- "How do I know which plan I have?" under the box: 7 short tips on reading an insurance card (company, PPO/HMO/EPO/POS, Medicare, Medicaid, Marketplace, federal employees, call member services). English and Spanish.
+- The results page uses the same picker instead of a list of every plan in the country (`app/search/page.tsx`, `components/InsurancePicker.tsx`).
+- Not done (needs Cooper's decision): reading a photo of the card. See the chat of 2026-11-12.
+
+Tested: `test_insurance_picker_lists_only_insurers_near_the_person`, `test_not_sure_which_plan_shows_the_insurers_range`, `test_api_plans_and_plan_search` (updated); full suite `379 passed, 1 skipped`; ruff, ruff format, mypy, tsc clean; `next build` compiled; browser check at 1280 px and 390 px (preview data): grouped list, "not sure" choice, range "$423–$453" with note, plan tips open, no page errors, no sideways scrolling.
+
+Deployed / verified in production: not yet.
+
 ## 2026-11-12 — Search form changes and coral accent (Cooper's requests)
 
 Implemented (website, API):

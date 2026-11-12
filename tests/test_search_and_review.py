@@ -70,7 +70,8 @@ def test_committed_catalog_files_load_with_review_state(conn: Connection) -> Non
         conn, (ROOT / "data/reference/service_catalog.csv").read_text()
     )
     assert types.rejects == [] and services.rejects == []
-    assert types.summary == {"approved": 37}  # Cooper: 16 (2026-11-08) + specialties (2026-11-11)
+    # Cooper: 16 (2026-11-08) + specialties (2026-11-11) + every major kind (D-061, 2026-11-12)
+    assert types.summary == {"approved": 56}
     referral = dict(
         conn.execute(
             text(
@@ -367,3 +368,25 @@ def test_a_places_service_list_fits_its_kind_of_care(client: TestClient, conn: C
     }
     assert both == hospital | spa
     assert client.get("/v1/services?provider_types=DROP%20TABLE").status_code == 422
+
+
+def test_childbirth_is_findable_in_plain_words_with_an_explanation(conn: Connection) -> None:
+    """Cooper (2026-11-12): "Birth" found nothing; "vaginal" showed a billing code
+    first, worded "without CC/MCC"."""
+    from procedurescout_core.code_names import drg_plain
+    from procedurescout_core.search import suggest
+
+    catalog.load_provider_types(conn, (ROOT / "data/reference/provider_types.csv").read_text())
+    catalog.load_services(conn, (ROOT / "data/reference/service_catalog.csv").read_text())
+    catalog.load_synonyms(conn, (ROOT / "data/reference/service_synonyms.csv").read_text())
+    for word in ("birth", "having a baby", "Vaginal", "labor and delivery"):
+        first = suggest(conn, word)[0]
+        assert first.kind == "service", word
+        assert first.slug.startswith("vaginal-birth"), word
+        assert first.about and "billed separately" in first.about
+    assert suggest(conn, "pediatrician visit")[0].slug == "well-child-checkup-1-4"
+    assert (
+        drg_plain("VAGINAL DELIVERY W/O STERILIZATION/D&C W/O CC/MCC")
+        == "Vaginal delivery without getting tubes tied (sterilization)/D&C "
+        "(a procedure to clear the uterus) without complications"
+    )

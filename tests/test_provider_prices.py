@@ -233,3 +233,40 @@ def test_online_and_in_person_prices_and_copay(conn: Connection, fac: str, tmp_p
     # only the in-person price: nobody shows up for "online visits"
     pp.withdraw_listing(conn, fac, video)
     assert _search(conn, tmp_path, service_slug=slug, online_only=True).facilities == ()
+
+
+def test_online_visits_are_found_anywhere_in_the_state(
+    conn: Connection, fac: str, tmp_path: Path
+) -> None:
+    """Cooper (2026-11-12) wants online visits easy to find. A video visit doesn't
+    depend on distance, but clinicians are licensed by state: a provider 300
+    miles away in the same state is found; distance limits stay for in person."""
+    a = _acct(conn)
+    slug = "therapy-session-60"
+    video = pp.save_listing(conn, fac, a, service_slug=slug, regular_price="120", delivery="online")
+    pp.review_listing(conn, video, "Synthetic Reviewer", approve=True, note=None)
+    # the provider is in Reno, about 340 miles from Las Vegas
+    conn.execute(
+        text(
+            "UPDATE ref.facility SET geom = CAST(ST_SetSRID(ST_MakePoint(-119.81, 39.53), 4326) "
+            "AS geography) WHERE id = CAST(:f AS uuid)"
+        ),
+        {"f": fac},
+    )
+    conn.execute(
+        text(
+            "INSERT INTO ref.county (county_fips, state_code, name, source) "
+            "VALUES ('32003', 'NV', 'Synthetic County', 'synthetic') ON CONFLICT DO NOTHING"
+        )
+    )
+    conn.execute(
+        text(
+            "INSERT INTO ref.zcta (zcta5, state_code, county_fips, crosses_counties, aland_m2, "
+            "geom, gazetteer_year, source) VALUES ('89999', 'NV', '32003', false, 1, "
+            "CAST(ST_SetSRID(ST_MakePoint(-115.14, 36.17), 4326) AS geography), 2026, 'synthetic')"
+        )
+    )
+    online = _search(conn, tmp_path, service_slug=slug, online_only=True)
+    assert [f.facility_id for f in online.facilities] == [fac]
+    in_person = _search(conn, tmp_path, service_slug=slug)
+    assert fac not in [f.facility_id for f in in_person.facilities]

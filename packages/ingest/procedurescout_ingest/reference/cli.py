@@ -699,7 +699,13 @@ def cmd_prune_published(args: argparse.Namespace, engine: Engine) -> None:
     with engine.begin() as conn:
         n = publish.prune_published(conn)
         old = delete_old_sent(conn)  # housekeeping that needs the owner role
-    print(f"removed {n} staged rows of published files and {old} emails sent over 30 days ago")
+        from procedurescout_core.site_stats import prune_visitors
+
+        codes = prune_visitors(conn)  # one-day visitor codes (analytics)
+    print(
+        f"removed {n} staged rows of published files, {old} emails sent over 30 days ago "
+        f"and {codes} old visitor codes"
+    )
 
 
 def cmd_set_plan(args: argparse.Namespace, engine: Engine) -> None:

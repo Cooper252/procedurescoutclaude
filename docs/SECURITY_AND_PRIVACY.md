@@ -43,3 +43,8 @@ Cooper's computer runs a GitHub self-hosted runner for the manual Nevada workflo
 - Card details never reach our servers (Stripe Checkout and customer portal). Stripe webhooks are checked with the endpoint secret (HMAC-SHA256, 5-minute window) and each event is applied once.
 - Wrong-price reports store no information about the person; free-text is limited to 500 characters and junk in optional fields is dropped.
 - Staff are listed in `prov.staff`; the review pages need a signed-in staff session that passed the authenticator step.
+
+## Analytics, "Email this to me" and card photos (2026-11-12)
+- Owner analytics (`site_stats.py`, migration 0026, `/admin/analytics`, admins only): daily totals only. No cookies, no IP addresses, no page addresses beyond the kind of page, and only the referring site's name. Unique visitors use a code that is only valid for one day (HMAC of address and browser with a key derived from the portal secret and the date); codes from before yesterday are deleted as new visitors arrive. Bots and Do Not Track are not counted.
+- "Email this to me" (`price_email.py`, `POST /v1/email-prices`): the address is used only to send that email; the outbox clears the body once sent and deletes the row after 30 days. At most 5 emails a day to one address and 10 requests an hour per visitor.
+- Insurance card photos are read on the person's device (tesseract.js, served from our own site under `/ocr`); the photo and its text are never uploaded. Only the matched insurer is used to fill the box.

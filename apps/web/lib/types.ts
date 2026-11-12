@@ -8,6 +8,7 @@ export interface Service {
   name: string;
   category: string | null;
   unit: string;
+  about?: string | null; // a short plain explanation
 }
 
 export interface Suggestion {
@@ -18,6 +19,7 @@ export interface Suggestion {
   kind?: "service" | "code";
   code_system?: string | null;
   code?: string | null;
+  about?: string | null; // what the service is; for a code, the hospitals' wording
 }
 
 export interface ProviderType {
@@ -33,6 +35,7 @@ export interface Plan {
   plan: string;
   product_type: string;
   segment: string;
+  payer_id?: string;
 }
 
 export interface Place {
@@ -55,6 +58,8 @@ export interface Price {
   algorithm: string | null;
   methodology: string | null;
   plan_match?: "plan" | "all_plans" | null;
+  billing_class?: "facility" | "professional" | "both" | null;
+  modifiers?: string[];
 }
 
 export interface Facility {
@@ -68,6 +73,9 @@ export interface Facility {
   prices_published_at: string | null;
   headline: string | null;
   headline_highest: string | null;
+  // the doctor's part, when the hospital published it apart from its own part
+  doctor_fee?: string | null;
+  doctor_fee_highest?: string | null;
   headline_price_type: string | null;
   headline_possible_error: boolean;
   lowest_near_you: boolean;
@@ -100,6 +108,8 @@ export interface SearchResult {
   note: string | null;
   mode: Mode;
   code_description?: string | null;
+  // insurer name when searching "not sure which plan" (a range across its plans)
+  insurer_unsure?: string | null;
   typical: { low: string; middle: string; high: string; count: number } | null;
   facilities: Facility[];
   sponsored?: { facility_id: string; name: string; city: string | null; state: string }[];
@@ -234,4 +244,6 @@ export interface Estimate {
   total_of_priced_pieces: string | null;
   complete: boolean;
   explanation: string;
+  total_low?: string | null;
+  total_high?: string | null;
 }

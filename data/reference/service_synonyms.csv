@@ -204,3 +204,51 @@ ivf-cycle,in vitro,human,"Cooper (asked for cosmetic surgery, specialists and me
 egg-freezing-cycle,egg freezing,human,"Cooper (asked for cosmetic surgery, specialists and mental health, 2026-11-11)",2026-11-11
 egg-freezing-cycle,oocyte cryopreservation,human,"Cooper (asked for cosmetic surgery, specialists and mental health, 2026-11-11)",2026-11-11
 hearing-aids-pair,hearing aid,human,"Cooper (asked for cosmetic surgery, specialists and mental health, 2026-11-11)",2026-11-11
+vaginal-birth-hospital-stay,birth,human,"Claude (delegated by Cooper, D-061)",2026-11-12
+vaginal-birth-hospital-stay,giving birth,human,"Claude (delegated by Cooper, D-061)",2026-11-12
+vaginal-birth-hospital-stay,give birth,human,"Claude (delegated by Cooper, D-061)",2026-11-12
+vaginal-birth-hospital-stay,having a baby,human,"Claude (delegated by Cooper, D-061)",2026-11-12
+vaginal-birth-hospital-stay,have a baby,human,"Claude (delegated by Cooper, D-061)",2026-11-12
+vaginal-birth-hospital-stay,childbirth,human,"Claude (delegated by Cooper, D-061)",2026-11-12
+vaginal-birth-hospital-stay,baby delivery,human,"Claude (delegated by Cooper, D-061)",2026-11-12
+vaginal-birth-hospital-stay,delivery,human,"Claude (delegated by Cooper, D-061)",2026-11-12
+vaginal-birth-hospital-stay,labor and delivery,human,"Claude (delegated by Cooper, D-061)",2026-11-12
+vaginal-birth-hospital-stay,labor,human,"Claude (delegated by Cooper, D-061)",2026-11-12
+vaginal-birth-hospital-stay,natural birth,human,"Claude (delegated by Cooper, D-061)",2026-11-12
+vaginal-birth-hospital-stay,normal delivery,human,"Claude (delegated by Cooper, D-061)",2026-11-12
+vaginal-birth-hospital-stay,vaginal delivery,human,"Claude (delegated by Cooper, D-061)",2026-11-12
+vaginal-birth-hospital-stay,vaginal birth,human,"Claude (delegated by Cooper, D-061)",2026-11-12
+vaginal-birth-hospital-stay,maternity,human,"Claude (delegated by Cooper, D-061)",2026-11-12
+vaginal-birth-hospital-stay,birthing,human,"Claude (delegated by Cooper, D-061)",2026-11-12
+pregnancy-care-vaginal-birth,pregnancy,human,"Claude (delegated by Cooper, D-061)",2026-11-12
+pregnancy-care-vaginal-birth,prenatal care,human,"Claude (delegated by Cooper, D-061)",2026-11-12
+pregnancy-care-vaginal-birth,prenatal visits,human,"Claude (delegated by Cooper, D-061)",2026-11-12
+pregnancy-care-vaginal-birth,obstetric care,human,"Claude (delegated by Cooper, D-061)",2026-11-12
+pregnancy-care-vaginal-birth,pregnant,human,"Claude (delegated by Cooper, D-061)",2026-11-12
+labor-epidural,epidural,human,"Claude (delegated by Cooper, D-061)",2026-11-12
+labor-epidural,labor epidural,human,"Claude (delegated by Cooper, D-061)",2026-11-12
+pregnancy-ultrasound,pregnancy ultrasound,human,"Claude (delegated by Cooper, D-061)",2026-11-12
+pregnancy-ultrasound,anatomy scan,human,"Claude (delegated by Cooper, D-061)",2026-11-12
+pregnancy-ultrasound,20 week ultrasound,human,"Claude (delegated by Cooper, D-061)",2026-11-12
+pregnancy-ultrasound,ob ultrasound,human,"Claude (delegated by Cooper, D-061)",2026-11-12
+pregnancy-ultrasound-early,early ultrasound,human,"Claude (delegated by Cooper, D-061)",2026-11-12
+pregnancy-ultrasound-early,dating ultrasound,human,"Claude (delegated by Cooper, D-061)",2026-11-12
+pregnancy-ultrasound-early,first trimester ultrasound,human,"Claude (delegated by Cooper, D-061)",2026-11-12
+newborn-hospital-care,newborn,human,"Claude (delegated by Cooper, D-061)",2026-11-12
+newborn-hospital-care,baby stay,human,"Claude (delegated by Cooper, D-061)",2026-11-12
+newborn-hospital-care,nursery,human,"Claude (delegated by Cooper, D-061)",2026-11-12
+c-section-hospital-stay,cesarean section,human,"Claude (delegated by Cooper, D-061)",2026-11-12
+c-section-hospital-stay,caesarean,human,"Claude (delegated by Cooper, D-061)",2026-11-12
+c-section-hospital-stay,c-section,human,"Claude (delegated by Cooper, D-061)",2026-11-12
+well-child-checkup-1-4,well child,human,"Claude (delegated by Cooper, D-061)",2026-11-12
+well-child-checkup-1-4,well-child visit,human,"Claude (delegated by Cooper, D-061)",2026-11-12
+well-child-checkup-1-4,kids checkup,human,"Claude (delegated by Cooper, D-061)",2026-11-12
+well-child-checkup-1-4,child checkup,human,"Claude (delegated by Cooper, D-061)",2026-11-12
+well-child-checkup-1-4,pediatric checkup,human,"Claude (delegated by Cooper, D-061)",2026-11-12
+well-child-checkup-1-4,pediatrician visit,human,"Claude (delegated by Cooper, D-061)",2026-11-12
+well-child-checkup-1-4,child physical,human,"Claude (delegated by Cooper, D-061)",2026-11-12
+well-baby-checkup,well baby,human,"Claude (delegated by Cooper, D-061)",2026-11-12
+well-baby-checkup,baby checkup,human,"Claude (delegated by Cooper, D-061)",2026-11-12
+well-baby-checkup,infant checkup,human,"Claude (delegated by Cooper, D-061)",2026-11-12
+teen-checkup-12-17,teen physical,human,"Claude (delegated by Cooper, D-061)",2026-11-12
+teen-checkup-12-17,teen checkup,human,"Claude (delegated by Cooper, D-061)",2026-11-12

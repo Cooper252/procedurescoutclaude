@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass
+from decimal import Decimal
 
 from sqlalchemy import Connection, text
 
@@ -29,6 +30,7 @@ class Plan:
     plan: str
     product_type: str
     segment: str
+    payer_id: str = ""
 
 
 def list_plans(conn: Connection) -> list[Plan]:
@@ -37,7 +39,7 @@ def list_plans(conn: Connection) -> list[Plan]:
         text(
             """
             SELECT DISTINCT pl.id, py.canonical_name, pl.canonical_name,
-                   pl.product_type::text, pl.segment::text
+                   pl.product_type::text, pl.segment::text, py.id
             FROM ref.plan pl
             JOIN ref.payer py ON py.id = pl.payer_id
             JOIN ref.plan_alias a ON a.plan_id = pl.id AND a.review_state = 'approved'
@@ -45,7 +47,87 @@ def list_plans(conn: Connection) -> list[Plan]:
             """
         )
     ).all()
-    return [Plan(str(r[0]), str(r[1]), str(r[2]), str(r[3]), str(r[4])) for r in rows]
+    return [Plan(str(r[0]), str(r[1]), str(r[2]), str(r[3]), str(r[4]), str(r[5])) for r in rows]
+
+
+# "Not sure which plan?" (Cooper, 2026-11-12): people who know their insurer but
+# not their plan see the range of that insurer's work and individual plans.
+# Medicare and Medicaid plans are left out: their rates are far lower and would
+# make the range misleading; people with those cards are told to pick them.
+UNSURE_LEFT_OUT = ("medicare_advantage", "medicaid_managed_care")
+
+
+def insurer_spellings(
+    conn: Connection, payer_id: uuid.UUID | str
+) -> tuple[str, set[tuple[str, str]]]:
+    """(insurer name, approved spellings of all its work and individual plans)."""
+    try:
+        pid = str(uuid.UUID(str(payer_id)))
+    except ValueError as exc:
+        raise PlanError("not an insurer id") from exc
+    rows = conn.execute(
+        text(
+            """
+            SELECT py.canonical_name, a.raw_payer_normalized, a.raw_plan_normalized
+            FROM ref.payer py
+            JOIN ref.plan pl ON pl.payer_id = py.id
+            JOIN ref.plan_alias a ON a.plan_id = pl.id AND a.review_state = 'approved'
+            WHERE py.id = CAST(:p AS uuid) AND pl.segment::text <> ALL(:out)
+            """
+        ),
+        {"p": pid, "out": list(UNSURE_LEFT_OUT)},
+    ).all()
+    if not rows:
+        raise PlanError("unknown insurer, or none of its plans is approved yet")
+    return str(rows[0][0]), {(str(r[1]), str(r[2])) for r in rows}
+
+
+def nearby_published(
+    conn: Connection, latitude: Decimal, longitude: Decimal, radius_miles: Decimal
+) -> list[str]:
+    """Places with a published price file within the distance."""
+    rows = conn.execute(
+        text(
+            """
+            SELECT DISTINCT f.id FROM ref.facility f
+            JOIN price.published_file pf ON pf.facility_id = f.id
+            WHERE f.geom IS NOT NULL AND f.status = 'active'
+              AND ST_DWithin(f.geom,
+                    CAST(ST_SetSRID(ST_MakePoint(:lng, :lat), 4326) AS geography), :m)
+            """
+        ),
+        {"lat": latitude, "lng": longitude, "m": radius_miles * Decimal("1609.344")},
+    ).all()
+    return [str(r[0]) for r in rows]
+
+
+def spellings_at(conn: Connection, facility_ids: list[str]) -> set[tuple[str, str]]:
+    """Normalized (insurer, plan) spellings published by these places."""
+    if not facility_ids:
+        return set()
+    rows = conn.execute(
+        text(
+            "SELECT DISTINCT payer_name_raw, plan_name_raw FROM price.published_payer "
+            "WHERE facility_id = ANY(CAST(:ids AS uuid[]))"
+        ),
+        {"ids": facility_ids},
+    ).all()
+    return {(normalize_name(str(r[0])), normalize_name(str(r[1] or ""))) for r in rows}
+
+
+def plans_near(conn: Connection, facility_ids: list[str]) -> list[Plan]:
+    """Plans with an approved spelling published by one of these places."""
+    found = spellings_at(conn, facility_ids)
+    if not found:
+        return []
+    rows = conn.execute(
+        text(
+            "SELECT plan_id, raw_payer_normalized, raw_plan_normalized FROM ref.plan_alias "
+            "WHERE review_state = 'approved'"
+        )
+    ).all()
+    ok = {str(r[0]) for r in rows if (str(r[1]), str(r[2])) in found}
+    return [p for p in list_plans(conn) if p.plan_id in ok]
 
 
 def approved_spellings(conn: Connection, plan_id: uuid.UUID | str) -> set[tuple[str, str]]:

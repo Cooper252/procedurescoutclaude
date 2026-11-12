@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useApp } from "@/components/AppState";
 import { FreeCarePanel } from "@/components/FreeCare";
-import { Arrow, FileCheck, Lock, Receipt, Shield } from "@/components/Icons";
+import { Arrow, FileCheck, Lock, Receipt, Shield, Video } from "@/components/Icons";
 import { SearchForm } from "@/components/SearchForm";
 import { SERVICE_ES } from "@/lib/i18n";
 
@@ -14,6 +14,15 @@ const POPULAR: { slug: string; name: string }[] = [
   { slug: "complete-blood-count", name: "Blood work (CBC)" },
   { slug: "botox-per-unit", name: "Botox" },
   { slug: "cataract-surgery", name: "Cataract surgery" },
+];
+
+// services people commonly get by video (Cooper, 2026-11-12: online visits
+// should be easy to find, not a small checkbox)
+const ONLINE: { slug: string; en: string; es: string }[] = [
+  { slug: "telehealth-visit", en: "Doctor video visit", es: "Videoconsulta con un médico" },
+  { slug: "therapy-session-60", en: "Therapy session", es: "Sesión de terapia" },
+  { slug: "psychiatry-medication-visit", en: "Psychiatry medication visit", es: "Seguimiento con psiquiatra" },
+  { slug: "weight-loss-consultation", en: "Weight-loss consultation", es: "Consulta para bajar de peso" },
 ];
 
 export default function Home() {
@@ -48,6 +57,27 @@ export default function Home() {
           </div>
           <div className="hero-side">
             <FreeCarePanel />
+          </div>
+        </div>
+      </section>
+
+      <section className="wrap band">
+        <div className="online-card">
+          <span className="online-icon">
+            <Video size={26} />
+          </span>
+          <div className="online-text">
+            <strong>{t.onlineCardTitle}</strong>
+            <span>{t.onlineCardSub}</span>
+            <ul className="chips">
+              {ONLINE.map((o) => (
+                <li key={o.slug}>
+                  <Link className="chip" href={`/search?service=${o.slug}&online=1${place ? `&zip=${place.zip}` : ""}`}>
+                    {lang === "es" ? o.es : o.en}
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       </section>

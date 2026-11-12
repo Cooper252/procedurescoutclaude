@@ -9,3 +9,4 @@ data/raw/
 *.parquet
 legacy/
 .duckdb_extensions/
+apps/web/public/ocr/

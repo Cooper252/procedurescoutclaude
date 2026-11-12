@@ -20,7 +20,7 @@ Social Worker,Clinical,mental_health,Cooper,2026-11-09,
 Clinic/Center,Mental Health (Including Community Mental Health Center),mental_health,Cooper,2026-11-09,
 Family Medicine,*,physician_office,Cooper,2026-11-09,
 Internal Medicine,*,physician_office,Cooper,2026-11-09,
-Pediatrics,*,physician_office,Cooper,2026-11-09,
+Pediatrics,*,pediatrics,"Claude (delegated by Cooper, D-061)",2026-11-12,"NUCC ""Pediatrics"" (all specializations): its own type, not general doctor's office (Cooper, 2026-11-12)"
 Dermatology,*,physician_office,Cooper,2026-11-09,
 Clinic/Center,Primary Care,physician_office,Cooper,2026-11-09,
 Clinic/Center,Multi-Specialty,physician_office,Cooper,2026-11-09,
@@ -53,3 +53,36 @@ Anesthesiology,Pain Medicine,pain_medicine,"Cooper (asked for specialists and ps
 Clinic/Center,Oncology,oncology,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,NUCC classification/specialization
 Dentist,Orthodontics and Dentofacial Orthopedics,orthodontics,"Cooper (asked for dental, orthodontic and oral surgery templates, 2026-11-11)",2026-11-11,NUCC classification/specialization
 Dentist,Oral and Maxillofacial Surgery,oral_surgery,"Cooper (asked for dental, orthodontic and oral surgery templates, 2026-11-11)",2026-11-11,NUCC classification/specialization
+Nurse Practitioner,Family,physician_office,"Claude (delegated by Cooper, D-061)",2026-11-12,"NUCC provider taxonomy classification/specialization name; a name NUCC doesn't use is reported by the loader, never guessed"
+Nurse Practitioner,Primary Care,physician_office,"Claude (delegated by Cooper, D-061)",2026-11-12,"NUCC provider taxonomy classification/specialization name; a name NUCC doesn't use is reported by the loader, never guessed"
+Nurse Practitioner,Adult Health,physician_office,"Claude (delegated by Cooper, D-061)",2026-11-12,"NUCC provider taxonomy classification/specialization name; a name NUCC doesn't use is reported by the loader, never guessed"
+Nurse Practitioner,Pediatrics,pediatrics,"Claude (delegated by Cooper, D-061)",2026-11-12,"NUCC provider taxonomy classification/specialization name; a name NUCC doesn't use is reported by the loader, never guessed"
+Nurse Practitioner,Women's Health,obgyn,"Claude (delegated by Cooper, D-061)",2026-11-12,"NUCC provider taxonomy classification/specialization name; a name NUCC doesn't use is reported by the loader, never guessed"
+Nurse Practitioner,Psych/Mental Health,psychiatry,"Claude (delegated by Cooper, D-061)",2026-11-12,"NUCC provider taxonomy classification/specialization name; a name NUCC doesn't use is reported by the loader, never guessed"
+Physician Assistant,Medical,physician_office,"Claude (delegated by Cooper, D-061)",2026-11-12,"NUCC provider taxonomy classification/specialization name; a name NUCC doesn't use is reported by the loader, never guessed"
+Clinic/Center,Federally Qualified Health Center (FQHC),community_health_center,"Claude (delegated by Cooper, D-061)",2026-11-12,"NUCC provider taxonomy classification/specialization name; a name NUCC doesn't use is reported by the loader, never guessed"
+Clinic/Center,Rural Health,community_health_center,"Claude (delegated by Cooper, D-061)",2026-11-12,"NUCC provider taxonomy classification/specialization name; a name NUCC doesn't use is reported by the loader, never guessed"
+Pharmacy,*,pharmacy,"Claude (delegated by Cooper, D-061)",2026-11-12,"NUCC provider taxonomy classification/specialization name; a name NUCC doesn't use is reported by the loader, never guessed"
+Advanced Practice Midwife,*,midwife,"Claude (delegated by Cooper, D-061)",2026-11-12,"NUCC provider taxonomy classification/specialization name; a name NUCC doesn't use is reported by the loader, never guessed"
+Midwife,*,midwife,"Claude (delegated by Cooper, D-061)",2026-11-12,"NUCC provider taxonomy classification/specialization name; a name NUCC doesn't use is reported by the loader, never guessed"
+Clinic/Center,Birthing,birth_center,"Claude (delegated by Cooper, D-061)",2026-11-12,"NUCC provider taxonomy classification/specialization name; a name NUCC doesn't use is reported by the loader, never guessed"
+Surgery,*,general_surgery,"Claude (delegated by Cooper, D-061)",2026-11-12,"NUCC provider taxonomy classification/specialization name; a name NUCC doesn't use is reported by the loader, never guessed"
+Neurological Surgery,*,neurosurgery,"Claude (delegated by Cooper, D-061)",2026-11-12,"NUCC provider taxonomy classification/specialization name; a name NUCC doesn't use is reported by the loader, never guessed"
+Speech-Language Pathologist,*,speech_therapy,"Claude (delegated by Cooper, D-061)",2026-11-12,"NUCC provider taxonomy classification/specialization name; a name NUCC doesn't use is reported by the loader, never guessed"
+Occupational Therapist,*,occupational_therapy,"Claude (delegated by Cooper, D-061)",2026-11-12,"NUCC provider taxonomy classification/specialization name; a name NUCC doesn't use is reported by the loader, never guessed"
+"Dietitian, Registered",*,dietitian,"Claude (delegated by Cooper, D-061)",2026-11-12,"NUCC provider taxonomy classification/specialization name; a name NUCC doesn't use is reported by the loader, never guessed"
+Acupuncturist,*,acupuncture,"Claude (delegated by Cooper, D-061)",2026-11-12,"NUCC provider taxonomy classification/specialization name; a name NUCC doesn't use is reported by the loader, never guessed"
+Behavior Analyst,*,aba_therapy,"Claude (delegated by Cooper, D-061)",2026-11-12,"NUCC provider taxonomy classification/specialization name; a name NUCC doesn't use is reported by the loader, never guessed"
+Substance Abuse Rehabilitation Facility,*,addiction_treatment,"Claude (delegated by Cooper, D-061)",2026-11-12,"NUCC provider taxonomy classification/specialization name; a name NUCC doesn't use is reported by the loader, never guessed"
+Clinic/Center,End-Stage Renal Disease (ESRD) Treatment,dialysis_center,"Claude (delegated by Cooper, D-061)",2026-11-12,"NUCC provider taxonomy classification/specialization name; a name NUCC doesn't use is reported by the loader, never guessed"
+Clinic/Center,Infusion Therapy,infusion_center,"Claude (delegated by Cooper, D-061)",2026-11-12,"NUCC provider taxonomy classification/specialization name; a name NUCC doesn't use is reported by the loader, never guessed"
+Home Health,*,home_health,"Claude (delegated by Cooper, D-061)",2026-11-12,"NUCC provider taxonomy classification/specialization name; a name NUCC doesn't use is reported by the loader, never guessed"
+"Hospice Care, Community Based",*,hospice,"Claude (delegated by Cooper, D-061)",2026-11-12,"NUCC provider taxonomy classification/specialization name; a name NUCC doesn't use is reported by the loader, never guessed"
+Skilled Nursing Facility,*,nursing_home,"Claude (delegated by Cooper, D-061)",2026-11-12,"NUCC provider taxonomy classification/specialization name; a name NUCC doesn't use is reported by the loader, never guessed"
+Durable Medical Equipment & Medical Supplies,*,medical_equipment,"Claude (delegated by Cooper, D-061)",2026-11-12,"NUCC provider taxonomy classification/specialization name; a name NUCC doesn't use is reported by the loader, never guessed"
+Marriage & Family Therapist,*,mental_health,"Claude (delegated by Cooper, D-061)",2026-11-12,"NUCC provider taxonomy classification/specialization name; a name NUCC doesn't use is reported by the loader, never guessed"
+Clinic/Center,Magnetic Resonance Imaging (MRI),imaging_center,"Claude (delegated by Cooper, D-061)",2026-11-12,"NUCC provider taxonomy classification/specialization name; a name NUCC doesn't use is reported by the loader, never guessed"
+Clinic/Center,"Radiology, Mammography",imaging_center,"Claude (delegated by Cooper, D-061)",2026-11-12,"NUCC provider taxonomy classification/specialization name; a name NUCC doesn't use is reported by the loader, never guessed"
+Clinic/Center,Endoscopy,surgery_center,"Claude (delegated by Cooper, D-061)",2026-11-12,"NUCC provider taxonomy classification/specialization name; a name NUCC doesn't use is reported by the loader, never guessed"
+Clinic/Center,Sleep Disorder Diagnostic,sleep_medicine,"Claude (delegated by Cooper, D-061)",2026-11-12,"NUCC provider taxonomy classification/specialization name; a name NUCC doesn't use is reported by the loader, never guessed"
+Clinic/Center,"Oncology, Radiation",oncology,"Claude (delegated by Cooper, D-061)",2026-11-12,"NUCC provider taxonomy classification/specialization name; a name NUCC doesn't use is reported by the loader, never guessed"

@@ -46,6 +46,12 @@ class PublishedPrice:
     methodology: str | None
     dataset_version_id: str
     quality_flags: tuple[str, ...] = ()
+    # as the hospital published them (Cooper, 2026-11-12: seven rates for one
+    # plan and no way to tell them apart): 'facility' (the hospital's part),
+    # 'professional' (the doctor's part) or 'both'; billing modifiers; other codes
+    billing_class: str | None = None
+    modifiers: tuple[str, ...] = ()
+    other_codes: tuple[str, ...] = ()
 
 
 def find_prices(
@@ -93,19 +99,31 @@ def find_prices(
         return []
     paths = [store.local_path(k) for k in keys]
     with store.duckdb() as duck:
+        # billing class, modifiers and other codes are read when the files have
+        # them (every file written by parquet_io does; a hand-made one may not)
+        have = {
+            str(r[0])
+            for r in duck.execute(
+                "DESCRIBE SELECT * FROM read_parquet(?, union_by_name = true)", [paths]
+            ).fetchall()
+        }
+        extra = ", ".join(
+            c if c in have else f"NULL AS {c}"
+            for c in ("billing_class", "modifiers", "other_codes")
+        )
         rows = duck.execute(
-            """
+            f"""
             SELECT facility_id, price_source, code_system, code, description_raw, setting,
                    price_type, payer_name_raw, plan_name_raw, amount, percentage, algorithm,
-                   methodology, dataset_version_id, quality_flags
-            FROM read_parquet(?)
+                   methodology, dataset_version_id, quality_flags, {extra}
+            FROM read_parquet(?, union_by_name = true)
             WHERE code_system = ? AND code = ?
               AND (len(?::VARCHAR[]) = 0 OR list_contains(?::VARCHAR[], price_type))
             QUALIFY row_number() OVER (
                 PARTITION BY facility_id ORDER BY price_type, payer_name_raw, plan_name_raw
             ) <= ?
             ORDER BY facility_id, price_type, payer_name_raw, plan_name_raw
-            """,
+            """,  # noqa: S608 (column names come from a fixed list)
             [paths, system.value, code, types, types, limit],
         ).fetchall()
     return [
@@ -125,6 +143,9 @@ def find_prices(
             methodology=r[12],
             dataset_version_id=r[13],
             quality_flags=tuple(f for f in (r[14] or "").split("|") if f),
+            billing_class=r[15],
+            modifiers=tuple(m for m in (r[16] or "").split("|") if m),
+            other_codes=tuple(c for c in (r[17] or "").split("|") if c),
         )
         for r in rows
     ]

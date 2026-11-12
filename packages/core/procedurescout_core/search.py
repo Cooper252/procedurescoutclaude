@@ -19,7 +19,7 @@ from sqlalchemy import Connection, text
 
 from .enums import CodeSystem
 from .object_store import ObjectStore
-from .plans import PlanError, all_plans_spellings, approved_spellings, matches
+from .plans import PlanError, all_plans_spellings, approved_spellings, insurer_spellings, matches
 from .price_store import PublishedPrice, find_prices
 from .pricing import (
     MODE_PRICE_TYPE,
@@ -27,6 +27,7 @@ from .pricing import (
     Headline,
     Typical,
     badges,
+    doctor_fee,
     headline,
     percent_change,
     typical,
@@ -82,6 +83,7 @@ class FacilityResult:
     # insurance search: this place lists no rate for that insurance, so its cash
     # price is shown instead, labeled (Cooper, 2026-11-12)
     no_plan_rate: bool = False
+    doctor_fee: Headline | None = None  # the doctor's part, published separately
     special: Special | None = None  # provider special on its own regular price (D-042)
     delivery: str | None = None  # provider price: 'in_person', 'online' or 'both'
 
@@ -98,6 +100,7 @@ class SearchResult:
     typical: Typical | None = None
     all_plans_spellings: frozenset[tuple[str, str]] = frozenset()
     code_description: str | None = None  # hospitals' own wording for a searched code
+    insurer_unsure: str | None = None  # insurer name when searching all its plans
 
 
 def _codes_for_service(
@@ -156,6 +159,7 @@ def search(
     plan_id: str | None = None,
     payer_raw: str | None = None,
     online_only: bool = False,
+    payer_id: str | None = None,
 ) -> SearchResult:
     if (service_slug is None) == (code is None):
         raise SearchError("give either a service or a code, not both")
@@ -167,10 +171,11 @@ def search(
         raise SearchError(f"radius must be 1 to {MAX_RADIUS_MILES} miles")
     if mode not in MODE_PRICE_TYPE:
         raise SearchError("mode must be cash, list or plan")
-    if (mode == "plan") != (plan_id is not None or payer_raw is not None):
+    chosen = [x for x in (plan_id, payer_raw, payer_id) if x is not None]
+    if (mode == "plan") != bool(chosen):
         raise SearchError("a plan is needed for plan prices (and only for them)")
-    if plan_id is not None and payer_raw is not None:
-        raise SearchError("give a plan or an insurer name as written, not both")
+    if len(chosen) > 1:
+        raise SearchError("give one plan, insurer or insurer name as written, not several")
     payer_key: str | None = None
     if payer_raw is not None:
         from .matching import normalize_name
@@ -192,6 +197,14 @@ def search(
         except PlanError as exc:
             raise SearchError(str(exc)) from exc
         fallback = all_plans_spellings(conn, plan_id)
+    insurer_name: str | None = None
+    if payer_id is not None:
+        # "not sure which plan": every approved work and individual plan of this
+        # insurer; shown as a range and labeled, never as one plan's price
+        try:
+            insurer_name, spellings = insurer_spellings(conn, payer_id)
+        except PlanError as exc:
+            raise SearchError(str(exc)) from exc
     if not 1 <= max_facilities <= MAX_FACILITIES:
         raise SearchError(f"max_facilities must be 1 to {MAX_FACILITIES}")
     kinds = _kinds(conn, provider_type)
@@ -212,6 +225,18 @@ def search(
             {"s": codes[0][0], "c": codes[0][1]},
         ).scalar()
 
+    # online visits (Cooper, 2026-11-12): distance doesn't matter for a video
+    # visit, but clinicians are licensed by state, so the whole state is searched
+    online_state: str | None = None
+    if online_only:
+        online_state = conn.execute(
+            text(
+                "SELECT state_code FROM ref.zcta "
+                "ORDER BY geom <-> CAST(ST_SetSRID(ST_MakePoint(:lng, :lat), 4326) AS geography) "
+                "LIMIT 1"
+            ),
+            {"lat": latitude, "lng": longitude},
+        ).scalar()
     facilities = conn.execute(
         text(
             """
@@ -224,6 +249,7 @@ def search(
             ),
             answers AS (
                 SELECT pf.facility_id AS id FROM price.published_file pf
+                WHERE CAST(:ostate AS text) IS NULL
                 UNION
                 SELECT pl.facility_id FROM prov.published_listing pl
                 WHERE pl.service_slug = CAST(:slug AS text)
@@ -233,14 +259,17 @@ def search(
                 (SELECT f.id FROM ref.facility f, p
                  WHERE f.id IN (SELECT id FROM answers)
                    AND f.geom IS NOT NULL AND f.status = 'active'
-                   AND ST_DWithin(f.geom, p.pt, :meters)
+                   AND (CASE WHEN CAST(:ostate AS text) IS NULL
+                             THEN ST_DWithin(f.geom, p.pt, :meters)
+                             ELSE f.state_code = CAST(:ostate AS text) END)
                    AND (cardinality(CAST(:kinds AS text[])) = 0 OR EXISTS (
                         SELECT 1 FROM ref.facility_provider_type x
                         WHERE x.facility_id = f.id
                           AND x.provider_type = ANY(CAST(:kinds AS text[])))))
                 UNION
                 (SELECT f.id FROM ref.facility f, p
-                 WHERE f.geom IS NOT NULL AND f.status = 'active'
+                 WHERE CAST(:ostate AS text) IS NULL
+                   AND f.geom IS NOT NULL AND f.status = 'active'
                    AND ST_DWithin(f.geom, p.pt, :meters)
                    AND (cardinality(CAST(:kinds AS text[])) = 0 OR EXISTS (
                         SELECT 1 FROM ref.facility_provider_type x
@@ -274,6 +303,7 @@ def search(
             "n": max_facilities,
             "slug": service_slug,
             "codes": [f"{sys_}:{c}" for sys_, c in codes],
+            "ostate": online_state if online_only else None,
         },
     ).all()
     ids = [str(f[0]) for f in facilities]
@@ -296,7 +326,7 @@ def search(
     # only the price types this search shows: cash and list for every mode, plus
     # insurer rates when searching by plan or insurer
     wanted_types = ["discounted_cash", "gross"]
-    if mode == "plan" or plan_id is not None or payer_key is not None:
+    if mode == "plan":
         wanted_types.append("negotiated")
     # online visits: only providers who price this service online (hospital
     # files don't say whether a price is for a video visit)
@@ -344,6 +374,11 @@ def search(
                 uses_all_plans.add(fid)
             filtered[fid] = [p for p in rows if p.price_type != "negotiated"] + pool
         by_facility = filtered
+    if payer_id is not None:
+        by_facility = {
+            fid: [p for p in rows if p.price_type != "negotiated" or matches(p, spellings)]
+            for fid, rows in by_facility.items()
+        }
     if payer_key is not None:
         # rates published under exactly this insurer spelling, shown as written (D-046)
         from .matching import normalize_name
@@ -383,6 +418,8 @@ def search(
     def change(fid: str) -> Decimal | None:
         now = heads.get(fid)
         rows = previous.get(fid, [])
+        if payer_id is not None:
+            rows = [p for p in rows if p.price_type != "negotiated" or matches(p, spellings)]
         if plan_id is not None:
             wanted = fallback if fid in uses_all_plans else spellings
             rows = [p for p in rows if p.price_type != "negotiated" or matches(p, wanted)]
@@ -418,6 +455,10 @@ def search(
             ),
             badges=badges(heads.get(str(f[0])), present, typ, cash_heads.get(str(f[0]))),
             no_plan_rate=str(f[0]) in cash_instead,
+            doctor_fee=doctor_fee(
+                by_facility.get(str(f[0]), ()),
+                "cash" if str(f[0]) in cash_instead else mode,
+            ),
             change_percent=change(str(f[0])),
             all_plans_rate=str(f[0]) in uses_all_plans,
             special=specials.get(str(f[0])),
@@ -440,6 +481,7 @@ def search(
         typical=typ,
         all_plans_spellings=frozenset(fallback),
         code_description=code_description,
+        insurer_unsure=insurer_name,
     )
 
 
@@ -521,6 +563,9 @@ class Suggestion:
     kind: str = "service"  # or "code": a billing code from published prices (D-045)
     code_system: str | None = None
     code: str | None = None
+    # a short plain explanation of the service (Cooper, 2026-11-12); for a code,
+    # the hospitals' own wording when the name shown is ours
+    about: str | None = None
 
 
 def suggest(conn: Connection, query: str, limit: int = 8) -> list[Suggestion]:
@@ -536,25 +581,29 @@ def suggest(conn: Connection, query: str, limit: int = 8) -> list[Suggestion]:
     rows = conn.execute(
         text(
             """
-            SELECT p.slug, p.consumer_name, p.unit, m.matched, min(m.rank) AS r
+            SELECT p.slug, p.consumer_name, p.unit, m.matched, min(m.rank) AS r, p.includes
             FROM ref.procedure p
             JOIN (
                 SELECT id AS pid, consumer_name AS matched,
-                       CASE WHEN lower(consumer_name) LIKE :prefix THEN 0 ELSE 1 END AS rank
+                       CASE WHEN lower(consumer_name) = :q THEN -1
+                            WHEN lower(consumer_name) LIKE :prefix THEN 0 ELSE 1 END AS rank
                 FROM ref.procedure WHERE lower(consumer_name) LIKE :like
                 UNION ALL
                 SELECT procedure_id, term,
-                       CASE WHEN term_normalized LIKE :prefix THEN 0 ELSE 2 END
+                       -- an exact everyday word ("birth") beats a longer one that
+                       -- starts the same way ("birth control coil")
+                       CASE WHEN term_normalized = :q THEN -1
+                            WHEN term_normalized LIKE :prefix THEN 0 ELSE 2 END
                 FROM ref.procedure_synonym
                 WHERE review_state = 'approved' AND term_normalized LIKE :like
             ) m ON m.pid = p.id
             WHERE p.review_state = 'approved' AND p.slug IS NOT NULL
-            GROUP BY p.slug, p.consumer_name, p.unit, m.matched
-            ORDER BY r, p.consumer_name
+            GROUP BY p.slug, p.consumer_name, p.unit, m.matched, p.includes
+            ORDER BY r, length(m.matched), p.consumer_name
             LIMIT :n
             """
         ),
-        {"like": like, "prefix": q + "%", "n": max(1, min(limit, 20))},
+        {"like": like, "prefix": q + "%", "q": q, "n": max(1, min(limit, 20))},
     ).all()
     seen: set[str] = set()
     out = []
@@ -562,10 +611,17 @@ def suggest(conn: Connection, query: str, limit: int = 8) -> list[Suggestion]:
         if r[0] in seen:
             continue
         seen.add(str(r[0]))
-        out.append(Suggestion(str(r[0]), str(r[1]), str(r[2]), str(r[3])))
+        out.append(Suggestion(str(r[0]), str(r[1]), str(r[2]), str(r[3]), about=r[5]))
     room = max(0, max(1, min(limit, 20)) - len(out))
     if room:
-        out.extend(_code_suggestions(conn, query.strip(), q, room))
+        # codes come after services (Cooper, 2026-11-12), and a code that belongs
+        # to a service already suggested isn't listed again
+        out.extend(
+            c
+            for c in _code_suggestions(conn, query.strip(), q, room + len(out))
+            if c.slug not in seen
+        )
+        out = out[: max(1, min(limit, 20))]
     return out
 
 
@@ -597,32 +653,113 @@ def _code_suggestions(conn: Connection, raw: str, normalized: str, n: int) -> li
         ).all()
     else:
         return []
-    return [
-        Suggestion(
-            slug=f"code:{r[0]}:{r[1]}",
-            name=str(r[2] or f"{r[0]} {r[1]}"),
-            unit="per_service",
-            matched=f"{r[0]} {r[1]}",
-            kind="code",
-            code_system=str(r[0]),
-            code=str(r[1]),
+    if not rows:
+        return []
+    from .code_names import drg_plain
+
+    pairs = [f"{r[0]}:{r[1]}" for r in rows]
+    # a code that belongs to an approved service: suggest the service instead
+    services = {
+        str(x[0]): (str(x[1]), str(x[2]), str(x[3]), x[4])
+        for x in conn.execute(
+            text(
+                """
+                SELECT DISTINCT ON (pc.code_system::text || ':' || pc.code)
+                       pc.code_system::text || ':' || pc.code, p.slug, p.consumer_name, p.unit,
+                       p.includes
+                FROM ref.procedure_code pc JOIN ref.procedure p ON p.id = pc.procedure_id
+                WHERE pc.review_state = 'approved' AND p.review_state = 'approved'
+                  AND p.slug IS NOT NULL
+                  AND pc.code_system::text || ':' || pc.code = ANY(:pairs)
+                ORDER BY pc.code_system::text || ':' || pc.code, p.consumer_name
+                """
+            ),
+            {"pairs": pairs},
+        ).all()
+    }
+    titles = {
+        str(x[0]): str(x[1])
+        for x in conn.execute(
+            text(
+                """
+                SELECT DISTINCT ON (code) code, descriptor FROM ref.code
+                WHERE system = 'MS-DRG' AND descriptor IS NOT NULL AND code = ANY(:codes)
+                ORDER BY code, version DESC
+                """
+            ),
+            {"codes": [str(r[1]) for r in rows if str(r[0]) == "MS-DRG"]},
+        ).all()
+    }
+    out: list[Suggestion] = []
+    for r in rows:
+        key = f"{r[0]}:{r[1]}"
+        if key in services:
+            slug, name, unit, about = services[key]
+            out.append(Suggestion(slug, name, unit, f"{r[0]} {r[1]}", about=about))
+            continue
+        wording = str(r[2] or f"{r[0]} {r[1]}")
+        plain = drg_plain(titles[str(r[1])]) if str(r[1]) in titles else None
+        out.append(
+            Suggestion(
+                slug=f"code:{r[0]}:{r[1]}",
+                name=plain or wording,
+                unit="per_service",
+                matched=f"{r[0]} {r[1]}",
+                kind="code",
+                code_system=str(r[0]),
+                code=str(r[1]),
+                about=wording if plain else None,
+            )
         )
-        for r in rows
-    ]
+    return out
 
 
-def payer_suggestions(conn: Connection, query: str, limit: int = 10) -> list[tuple[str, int]]:
-    """Insurer names exactly as hospitals wrote them (raw text, number of places)."""
+def payer_suggestions(
+    conn: Connection, query: str, limit: int = 10, facility_ids: list[str] | None = None
+) -> list[tuple[str, int]]:
+    """Insurer names exactly as hospitals wrote them (raw text, number of places).
+    With facility_ids (places near the person), only names those places
+    published, leaving out names already matched to an insurer on the card list
+    (Cooper, 2026-11-12: "Blue Cross" listed insurers from every state)."""
     from .matching import normalize_name
 
     q = normalize_name(query)
     if len(q) < 2 or len(q) > 60:
         return []
+    n = max(1, min(limit, 20))
+    if facility_ids is not None:
+        if not facility_ids:
+            return []
+        rows = conn.execute(
+            text(
+                "SELECT payer_name_raw, count(DISTINCT facility_id) FROM price.published_payer "
+                "WHERE facility_id = ANY(CAST(:ids AS uuid[])) GROUP BY payer_name_raw"
+            ),
+            {"ids": facility_ids},
+        ).all()
+        matched = {
+            str(r[0])
+            for r in conn.execute(
+                text(
+                    "SELECT DISTINCT raw_payer_normalized FROM ref.plan_alias "
+                    "WHERE review_state = 'approved'"
+                )
+            ).all()
+        }
+        counts: dict[str, tuple[str, int]] = {}
+        for raw, places in rows:
+            key = normalize_name(str(raw))
+            if q not in key or key in matched:
+                continue
+            name, total = counts.get(key, (str(raw), 0))
+            counts[key] = (name, total + int(places))
+        best = sorted(counts.values(), key=lambda v: (-v[1], v[0]))
+        return best[:n]
     rows = conn.execute(
         text(
             "SELECT raw_text, facilities FROM ref.payer_index WHERE raw_normalized LIKE :p "
             "ORDER BY facilities DESC, prices DESC LIMIT :n"
         ),
-        {"p": "%" + q.replace("%", "").replace("_", "") + "%", "n": max(1, min(limit, 20))},
+        {"p": "%" + q.replace("%", "").replace("_", "") + "%", "n": n},
     ).all()
     return [(str(r[0]), int(r[1])) for r in rows]

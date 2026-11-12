@@ -19,7 +19,7 @@ psychiatry,Psychiatrist,human,"Cooper (asked for specialists and psychiatrists, 
 dermatology,Skin doctor (dermatologist),human,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,Specialists,hmo
 cardiology,Heart doctor (cardiologist),human,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,Specialists,hmo
 orthopedics,Bone and joint doctor (orthopedics),human,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,Specialists,hmo
-obgyn,Women's health (OB-GYN),human,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,Specialists,none
+obgyn,Women's health (OB-GYN),human,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,Pregnancy and birth,none
 ent,"Ear, nose and throat (ENT)",human,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,Specialists,hmo
 gastroenterology,Digestive doctor (gastroenterologist),human,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,Specialists,hmo
 urology,Urologist,human,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,Specialists,hmo
@@ -36,3 +36,22 @@ fertility,Fertility clinic,human,"Cooper (asked for specialists and psychiatrist
 plastic_surgery,Plastic and cosmetic surgeon,human,"Cooper (asked for specialists and psychiatrists, 2026-11-11)",2026-11-11,Cosmetic and weight loss,none
 orthodontics,Orthodontist (braces and aligners),human,"Cooper (asked for dental, orthodontic and oral surgery templates, 2026-11-11)",2026-11-11,"Dental, eye and hearing",none
 oral_surgery,Oral surgeon,human,"Cooper (asked for dental, orthodontic and oral surgery templates, 2026-11-11)",2026-11-11,"Dental, eye and hearing",none
+pediatrics,Pediatrician (children's doctor),human,"Claude (delegated by Cooper, D-061); Cooper asked for every major type of medical facility or office",2026-11-12,Everyday care,none
+community_health_center,Community health center (low-cost clinic),human,"Claude (delegated by Cooper, D-061); Cooper asked for every major type of medical facility or office",2026-11-12,Everyday care,none
+pharmacy,Pharmacy,human,"Claude (delegated by Cooper, D-061); Cooper asked for every major type of medical facility or office",2026-11-12,Everyday care,none
+midwife,Midwife,human,"Claude (delegated by Cooper, D-061); Cooper asked for every major type of medical facility or office",2026-11-12,Pregnancy and birth,none
+birth_center,Birth center,human,"Claude (delegated by Cooper, D-061); Cooper asked for every major type of medical facility or office",2026-11-12,Pregnancy and birth,none
+general_surgery,General surgeon,human,"Claude (delegated by Cooper, D-061); Cooper asked for every major type of medical facility or office",2026-11-12,Specialists,hmo
+neurosurgery,Brain and spine surgeon (neurosurgeon),human,"Claude (delegated by Cooper, D-061); Cooper asked for every major type of medical facility or office",2026-11-12,Specialists,hmo
+speech_therapy,Speech therapist,human,"Claude (delegated by Cooper, D-061); Cooper asked for every major type of medical facility or office",2026-11-12,Therapy and wellness,
+occupational_therapy,Occupational therapist,human,"Claude (delegated by Cooper, D-061); Cooper asked for every major type of medical facility or office",2026-11-12,Therapy and wellness,
+dietitian,Dietitian (nutrition),human,"Claude (delegated by Cooper, D-061); Cooper asked for every major type of medical facility or office",2026-11-12,Therapy and wellness,
+acupuncture,Acupuncturist,human,"Claude (delegated by Cooper, D-061); Cooper asked for every major type of medical facility or office",2026-11-12,Therapy and wellness,none
+aba_therapy,Autism and behavior therapy (ABA),human,"Claude (delegated by Cooper, D-061); Cooper asked for every major type of medical facility or office",2026-11-12,Mental health,
+addiction_treatment,Addiction treatment center,human,"Claude (delegated by Cooper, D-061); Cooper asked for every major type of medical facility or office",2026-11-12,Mental health,none
+dialysis_center,Dialysis center,human,"Claude (delegated by Cooper, D-061); Cooper asked for every major type of medical facility or office",2026-11-12,Tests and treatment,
+infusion_center,Infusion center,human,"Claude (delegated by Cooper, D-061); Cooper asked for every major type of medical facility or office",2026-11-12,Tests and treatment,
+home_health,Home health care,human,"Claude (delegated by Cooper, D-061); Cooper asked for every major type of medical facility or office",2026-11-12,Senior and home care,
+hospice,Hospice,human,"Claude (delegated by Cooper, D-061); Cooper asked for every major type of medical facility or office",2026-11-12,Senior and home care,none
+nursing_home,Nursing home (skilled nursing),human,"Claude (delegated by Cooper, D-061); Cooper asked for every major type of medical facility or office",2026-11-12,Senior and home care,
+medical_equipment,Medical equipment and supplies,human,"Claude (delegated by Cooper, D-061); Cooper asked for every major type of medical facility or office",2026-11-12,Senior and home care,

@@ -18,6 +18,7 @@ from collections.abc import Iterator
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Annotated, Any
+from urllib.parse import urlparse
 
 from fastapi import (
     APIRouter,
@@ -274,8 +275,60 @@ def event(body: EventIn, request: Request) -> Response:
     return Response(status_code=204)
 
 
+class VisitIn(BaseModel):
+    page: str = Field(pattern="^[a-z_]{1,30}$")
+    lang: str = Field(default="en", pattern="^(en|es)$")
+    referrer: str | None = Field(default=None, max_length=500)
+    event: str | None = Field(default=None, pattern="^(whole_cost)$")
+
+
+@router.post("/visit", status_code=204)
+def visit(body: VisitIn, request: Request) -> Response:
+    """Count a page view for the owner's analytics (site_stats.py): daily totals
+    only, no cookies, no addresses. Bots and Do Not Track are not counted."""
+    from procedurescout_core import site_stats
+
+    from .ratelimit import public_ip
+
+    engine = portal_engine()
+    ua = request.headers.get("user-agent", "")
+    if engine is None or not ua or _BOT.search(ua) or request.headers.get("dnt") == "1":
+        return Response(status_code=204)
+    try:
+        with engine.begin() as conn:
+            if body.event:
+                site_stats.bump(conn, body.event)
+                return Response(status_code=204)
+            ip = public_ip(request)
+            secret = get_settings().portal_secret
+            code = (
+                site_stats.visitor_code(secret, datetime.now(UTC).date(), ip, ua)
+                if ip and len(secret) >= 16
+                else None
+            )
+            own = (urlparse(get_settings().site_url).hostname or "").removeprefix("www.")
+            site_stats.record_visit(
+                conn,
+                page=body.page,
+                lang=body.lang,
+                user_agent=ua,
+                referrer=body.referrer,
+                own_host=own,
+                visitor=code,
+            )
+    except Exception:  # counting must never break the page
+        log.exception("could not count a visit")
+    return Response(status_code=204)
+
+
 def count_search(
-    key: str | None, lat: Decimal, lng: Decimal, shown: list[str], user_agent: str
+    key: str | None,
+    lat: Decimal,
+    lng: Decimal,
+    shown: list[str],
+    user_agent: str,
+    kind: str = "cash",
+    no_prices: bool = False,
 ) -> None:
     """Called after a search answers (background); never raises."""
     engine = portal_engine()
@@ -284,6 +337,11 @@ def count_search(
     try:
         with engine.begin() as conn:
             stats.record_search(conn, key, lat, lng, shown)
+            from procedurescout_core import site_stats
+
+            site_stats.bump(conn, "search", kind)
+            if no_prices:
+                site_stats.bump(conn, "search_no_prices", key.replace("svc:", "")[:120])
     except Exception:
         log.exception("could not count a search")
 

@@ -26,7 +26,7 @@ from procedurescout_core.db_url import sqlalchemy_url
 from procedurescout_core.facilities import facility_detail, facility_prices
 from procedurescout_core.object_store import ObjectStore, open_store
 from procedurescout_core.places import City, PlaceError, cities, city
-from procedurescout_core.plans import list_plans, matches
+from procedurescout_core.plans import list_plans, matches, nearby_published, plans_near
 from procedurescout_core.price_store import PriceQueryError, PublishedPrice
 from procedurescout_core.search import (
     SearchError,
@@ -73,6 +73,7 @@ class Service(BaseModel):
     name: str
     category: str | None
     unit: str
+    about: str | None = None  # a short plain explanation (Cooper, 2026-11-12)
 
 
 class ProviderType(BaseModel):
@@ -95,6 +96,10 @@ class Price(BaseModel):
     algorithm: str | None
     methodology: str | None
     plan_match: str | None = None  # "plan" or "all_plans" (insurer's one rate for all plans)
+    # as published: facility (the hospital's part), professional (the doctor's
+    # part) or both; billing modifiers (e.g. 26, TC)
+    billing_class: str | None = None
+    modifiers: list[str] = []
 
 
 class SpecialOut(BaseModel):
@@ -130,6 +135,9 @@ class FacilityOut(BaseModel):
     plan_rate_is_all_plans: bool = False
     # insurance search: no rate listed for that insurance here, cash price shown
     no_plan_rate: bool = False
+    # the doctor's part, when the hospital published it apart from its own part
+    doctor_fee: str | None = None
+    doctor_fee_highest: str | None = None
     special: SpecialOut | None = None
     delivery: str | None = None  # provider price: in_person, online or both
     rating_average: str | None = None  # patient reviews (D-050), never affects order
@@ -162,6 +170,9 @@ class SearchOut(BaseModel):
     note: str | None
     mode: str
     code_description: str | None = None
+    # insurer name when the person chose "not sure which plan" (prices are a
+    # range across that insurer's work and individual plans)
+    insurer_unsure: str | None = None
     typical: TypicalOut | None
     facilities: list[FacilityOut]
     sponsored: list[SponsoredOut] = []
@@ -175,6 +186,7 @@ class SuggestionOut(BaseModel):
     kind: str = "service"
     code_system: str | None = None
     code: str | None = None
+    about: str | None = None  # what the service is; for a code, the hospitals' wording
 
 
 @router.get("/services/suggest", response_model=list[SuggestionOut])
@@ -191,6 +203,7 @@ def services_suggest(
             kind=s.kind,
             code_system=s.code_system,
             code=s.code,
+            about=s.about,
         )
         for s in suggest(conn, q)
     ]
@@ -304,11 +317,26 @@ class PlanOut(BaseModel):
     plan: str
     product_type: str
     segment: str
+    payer_id: str = ""
 
 
 @router.get("/plans", response_model=list[PlanOut])
-def plans(conn: Conn) -> list[PlanOut]:
-    """Plans by the names on people's cards that have approved hospital spellings."""
+def plans(
+    conn: Conn,
+    lat: Annotated[Decimal | None, Query(ge=-90, le=90)] = None,
+    lng: Annotated[Decimal | None, Query(ge=-180, le=180)] = None,
+    radius_miles: Annotated[Decimal, Query(ge=1, le=100)] = Decimal(50),
+) -> list[PlanOut]:
+    """Plans by the names on people's cards that have approved hospital spellings.
+    With lat/lng, only plans that places within the distance published prices
+    for (Cooper, 2026-11-12: "Blue Cross" listed plans from every state)."""
+    if (lat is None) != (lng is None):
+        raise HTTPException(status_code=422, detail="give both lat and lng, or neither")
+    found = (
+        list_plans(conn)
+        if lat is None or lng is None
+        else plans_near(conn, nearby_published(conn, lat, lng, radius_miles))
+    )
     return [
         PlanOut(
             plan_id=p.plan_id,
@@ -316,8 +344,9 @@ def plans(conn: Conn) -> list[PlanOut]:
             plan=p.plan,
             product_type=p.product_type,
             segment=p.segment,
+            payer_id=p.payer_id,
         )
-        for p in list_plans(conn)
+        for p in found
     ]
 
 
@@ -334,6 +363,8 @@ def _price(p: PublishedPrice) -> Price:
         percentage=_s(p.percentage),
         algorithm=p.algorithm,
         methodology=p.methodology,
+        billing_class=p.billing_class,
+        modifiers=list(p.modifiers),
     )
 
 
@@ -361,7 +392,7 @@ def services(
         raise HTTPException(status_code=422, detail="unknown kind of care")
     rows = conn.execute(
         text(
-            "SELECT p.slug, p.consumer_name, p.category, p.unit FROM ref.procedure p "
+            "SELECT p.slug, p.consumer_name, p.category, p.unit, p.includes FROM ref.procedure p "
             "WHERE p.review_state = 'approved' AND p.kind = 'service' "
             "AND (cardinality(CAST(:t AS text[])) = 0 OR EXISTS ("
             "  SELECT 1 FROM ref.procedure_provider_type x "
@@ -370,7 +401,7 @@ def services(
         ),
         {"t": types},
     ).all()
-    return [Service(slug=r[0], name=r[1], category=r[2], unit=r[3]) for r in rows]
+    return [Service(slug=r[0], name=r[1], category=r[2], unit=r[3], about=r[4]) for r in rows]
 
 
 @router.get("/provider-types", response_model=list[ProviderType])
@@ -402,6 +433,7 @@ def search_endpoint(
     plan_id: Annotated[str | None, Query(max_length=36)] = None,
     payer: Annotated[str | None, Query(max_length=200)] = None,
     online: bool = False,
+    payer_id: Annotated[str | None, Query(max_length=36)] = None,
 ) -> SearchOut:
     try:
         result = search(
@@ -418,6 +450,7 @@ def search_endpoint(
             plan_id=plan_id,
             payer_raw=payer,
             online_only=online,
+            payer_id=payer_id,
         )
     except SearchError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
@@ -464,6 +497,9 @@ def search_endpoint(
         lng,
         [f.facility_id for f in result.facilities],
         request.headers.get("user-agent", ""),
+        # what kind of search, for the owner's analytics
+        "online" if online else ("insurance" if mode == "plan" else "cash"),
+        not any(f.headline for f in result.facilities),
     )
     return SearchOut(
         service=result.service_slug,
@@ -473,6 +509,7 @@ def search_endpoint(
         note=result.note,
         mode=result.mode,
         code_description=result.code_description,
+        insurer_unsure=result.insurer_unsure,
         typical=None
         if result.typical is None
         else TypicalOut(
@@ -504,6 +541,8 @@ def search_endpoint(
                 else format(f.change_percent, "f"),
                 plan_rate_is_all_plans=f.all_plans_rate,
                 no_plan_rate=f.no_plan_rate,
+                doctor_fee=_s(f.doctor_fee.amount) if f.doctor_fee else None,
+                doctor_fee_highest=_s(f.doctor_fee.highest) if f.doctor_fee else None,
                 rating_average=ratings.get(f.facility_id, (None, 0))[0],
                 rating_count=ratings.get(f.facility_id, (None, 0))[1],
                 special=None
@@ -612,8 +651,18 @@ class PayerNameOut(BaseModel):
 
 @router.get("/payers/suggest", response_model=list[PayerNameOut])
 def payers_suggest(
-    conn: Conn, q: Annotated[str, Query(min_length=2, max_length=60)]
+    conn: Conn,
+    q: Annotated[str, Query(min_length=2, max_length=60)],
+    lat: Annotated[Decimal | None, Query(ge=-90, le=90)] = None,
+    lng: Annotated[Decimal | None, Query(ge=-180, le=180)] = None,
+    radius_miles: Annotated[Decimal, Query(ge=1, le=100)] = Decimal(50),
 ) -> list[PayerNameOut]:
     """Insurer names exactly as hospitals wrote them, for people whose plan is not
-    in the card-name list yet (D-046)."""
-    return [PayerNameOut(name=n, facilities=f) for n, f in payer_suggestions(conn, q)]
+    in the card-name list yet (D-046). With lat/lng, only names published by
+    places within the distance that aren't matched to a card name already."""
+    if (lat is None) != (lng is None):
+        raise HTTPException(status_code=422, detail="give both lat and lng, or neither")
+    ids = None if lat is None or lng is None else nearby_published(conn, lat, lng, radius_miles)
+    return [
+        PayerNameOut(name=n, facilities=f) for n, f in payer_suggestions(conn, q, facility_ids=ids)
+    ]

@@ -72,7 +72,9 @@ export const api = {
     DEMO ? later(demo.demoSuggest(q)) : get("/v1/services/suggest", { q }),
   providerTypes: (): Promise<ProviderType[]> =>
     DEMO ? later(demo.DEMO_PROVIDER_TYPES) : get("/v1/provider-types"),
-  plans: (): Promise<Plan[]> => (DEMO ? later(demo.DEMO_PLANS) : get("/v1/plans")),
+  // near: only plans that places near the person published (Cooper, 2026-11-12)
+  plans: (near?: { lat: string; lng: string } | null): Promise<Plan[]> =>
+    DEMO ? later(demo.DEMO_PLANS) : get("/v1/plans", near ? { lat: near.lat, lng: near.lng } : undefined),
   zip: async (zip: string): Promise<Place> => {
     if (!DEMO) return get(`/v1/places/zip/${encodeURIComponent(zip)}`);
     const p = demo.demoPlace(zip);
@@ -88,12 +90,13 @@ export const api = {
     mode: Mode;
     planId?: string | null;
     payerRaw?: string | null;
+    insurerId?: string | null;
     providerType?: string | null;
     radius?: string;
     online?: boolean;
   }): Promise<SearchResult> =>
     DEMO
-      ? later({ ...demo.demoSearch(p.code ? demo.demoServiceForCode(p.code) : p.service, p.mode, p.planId ?? null, p.providerType ?? null, p.radius ?? "25"), code_description: p.code ? "Sample hospital wording for this code" : null })
+      ? later({ ...demo.demoSearch(p.code ? demo.demoServiceForCode(p.code) : p.service, p.mode, p.planId ?? null, p.providerType ?? null, p.radius ?? "25", p.insurerId ?? null), code_description: p.code ? "Sample hospital wording for this code" : null })
       : get("/v1/search", {
           lat: p.lat,
           lng: p.lng,
@@ -102,7 +105,8 @@ export const api = {
           code: p.code,
           mode: p.mode,
           plan_id: p.mode === "plan" ? p.planId : null,
-          payer: p.mode === "plan" && !p.planId ? p.payerRaw : null,
+          payer: p.mode === "plan" && !p.planId && !p.insurerId ? p.payerRaw : null,
+          payer_id: p.mode === "plan" && !p.planId ? p.insurerId : null,
           provider_type: p.providerType,
           radius_miles: p.radius ?? "25",
           online: p.online ? "true" : null,
@@ -139,20 +143,67 @@ export const api = {
     DEMO
       ? later(demo.demoFacilityAssistance(id))
       : get(`/v1/facilities/${encodeURIComponent(id)}/assistance`, { state }),
-  payerSuggest: (q: string): Promise<{ name: string; facilities: number }[]> =>
-    DEMO ? later(demo.demoPayerSuggest(q)) : get("/v1/payers/suggest", { q }),
+  payerSuggest: (q: string, near?: { lat: string; lng: string } | null): Promise<{ name: string; facilities: number }[]> =>
+    DEMO ? later(demo.demoPayerSuggest(q)) : get("/v1/payers/suggest", { q, lat: near?.lat, lng: near?.lng }),
+  // owner's analytics: one page view or event, daily totals only (no cookies)
+  visit: (b: { page: string; lang: "en" | "es"; referrer?: string | null; event?: "whole_cost" }): void => {
+    if (DEMO) return;
+    fetch("/api/v1/visit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ page: b.page, lang: b.lang, referrer: b.referrer ?? null, event: b.event ?? null }),
+      keepalive: true,
+    }).catch(() => undefined);
+  },
+  // "Email this to me" (Cooper, 2026-11-12)
+  emailPrices: (b: {
+    email: string;
+    facilityId: string;
+    service?: string | null;
+    codeSystem?: string | null;
+    code?: string | null;
+    mode: Mode;
+    planId?: string | null;
+    payerId?: string | null;
+    payer?: string | null;
+    planLabel?: string | null;
+    lang: "en" | "es";
+  }): Promise<{ ok: boolean }> =>
+    DEMO
+      ? later({ ok: true })
+      : post("/v1/email-prices", {
+          email: b.email,
+          facility_id: b.facilityId,
+          service: b.code ? null : b.service,
+          code_system: b.code ? b.codeSystem : null,
+          code: b.code ?? null,
+          mode: b.mode,
+          plan_id: b.planId ?? null,
+          payer_id: b.payerId ?? null,
+          payer: b.payer ?? null,
+          plan_label: b.planLabel ?? null,
+          lang: b.lang,
+        }),
   healthCenters: (lat: string, lng: string): Promise<HealthCenter[]> =>
     DEMO ? later(demo.demoHealthCenters()) : get("/v1/health-centers/near", { lat, lng }),
   bundles: (): Promise<Bundle[]> => (DEMO ? later(demo.DEMO_BUNDLES) : get("/v1/bundles")),
   estimate: (
     slug: string,
-    b: { facilityId: string; payment: "cash" | "list"; includeOptional: string[] },
+    b: {
+      facilityId: string;
+      payment: "cash" | "list" | "insurance";
+      includeOptional: string[];
+      planId?: string | null;
+      payerId?: string | null;
+    },
   ): Promise<Estimate> =>
     DEMO
-      ? later(demo.demoEstimate(slug, b.facilityId, b.payment, b.includeOptional))
+      ? later(demo.demoEstimate(slug, b.facilityId, b.payment === "insurance" ? "cash" : b.payment, b.includeOptional))
       : post(`/v1/bundles/${encodeURIComponent(slug)}/estimate`, {
           facility_id: b.facilityId,
           payment: b.payment,
           include_optional: b.includeOptional,
+          plan_id: b.payment === "insurance" ? b.planId ?? null : null,
+          payer_id: b.payment === "insurance" && !b.planId ? b.payerId ?? null : null,
         }),
 };

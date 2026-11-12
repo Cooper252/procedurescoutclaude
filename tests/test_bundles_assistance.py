@@ -51,9 +51,8 @@ def test_committed_files_load(conn: Connection) -> None:
         conn, (ROOT / "data/reference/assistance_policies.csv").read_text()
     )
     assert b.rejects == [] and b.summary == {
-        "bundles_proposed": 3,
-        "bundles_approved": 2,
-    }  # 3 medical need a clinician
+        "bundles_approved": 8,
+    }  # 2 dental (Cooper) + 6 medical checked against CMS code definitions (D-061)
     assert g.rows_loaded == 24
     # proposed policies name real CCNs (not in this synthetic database); check their syntax
     assert {r.rule for r in a.rejects} == {"facility_not_found"}
@@ -262,3 +261,21 @@ def test_api_bundles_and_assistance(client: TestClient, conn: Connection) -> Non
         ).status_code
         == 422
     )
+
+
+def test_a_bundle_prices_the_doctor_and_hospital_parts_from_their_own_rows() -> None:
+    """2026-11-12: an MRI bundle lists CPT 70551 twice, once for the scan (the
+    hospital's part) and once for the radiologist's reading (the doctor's part)."""
+    from dataclasses import replace
+
+    from procedurescout_core.bundles import Component, _price_line
+    from tests.test_pricing import price
+
+    rows = [
+        replace(price("discounted_cash", "1953.60"), billing_class="facility"),
+        replace(price("discounted_cash", "75"), billing_class="professional"),
+    ]
+    scan = Component("a", 0, "scan", "facility", "required", True, "CPT", "70551", None)
+    reading = Component("b", 1, "reading", "physician", "optional", True, "CPT", "70551", None)
+    assert _price_line(scan, rows, "cash", None, None).amount == Decimal("1953.60")
+    assert _price_line(reading, rows, "cash", None, None).amount == Decimal("75")
