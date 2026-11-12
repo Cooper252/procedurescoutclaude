@@ -27,6 +27,9 @@ class Settings(BaseSettings):
     # Review page (ADM-01): off unless both are set. Interim sign-in, MFA later (ADM-02).
     admin_token: str = ""
     admin_database_url: str = ""
+    # Emails that become admin reviewers on their first sign-in with the email
+    # link and authenticator app (no command line needed; 2026-11-12).
+    owner_emails: str = ""
     # Provider portal (D-050): off unless PORTAL_DATABASE_URL is set. The portal
     # role writes provider accounts, homepages, reviews and counts only.
     portal_database_url: str = ""
@@ -77,7 +80,16 @@ class Settings(BaseSettings):
                 username=self.ps_portal_role, password=self.ps_portal_password
             )
             self.portal_database_url = url.render_as_string(hide_password=False)
+        # The review pages use the owner connection that hosting already
+        # provides (2026-11-12: they were switched off on the live site because
+        # ADMIN_DATABASE_URL was never set).
+        if "admin_database_url" not in self.model_fields_set and self.database_url:
+            self.admin_database_url = sqlalchemy_url(self.database_url)
         return self
+
+    @property
+    def owner_email_set(self) -> frozenset[str]:
+        return frozenset(e.strip().lower() for e in self.owner_emails.split(",") if e.strip())
 
     @property
     def show_dev_links(self) -> bool:

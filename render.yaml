@@ -56,6 +56,8 @@ services:
       # replies to our emails go to this real inbox (IONOS mail); set it in Render
       - key: EMAIL_REPLY_TO
         sync: false
+      - key: OWNER_EMAILS # your email: becomes an admin reviewer on first sign-in
+        sync: false
       - key: RESEND_API_KEY
         sync: false
       # Billing stays off until Cooper adds Stripe keys (D-051)

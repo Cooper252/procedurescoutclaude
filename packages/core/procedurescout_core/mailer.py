@@ -146,9 +146,18 @@ def send_pending(conn: Connection, sender: Sender, limit: int = 50) -> SendResul
             ),
             {"i": oid},
         )
-    conn.execute(text("DELETE FROM prov.outbox WHERE sent_at < now() - interval '30 days'"))
     waiting = conn.execute(
         text("SELECT count(*) FROM prov.outbox WHERE sent_at IS NULL AND attempts < :max"),
         {"max": MAX_ATTEMPTS},
     ).scalar_one()
     return SendResult(sent, failed, int(waiting))
+
+
+def delete_old_sent(conn: Connection) -> int:
+    """Remove emails sent more than 30 days ago. Owner connection only: the
+    live site's portal role can't delete, and doing this inside send_pending
+    rolled back the "sent" marks, so every email was re-sent every 5 minutes
+    for an hour (found live, 2026-11-12)."""
+    return conn.execute(
+        text("DELETE FROM prov.outbox WHERE sent_at < now() - interval '30 days'")
+    ).rowcount

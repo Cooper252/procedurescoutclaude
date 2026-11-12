@@ -76,11 +76,18 @@ def reviewer(request: Request, conn: Annotated[Connection, Depends(get_admin_con
     """The signed-in reviewer (ADM-02): a staff member signed in with the email
     link and authenticator app, recorded by email on every decision. The shared
     password works only outside production, for local development."""
-    from procedurescout_core.portal_auth import session_account, staff_role
+    from procedurescout_core.portal_auth import add_staff, session_account, staff_role
 
     account = session_account(conn, request.cookies.get("ps_session"))
     if account is not None:
         role = staff_role(conn, account)
+        if (
+            role is None
+            and account.mfa_passed
+            and account.email.lower() in get_settings().owner_email_set
+        ):
+            add_staff(conn, account.email, "admin", "OWNER_EMAILS setting")
+            role = staff_role(conn, account)
         if role is not None:
             return account.email
         if not account.mfa_passed:

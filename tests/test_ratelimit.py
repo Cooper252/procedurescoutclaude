@@ -23,3 +23,23 @@ def test_sign_in_is_limited_per_visitor_and_health_is_not() -> None:
     )
     assert all(c.get("/healthz").status_code == 200 for _ in range(400))
     ratelimit.reset()
+
+
+def test_typed_addresses_and_the_website_server() -> None:
+    """2026-11-12: the right-most public address counts (the first one can be
+    typed by anyone), and the website's own server is never limited."""
+    ratelimit.reset()
+    c = TestClient(app)
+    codes = [
+        c.post(
+            "/v1/portal/sign-in",
+            json={"email": "a@b.test"},
+            headers={"X-ProcedureScout": "1", "X-Forwarded-For": f"192.0.2.{i}, 203.0.113.7"},
+        ).status_code
+        for i in range(11)
+    ]
+    assert codes[-1] == 429  # changing the typed first address doesn't help
+    ratelimit.reset()
+    inside = {"X-Forwarded-For": "10.25.207.92"}  # the website rendering a page
+    assert all(c.get("/v1/meta/version", headers=inside).status_code == 200 for _ in range(320))
+    ratelimit.reset()

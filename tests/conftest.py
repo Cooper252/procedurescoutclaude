@@ -3,9 +3,10 @@ rebuilds from scratch (downgrade to empty, upgrade to head) once per run."""
 
 from __future__ import annotations
 
+import contextlib
 import os
 import uuid
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from pathlib import Path
 
 import pytest
@@ -188,3 +189,27 @@ def _fresh_rate_limits() -> Iterator[None]:
 
     ratelimit.reset()
     yield
+
+
+@contextlib.contextmanager
+def as_role(conn: Connection, role: str) -> Iterator[Connection]:
+    """Run as a restricted role the hosted site uses (ps_api for public search,
+    ps_portal for the provider portal), so a route that needs a permission it
+    doesn't have fails here, not live (2026-11-12)."""
+    if role not in ("ps_api", "ps_portal"):
+        raise ValueError(role)
+    conn.execute(text(f"SET ROLE {role}"))
+    try:
+        yield conn
+    finally:
+        conn.execute(text("RESET ROLE"))
+
+
+def api_conn_for(conn: Connection) -> Callable[[], Iterator[Connection]]:
+    """A dependency override that serves the public API as ps_api."""
+
+    def dep() -> Iterator[Connection]:
+        with as_role(conn, "ps_api") as c:
+            yield c
+
+    return dep

@@ -2,6 +2,16 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-12 — Full go-live check, part 1 (Cooper: "test everything")
+
+- **Repo vs GitHub:** a fresh clone of GitHub (commit 9b08240) matches this workspace file-for-file (code, workflows, data). The fresh clone passes ruff, mypy, `365 passed, 1 skipped`, `npm test`, and the website build with `RENDER=true`.
+- **Emails sent many times (live, Cooper got 8):** `send_pending` ended with `DELETE FROM prov.outbox ...`, which the hosted portal role may not do (`permission denied for table outbox` in the Render log). That undid the "sent" marks, so the 5-minute retry re-sent each email for an hour. Fix: the clean-up moved to `mailer.delete_old_sent`, run by `prune-published` (owner) after each load.
+- **Root cause, tests ran as the owner:** every API test client ran as the database owner, while the hosted site uses `ps_api` (search) and `ps_portal` (portal). Tests now switch to those roles (`conftest.as_role` and `api_conn_for`; `scripts/db_init.sql` grants the roles to `ps_owner` so tests can switch). The mailer test and the real-commit email test now run as `ps_portal`, and both fail on the old code with the live error.
+- **Review pages were off on the live site:** `ADMIN_DATABASE_URL` was never set, so `/admin/*` returned 404 and nobody could approve provider prices, listing requests, wrong-price reports or new services. Now: the review pages use the owner connection hosting already provides (`settings._api_url_from_parts`), and `OWNER_EMAILS` (Render setting) makes those emails admin reviewers on their first sign-in with the email link and authenticator app (`admin_routes.reviewer`). No command line needed.
+- **Rate limits:** pages the website builds on its server (city/service pages, crawled by search engines) reached the API from one internal address and shared one 300-a-minute limit, so busy times would show "no prices", cached for hours. A typed first X-Forwarded-For entry also dodged limits. Now: the right-most public address counts, and the website's own server is not limited (`ratelimit._client`).
+- **Website click-through (preview mode, labeled sample data):** Playwright visited 220 pages at desktop and phone width: no page errors, no console errors, no broken internal links, no sideways scrolling.
+- Tested: `test_owner_email_becomes_admin_on_first_sign_in`, `test_review_page_needs_a_sign_in_without_the_shared_password`, `test_typed_addresses_and_the_website_server`, `test_sends_clears_link_and_retries` (as ps_portal), `test_sign_in_email_is_really_sent_after_the_row_is_saved` (as ps_portal, plus the retry sends nothing again). Full run: `367 passed, 1 skipped`; ruff and mypy clean.
+
 ## 2026-11-12 — Live checks: search slowdowns, the Alabama load, faster office loading
 
 - **Verified in production:** Las Vegas search for "MRI of the brain" shows 7 hospitals with prices (UMC $75 cash, Sunrise $241, ...), priced places first.

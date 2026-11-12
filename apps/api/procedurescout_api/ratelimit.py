@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import ipaddress
 import secrets
 import time
 from collections.abc import Awaitable, Callable
@@ -34,10 +35,44 @@ _counts: dict[tuple[str, str, int], int] = {}
 _last_sweep = 0.0
 
 
-def _client(request: Request) -> str:
-    # Render (and the website proxy) put the visitor's address first in X-Forwarded-For
-    fwd = request.headers.get("x-forwarded-for", "")
-    ip = fwd.split(",")[0].strip() if fwd else (request.client.host if request.client else "")
+_INTERNAL = tuple(
+    ipaddress.ip_network(n)
+    for n in (
+        "10.0.0.0/8",
+        "172.16.0.0/12",
+        "192.168.0.0/16",
+        "100.64.0.0/10",
+        "127.0.0.0/8",
+        "169.254.0.0/16",
+        "::1/128",
+        "fc00::/7",
+        "fe80::/10",
+    )
+)
+
+
+def _public(ip: str) -> bool:
+    try:
+        a = ipaddress.ip_address(ip)
+    except ValueError:
+        return False
+    return not any(a.version == n.version and a in n for n in _INTERNAL)
+
+
+def _client(request: Request) -> str | None:
+    """The visitor, or None for the website's own server.
+
+    X-Forwarded-For is a chain that each proxy appends to, so the first entry
+    can be typed by anyone; the right-most *public* address is the one Render
+    saw (2026-11-12). Requests with no public address come from inside the
+    hosting network: the website rendering pages for crawlers and visitors. Those
+    are not limited here (they would all share one limit and pages would show
+    "no prices"); the pages themselves are cached for hours."""
+    chain = [x.strip() for x in request.headers.get("x-forwarded-for", "").split(",")]
+    chain.append(request.client.host if request.client else "")
+    ip = next((x for x in reversed(chain) if _public(x)), None)
+    if ip is None:
+        return None
     return hmac.new(_KEY, ip.encode(), hashlib.sha256).hexdigest()[:24]
 
 
@@ -50,8 +85,11 @@ def check(request: Request, now: float | None = None) -> int | None:
         return None
     for prefix, methods, limit, window in RULES:
         if path.startswith(prefix) and method in methods:
+            who = _client(request)
+            if who is None:
+                return None
             bucket = int(t // window)
-            key = (prefix + method, _client(request), bucket)
+            key = (prefix + method, who, bucket)
             _counts[key] = _counts.get(key, 0) + 1
             if t - _last_sweep > 60:  # forget old windows
                 _last_sweep = t

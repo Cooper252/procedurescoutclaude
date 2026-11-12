@@ -677,11 +677,14 @@ def cmd_find_websites(args: argparse.Namespace, engine: Engine) -> None:
 
 
 def cmd_prune_published(args: argparse.Namespace, engine: Engine) -> None:
+    from procedurescout_core.mailer import delete_old_sent
+
     from .. import publish
 
     with engine.begin() as conn:
         n = publish.prune_published(conn)
-    print(f"removed {n} staged rows of published files")
+        old = delete_old_sent(conn)  # housekeeping that needs the owner role
+    print(f"removed {n} staged rows of published files and {old} emails sent over 30 days ago")
 
 
 def cmd_set_plan(args: argparse.Namespace, engine: Engine) -> None:

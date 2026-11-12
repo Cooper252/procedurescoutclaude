@@ -13,6 +13,7 @@ from procedurescout_api.main import app
 from procedurescout_core import assistance
 from procedurescout_ingest.reference import catalog
 from procedurescout_ingest.reference.health_centers import HealthCenterError, load_health_centers
+from tests.conftest import api_conn_for
 
 ROOT = Path(__file__).resolve().parent.parent / "data/reference"
 HRSA_CSV = (
@@ -103,7 +104,7 @@ def client(conn: Connection) -> Iterator[TestClient]:
     def test_conn() -> Iterator[Connection]:
         yield conn
 
-    app.dependency_overrides[search_routes.get_conn] = test_conn
+    app.dependency_overrides[search_routes.get_conn] = api_conn_for(conn)
     try:
         yield TestClient(app)
     finally:

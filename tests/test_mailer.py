@@ -10,6 +10,7 @@ from sqlalchemy import Connection, text
 
 from procedurescout_core import mailer
 from procedurescout_core.portal_auth import request_sign_in
+from tests.conftest import as_role
 
 
 class FakeSender:
@@ -25,10 +26,13 @@ class FakeSender:
 
 def test_sends_clears_link_and_retries(conn: Connection) -> None:
     conn.execute(text("DELETE FROM prov.outbox"))
-    request_sign_in(conn, "ok@synthetic.test", "https://example.test")
-    request_sign_in(conn, "bad@synthetic.test", "https://example.test")
-    fake = FakeSender(fail_for="bad@synthetic.test")
-    out = mailer.send_pending(conn, fake)
+    with as_role(conn, "ps_portal"):  # exactly what the live site can do
+        request_sign_in(conn, "ok@synthetic.test", "https://example.test")
+        request_sign_in(conn, "bad@synthetic.test", "https://example.test")
+        fake = FakeSender(fail_for="bad@synthetic.test")
+        out = mailer.send_pending(conn, fake)
+        # 2026-11-12: a sent email must never go out again (it went out 8 times live)
+        assert mailer.send_pending(conn, fake).sent == 0
     assert (out.sent, out.failed, out.waiting) == (1, 1, 1)
     assert "/providers/sign-in/verify#" in fake.sent[0][2]
     body = conn.execute(
@@ -42,6 +46,12 @@ def test_sends_clears_link_and_retries(conn: Connection) -> None:
     ).scalar_one()
     assert attempts == mailer.MAX_ATTEMPTS  # stops trying
     assert mailer.send_pending(conn, fake).waiting == 0
+    conn.execute(
+        text(
+            "UPDATE prov.outbox SET sent_at = now() - interval '31 days' WHERE sent_at IS NOT NULL"
+        )
+    )
+    assert mailer.delete_old_sent(conn) == 1  # owner housekeeping
 
 
 def test_sender_choice() -> None:

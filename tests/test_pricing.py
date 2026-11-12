@@ -21,6 +21,7 @@ from procedurescout_ingest import publish
 from procedurescout_ingest.discovery import discover
 from procedurescout_ingest.reference import catalog
 from procedurescout_ingest.reference.websites import load_websites
+from tests.conftest import api_conn_for
 from tests.test_discovery import fake_fetcher, setup_hospitals, websites_csv
 from tests.test_publish import JSON_FILE, stage, syn501
 from tests.test_search_and_review import LAS_VEGAS, SERVICE_CSV, place
@@ -181,7 +182,7 @@ def client(conn: Connection, world: LocalStore) -> Iterator[TestClient]:
     def test_conn() -> Iterator[Connection]:
         yield conn
 
-    app.dependency_overrides[search_routes.get_conn] = test_conn
+    app.dependency_overrides[search_routes.get_conn] = api_conn_for(conn)
     app.dependency_overrides[search_routes.get_store] = lambda: world
     try:
         yield TestClient(app)

@@ -21,7 +21,7 @@ from procedurescout_api.settings import get_settings
 from procedurescout_core import portal_auth as auth
 from procedurescout_core.object_store import LocalStore
 
-from .conftest import make_facility
+from .conftest import as_role, make_facility
 
 H = {"X-ProcedureScout": "1", "User-Agent": "Mozilla/5.0 synthetic test"}
 ADMIN = {
@@ -35,7 +35,8 @@ class _FakeEngine:
 
     @contextlib.contextmanager
     def begin(self) -> Iterator[Connection]:
-        yield self.conn
+        with as_role(self.conn, "ps_portal") as c:
+            yield c
 
 
 @pytest.fixture()
@@ -44,8 +45,16 @@ def client(
 ) -> Iterator[TestClient]:
     store = LocalStore(tmp_path)
 
-    def test_conn() -> Iterator[Connection]:
+    def test_conn() -> Iterator[Connection]:  # the review pages: owner, as hosted
         yield conn
+
+    def api_conn() -> Iterator[Connection]:
+        with as_role(conn, "ps_api") as c:
+            yield c
+
+    def portal_conn() -> Iterator[Connection]:
+        with as_role(conn, "ps_portal") as c:
+            yield c
 
     monkeypatch.setenv("PORTAL_SECRET", "synthetic-portal-secret-123")
     monkeypatch.setenv("PORTAL_DEV_LINKS", "true")
@@ -54,9 +63,9 @@ def client(
     monkeypatch.setenv("ADMIN_DATABASE_URL", "postgresql+psycopg://unused")
     get_settings.cache_clear()
     monkeypatch.setattr(portal_routes, "portal_engine", lambda: _FakeEngine(conn))
-    app.dependency_overrides[search_routes.get_conn] = test_conn
+    app.dependency_overrides[search_routes.get_conn] = api_conn
     app.dependency_overrides[search_routes.get_store] = lambda: store
-    app.dependency_overrides[portal_routes.get_portal_conn] = test_conn
+    app.dependency_overrides[portal_routes.get_portal_conn] = portal_conn
     app.dependency_overrides[admin_routes.get_admin_conn] = test_conn
     app.dependency_overrides[admin_routes.get_admin_store] = lambda: store
     try:
@@ -307,6 +316,36 @@ def test_review_pages_need_staff_with_authenticator(
     assert _admin().get("/admin/providers", headers=ADMIN).status_code == 401  # no shared password
 
 
+def test_owner_email_becomes_admin_on_first_sign_in(
+    client: TestClient, conn: Connection, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Go-live check (2026-11-12): no command line needed to make Cooper a
+    reviewer; the review pages also use the hosting's owner connection."""
+    _sign_in(client, "someone@synthetic.test")
+    monkeypatch.setenv("OWNER_EMAILS", "Owner@Synthetic.test, other@synthetic.test")
+    get_settings.cache_clear()
+    staff = _admin()
+    assert staff.get("/admin/providers").status_code == 401  # not signed in
+    _sign_in(staff, "owner@synthetic.test")
+    page = staff.get("/admin/providers")
+    assert page.status_code == 200 and "owner@synthetic.test" in page.text
+    role = conn.execute(
+        text(
+            "SELECT s.role FROM prov.staff s JOIN prov.account a ON a.id = s.account_id "
+            "WHERE a.email = 'owner@synthetic.test'"
+        )
+    ).scalar_one()
+    assert role == "admin"
+    other = _admin()
+    _sign_in(other, "stranger@synthetic.test")
+    assert other.get("/admin/providers").status_code == 403  # not on the list
+    from procedurescout_api.settings import Settings
+
+    monkeypatch.delenv("ADMIN_DATABASE_URL", raising=False)
+    s = Settings(database_url="postgres://o:p@h:5432/db", _env_file=None)  # type: ignore[call-arg]
+    assert s.admin_database_url == "postgresql+psycopg://o:p@h:5432/db"
+
+
 def test_price_list_template_and_upload(client: TestClient, conn: Connection) -> None:
     """Cooper (2026-11-11): one template for dental + orthodontics + oral surgery,
     and an upload that checks every line before anything goes to review."""
@@ -399,7 +438,17 @@ def test_sign_in_email_is_really_sent_after_the_row_is_saved(
     monkeypatch.setenv("PORTAL_SECRET", "synthetic-portal-secret-123")
     monkeypatch.setenv("SITE_URL", "https://example.test")
     get_settings.cache_clear()
-    monkeypatch.setattr(portal_routes, "portal_engine", lambda: engine)
+    from sqlalchemy import create_engine
+    from sqlalchemy.engine import make_url
+
+    # the portal role, as hosted (2026-11-12: owner-only tests hid a
+    # "permission denied" that made every email go out again every 5 minutes)
+    portal = create_engine(
+        make_url(str(engine.url.render_as_string(hide_password=False))).set(
+            username="ps_portal", password="ps_portal_dev"
+        )
+    )
+    monkeypatch.setattr(portal_routes, "portal_engine", lambda: portal)
     monkeypatch.setattr(type(get_settings()), "mail_sender", lambda self: Capture())
     email = "commit-check@synthetic-clinic.test"
     try:
@@ -413,7 +462,11 @@ def test_sign_in_email_is_really_sent_after_the_row_is_saved(
                 {"e": email},
             ).all()
         assert sent and sent[0][0] == email, (r.json(), rows)
+        assert rows[0][1] is not None  # marked sent, so it is never sent again
+        portal_routes.send_mail_soon()  # the 5-minute retry
+        assert len(sent) == 1
     finally:
+        portal.dispose()
         with engine.begin() as c:
             c.execute(text("DELETE FROM prov.outbox WHERE to_email = :e"), {"e": email})
             c.execute(

@@ -19,6 +19,7 @@ from procedurescout_ingest import publish
 from procedurescout_ingest.discovery import discover
 from procedurescout_ingest.reference import catalog
 from procedurescout_ingest.reference.websites import load_websites
+from tests.conftest import api_conn_for
 from tests.test_discovery import fake_fetcher, setup_hospitals, websites_csv
 from tests.test_publish import stage, syn501
 
@@ -150,7 +151,7 @@ def client(
     monkeypatch.setenv("ADMIN_TOKEN", "synthetic-admin-password")
     monkeypatch.setenv("ADMIN_DATABASE_URL", "postgresql+psycopg://unused")
     get_settings.cache_clear()
-    app.dependency_overrides[search_routes.get_conn] = test_conn
+    app.dependency_overrides[search_routes.get_conn] = api_conn_for(conn)
     app.dependency_overrides[search_routes.get_store] = lambda: world
     app.dependency_overrides[admin_routes.get_admin_conn] = test_conn
     app.dependency_overrides[admin_routes.get_admin_store] = lambda: world
@@ -218,12 +219,17 @@ def test_review_page_approves_with_the_signed_in_name(
     assert tuple(row) == ("published", "Cooper", "checked totals")
 
 
-def test_review_page_is_off_without_configuration(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_review_page_needs_a_sign_in_without_the_shared_password(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Since 2026-11-12 the review pages use the hosting's owner connection, so
+    they are on wherever the site runs; without ADMIN_TOKEN only a signed-in
+    staff member gets in (and the shared password never works in production)."""
     monkeypatch.delenv("ADMIN_TOKEN", raising=False)
     monkeypatch.setenv("ADMIN_TOKEN", "")
     get_settings.cache_clear()
     try:
-        assert TestClient(app).get("/admin/reviews", headers=auth("Cooper")).status_code == 404
+        assert TestClient(app).get("/admin/reviews", headers=auth("Cooper")).status_code == 401
     finally:
         get_settings.cache_clear()
 
