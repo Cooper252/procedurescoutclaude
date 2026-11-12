@@ -222,3 +222,85 @@ def dolthub_candidates(get_json: Callable[[str, dict[str, str]], Any], state_cod
             break
         offset += 500
     return out.getvalue()
+
+
+# ------------------------------------------------------- guessed websites
+# Vermont run (2026-11-12): 7 of 17 hospitals were on no list of websites we
+# use. Hospital domains usually come from the hospital's name ("Copley
+# Hospital" -> copleyvt.org, "Northeastern Vermont Regional Hospital" ->
+# nvrh.org), so likely domains are tried. A guess is only ever accepted the
+# same way as any other candidate: the site's own cms-hpt.txt must name the
+# hospital, or its price file's header must give the hospital's address.
+_DROP = {"inc", "llc", "the", "corp", "corporation", "co", "dba", "of", "and", "at", "a"}
+_KIND = ("hospital", "medical", "center", "centre", "health", "healthcare", "regional",
+         "memorial", "community", "general", "system", "services", "clinic")  # fmt: skip
+_ABBREV = {"mount": "mt", "saint": "st", "mt": "mount", "st": "saint"}
+MAX_GUESSES_PER_HOSPITAL = 24
+
+
+def guess_origins(name: str, state_code: str) -> list[str]:
+    """Likely website addresses for a hospital name, most likely first."""
+    words = [w for w in re.sub(r"[^a-z0-9 ]+", " ", name.lower()).split() if w not in _DROP]
+    if not words:
+        return []
+    core = [w for w in words if w not in _KIND]
+    upto: list[str] = []
+    for w in words:  # "north country hospital and health center" -> up to "hospital"
+        upto.append(w)
+        if w in ("hospital", "center", "healthcare"):
+            break
+    st = state_code.lower()
+    stems: list[str] = []
+
+    def add(*parts: str) -> None:
+        s = "".join(parts)
+        if 3 <= len(s) <= 40 and s not in stems:
+            stems.append(s)
+
+    add(*upto)
+    add(*words)
+    if core:
+        add(*core)
+        add(*core, st)
+        add(*core, "health")
+        add(*core, "healthcare")
+        add(*core, "hospital")
+        add(*core, "medical")
+        add(*[_ABBREV.get(w, w) for w in core])
+    if len(words) >= 2:
+        add(*(w[0] for w in words))  # "northeastern vermont regional hospital" -> nvrh
+        add(*(w[0] for w in words), st)
+    out: list[str] = []
+    for s in stems:
+        for tld in ("org", "com"):
+            out.append(f"https://www.{s}.{tld}")
+    return out[:MAX_GUESSES_PER_HOSPITAL]
+
+
+def guessed_candidates(
+    conn: Connection, state_code: str, fetch_many: Callable[[list[str]], dict[str, str]]
+) -> str:
+    """ccn,url,source CSV of guessed sites whose /cms-hpt.txt answered with a
+    usable file, for hospitals that still have no website. fetch_many takes
+    cms-hpt.txt addresses and returns the bodies of those that answered 200."""
+    rows = conn.execute(
+        text(
+            "SELECT ccn, name FROM ref.facility WHERE state_code = :s AND ccn IS NOT NULL "
+            "AND website IS NULL AND status = 'active' ORDER BY ccn"
+        ),
+        {"s": state_code},
+    ).all()
+    wanted: dict[str, list[str]] = {}
+    for ccn, name in rows:
+        for origin in guess_origins(str(name), state_code):
+            wanted.setdefault(f"{origin}/cms-hpt.txt", []).append(str(ccn))
+    found = fetch_many(sorted(wanted))
+    out = io.StringIO()
+    w = csv.writer(out)
+    w.writerow(["ccn", "url", "source"])
+    for url, body in found.items():
+        if not parse_hpt_txt(body):
+            continue
+        for ccn in wanted.get(url, []):
+            w.writerow([ccn, url.removesuffix("/cms-hpt.txt"), "guessed from the hospital's name"])
+    return out.getvalue()

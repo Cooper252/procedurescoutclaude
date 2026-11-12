@@ -667,6 +667,42 @@ def cmd_verify_websites(args: argparse.Namespace, engine: Engine) -> None:
         )
 
 
+GUESS_BUDGET_SECONDS = 600
+
+
+def _fetch_hpt_many(
+    client: httpx.Client, urls: list[str], budget_seconds: int = GUESS_BUDGET_SECONDS
+) -> dict[str, str]:
+    """Bodies of the cms-hpt.txt addresses that answer 200 with a text file,
+    16 at a time, within a time budget. 'https://www.x.org/...' is also tried
+    without 'www.' when the www name doesn't exist."""
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    deadline = time.monotonic() + budget_seconds
+
+    def one(url: str) -> tuple[str, str | None]:
+        for u in (url, url.replace("://www.", "://", 1)):
+            if time.monotonic() > deadline:
+                return url, None
+            try:
+                r = client.get(u, timeout=8)
+            except httpx.HTTPError:
+                continue
+            kind = r.headers.get("content-type", "")
+            if r.status_code == 200 and "html" not in kind.lower():
+                return url, r.text[:1_000_000]
+            return url, None
+        return url, None
+
+    found: dict[str, str] = {}
+    with ThreadPoolExecutor(max_workers=16) as pool:
+        for fut in as_completed([pool.submit(one, u) for u in urls]):
+            url, body = fut.result()
+            if body is not None:
+                found[url] = body
+    return found
+
+
 def cmd_find_websites(args: argparse.Namespace, engine: Engine) -> None:
     from .. import website_verify
 
@@ -681,16 +717,38 @@ def cmd_find_websites(args: argparse.Namespace, engine: Engine) -> None:
             r = client.get(url, timeout=30)
             return r.status_code, r.text[:2_000_000]
 
-        candidates = website_verify.dolthub_candidates(get_json, args.state)
-        _run(
-            engine,
-            "facility_websites",
-            lambda c: website_verify.verify(
-                c, candidates, fetch, LoadStats(), head=_head_reader(client)
-            ),
-            source_url=website_verify.DOLTHUB_SQL,
-            parameters={"state": args.state, "candidates": candidates.count("\n") - 1},
-        )
+        try:
+            candidates = website_verify.dolthub_candidates(get_json, args.state)
+        except (httpx.HTTPError, ValueError) as exc:  # the list being down never stops guesses
+            print(f"website list unavailable: {type(exc).__name__}", file=sys.stderr)
+            candidates = ""
+        if candidates.count("\n") > 1:
+            _run(
+                engine,
+                "facility_websites",
+                lambda c: website_verify.verify(
+                    c, candidates, fetch, LoadStats(), head=_head_reader(client)
+                ),
+                source_url=website_verify.DOLTHUB_SQL,
+                parameters={"state": args.state, "candidates": candidates.count("\n") - 1},
+            )
+
+        # hospitals on no list: likely domains from their names (2026-11-12),
+        # accepted only by the same checks as every other candidate
+        def fetch_many(urls: list[str]) -> dict[str, str]:
+            return _fetch_hpt_many(client, urls, budget_seconds=GUESS_BUDGET_SECONDS)
+
+        with engine.connect() as c:
+            guessed = website_verify.guessed_candidates(c, args.state, fetch_many)
+        if guessed.count("\n") > 1:
+            _run(
+                engine,
+                "facility_websites",
+                lambda c: website_verify.verify(
+                    c, guessed, fetch, LoadStats(), head=_head_reader(client)
+                ),
+                parameters={"state": args.state, "guessed": guessed.count("\n") - 1},
+            )
 
 
 def cmd_prune_published(args: argparse.Namespace, engine: Engine) -> None:

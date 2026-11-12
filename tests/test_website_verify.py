@@ -140,3 +140,27 @@ def test_a_system_file_listing_the_hospitals_address_verifies_it(conn: Connectio
         wv.ADDRESS_REVIEWER,
         "Synthetic Health Desert Campus Eureka",
     )
+
+
+def test_hospitals_on_no_list_are_found_by_likely_domains(conn: Connection) -> None:
+    """Vermont run (2026-11-12): 7 of 17 hospitals were on no website list.
+    Likely domains are tried from the name; a guess is accepted only by the
+    usual check (its cms-hpt.txt names the hospital)."""
+    assert "https://www.nvrh.org" in wv.guess_origins(
+        "NORTHEASTERN VERMONT REGIONAL HOSPITAL", "VT"
+    )
+    assert "https://www.copleyvt.org" in wv.guess_origins("COPLEY HOSPITAL INC", "VT")
+    assert "https://www.mountascutney.org" in wv.guess_origins("MT ASCUTNEY HOSPITAL", "VT")
+    setup_hospitals(conn)
+    conn.execute(text("UPDATE ref.facility SET website = NULL WHERE ccn = 'SYN503'"))
+    body = "location-name: Synthetic Desert Hospital\nmrf-url: https://www.syntheticdesert.org/f.json\n"
+
+    def fetch_many(urls: list[str]) -> dict[str, str]:
+        return {u: body for u in urls if u == "https://www.syntheticdesert.org/cms-hpt.txt"}
+
+    csv_text = wv.guessed_candidates(conn, "NV", fetch_many)
+    assert "SYN503,https://www.syntheticdesert.org" in csv_text
+    stats = wv.verify(conn, csv_text, lambda url: (200, body), LoadStats())
+    assert stats.summary.get("verified") == 1
+    site = conn.execute(text("SELECT website FROM ref.facility WHERE ccn = 'SYN503'")).scalar()
+    assert site == "https://www.syntheticdesert.org"

@@ -41,6 +41,7 @@ export function InsurancePicker({
   const [plans, setPlans] = useState<Plan[] | null>(null);
   const [written, setWritten] = useState<{ name: string; facilities: number }[]>([]);
   const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(-1);
   // a photo of the card, read on this device only (Cooper, 2026-11-12)
   const [card, setCard] = useState<CardHint | null>(null);
   const [reading, setReading] = useState(false);
@@ -128,7 +129,40 @@ export function InsurancePicker({
   function pick(v: Insurance) {
     setQ(v.label);
     setOpen(false);
+    setActive(-1);
     onChange(v);
+  }
+
+  // every choice in list order, so the arrow keys and Enter work too
+  // (keyboard and screen-reader users, 2026-11-12)
+  const choices: { key: string; v: Insurance }[] = [];
+  for (const c of companies) {
+    const rangePlans = c.plans.filter((p) => !LEFT_OUT_OF_RANGE.includes(p.segment));
+    if (c.payerId && rangePlans.length > 1) {
+      choices.push({ key: `u:${c.payerId}`, v: { insurer: c.payerId, label: t.insUnsureLabel.replace("{payer}", c.payer) } });
+    }
+    for (const p of c.plans) choices.push({ key: `p:${p.plan_id}`, v: { plan: p.plan_id, label: `${p.payer} · ${p.plan}` } });
+  }
+  for (const w of writtenHits) choices.push({ key: `w:${w.name}`, v: { payer: w.name, label: w.name } });
+  const optId = (key: string) => `${id}-opt-${choices.findIndex((c) => c.key === key)}`;
+  const isActive = (key: string) => active >= 0 && choices[active]?.key === key;
+
+  function onKey(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (!choices.length) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setOpen(true);
+      setActive((a) => (a + 1) % choices.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActive((a) => (a <= 0 ? choices.length - 1 : a - 1));
+    } else if (e.key === "Enter" && open && active >= 0 && choices[active]) {
+      e.preventDefault();
+      pick(choices[active]!.v);
+    } else if (e.key === "Escape") {
+      setOpen(false);
+      setActive(-1);
+    }
   }
 
   const nothingNear = near !== null && plans !== null && plans.length === 0 && needle.length < 2;
@@ -144,9 +178,13 @@ export function InsurancePicker({
         role="combobox"
         aria-expanded={open}
         aria-controls={`${id}-list`}
+        aria-autocomplete="list"
+        aria-activedescendant={open && active >= 0 && choices[active] ? `${id}-opt-${active}` : undefined}
+        onKeyDown={onKey}
         onChange={(e) => {
           setQ(e.target.value);
           setOpen(true);
+          setActive(-1);
           if (value) onChange(null);
         }}
         onFocus={() => setOpen(true)}
@@ -162,9 +200,10 @@ export function InsurancePicker({
                 <ul role="group" aria-label={c.payer}>
                   {c.payerId && rangePlans.length > 1 && (
                     <li
+                      id={optId(`u:${c.payerId}`)}
                       role="option"
-                      aria-selected={false}
-                      className="ins-unsure"
+                      aria-selected={isActive(`u:${c.payerId}`)}
+                      className={isActive(`u:${c.payerId}`) ? "ins-unsure on" : "ins-unsure"}
                       onMouseDown={(e) => {
                         e.preventDefault();
                         pick({ insurer: c.payerId, label: t.insUnsureLabel.replace("{payer}", c.payer) });
@@ -176,8 +215,10 @@ export function InsurancePicker({
                   {c.plans.map((p) => (
                     <li
                       key={p.plan_id}
+                      id={optId(`p:${p.plan_id}`)}
                       role="option"
-                      aria-selected={false}
+                      aria-selected={isActive(`p:${p.plan_id}`)}
+                      className={isActive(`p:${p.plan_id}`) ? "on" : undefined}
                       onMouseDown={(e) => {
                         e.preventDefault();
                         pick({ plan: p.plan_id, label: `${p.payer} · ${p.plan}` });
@@ -197,8 +238,10 @@ export function InsurancePicker({
                 {writtenHits.map((w) => (
                   <li
                     key={w.name}
+                    id={optId(`w:${w.name}`)}
                     role="option"
-                    aria-selected={false}
+                    aria-selected={isActive(`w:${w.name}`)}
+                    className={isActive(`w:${w.name}`) ? "on" : undefined}
                     onMouseDown={(e) => {
                       e.preventDefault();
                       pick({ payer: w.name, label: w.name });

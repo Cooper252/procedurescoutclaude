@@ -2,6 +2,11 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-12 — Accessibility check of the new features
+
+- axe-core (WCAG 2.0/2.1 A and AA) on the home page with the insurance and facility-type menus open, results with the whole-cost panel, details, email form and plan tips open, and Help paying, at 1280 px and 390 px: no violations.
+- Found and fixed: the insurance list could only be used with a mouse. Arrow keys, Enter and Escape now work, with `aria-activedescendant` for screen readers (`components/InsurancePicker.tsx`); checked in a browser (ArrowDown twice + Enter picked "Sample Health PPO").
+
 ## 2026-11-12 — More hospitals found; insurer names for AL, RI, DE, VT
 
 Why only 3 of 17 Vermont hospitals: the website hints (DoltHub) list only 10 Vermont hospitals, some with old addresses, and a health system's cms-hpt.txt names its sister hospitals in ways that matched none of ours.
@@ -13,7 +18,7 @@ Implemented:
 
 Tested: `test_a_listed_location_is_matched_by_its_price_file_address`, `test_reviewed_insurer_names_place_real_hospital_spellings` (35 real spellings, incl. ones that must stay unmatched); full suite `389 passed, 1 skipped`; ruff, mypy clean.
 
-Not yet: hospitals missing from every list we use (7 in Vermont) still need another source of websites.
+- Hospitals on no website list: likely domains are tried from each hospital's name ("Northeastern Vermont Regional Hospital" → nvrh.org, "Copley Hospital" → copleyvt.org), 16 at a time within 10 minutes per state, and accepted only by the usual cms-hpt.txt / price-file header checks (`website_verify.guess_origins`, `guessed_candidates`, `cli._fetch_hpt_many`); `test_hospitals_on_no_list_are_found_by_likely_domains`. All 7 missing Vermont hospitals' real domains are among the guesses.
 
 ## 2026-11-12 — Cooper's list: prices explained, whole cost, childbirth, online visits, email, analytics, card photos
 
