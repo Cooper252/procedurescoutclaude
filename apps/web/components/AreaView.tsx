@@ -95,7 +95,7 @@ export function AreaView({
       </aside>
 
       <Link href="/help-paying" className="care-inline">
-        <Heart size={18} /> <strong>{t.bannerLead}</strong> {t.bannerCta} →
+        <Heart size={18} /> <strong>{t.bannerLead}</strong> {t.bannerNotLoan} {t.bannerCta} →
       </Link>
 
       <section className="faq">

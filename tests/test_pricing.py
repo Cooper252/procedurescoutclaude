@@ -318,3 +318,40 @@ def test_new_spellings_are_matched_only_when_certain(conn: Connection, world: Lo
         )
     ).scalar()
     assert who == RULE
+
+
+def test_insurance_search_shows_cash_when_no_rate_for_that_insurance(
+    conn: Connection, world: LocalStore
+) -> None:
+    """Cooper (2026-11-12): choose insurance up front; a place that lists no
+    rate for it still shows its cash price, labeled, instead of nothing."""
+    catalog.load_payers(
+        conn,
+        ",".join(catalog.PAYER_COLUMNS)
+        + "\nOther Synthetic,Basic,ppo,commercial,tester,2026-11-08\n",
+    )
+    catalog.load_payer_aliases(
+        conn, ALIASES_HEADER + "Nobody Synthetic,Basic,Other Synthetic,Basic,tester,2026-11-08,\n"
+    )
+    res = run(conn, world, mode="plan", plan_id=_plan_id(conn, "Basic"))
+    near = res.facilities[0]  # type: ignore[attr-defined]
+    assert near.no_plan_rate is True
+    assert near.headline.amount == Decimal("80.00")  # the cash price, labeled
+    assert near.headline.price_type == "discounted_cash"
+    assert res.typical is None  # cash fallbacks never count as insurance rates
+    gold = run(conn, world, mode="plan", plan_id=_plan_id(conn, "Gold PPO"))
+    assert gold.facilities[0].no_plan_rate is False  # type: ignore[attr-defined]
+
+
+def test_several_kinds_of_care_in_one_search(conn: Connection, world: LocalStore) -> None:
+    conn.execute(
+        text(
+            "INSERT INTO ref.facility_provider_type (facility_id, provider_type, source) "
+            "SELECT id, 'hospital', 'cms_facility_type' FROM ref.facility WHERE ccn = 'SYN501'"
+        )
+    )
+    both = run(conn, world, provider_type="hospital,medical_spa")
+    only_spa = run(conn, world, provider_type="medical_spa")
+    assert both.facilities and not only_spa.facilities  # type: ignore[attr-defined]
+    with pytest.raises(SearchError):
+        run(conn, world, provider_type="hospital,not_a_kind")

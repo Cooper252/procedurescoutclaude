@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useState, type FormEvent } from "react";
 import { api } from "@/lib/api";
@@ -95,6 +97,10 @@ export function FreeCarePanel() {
       </div>
       <p className="care-msg">{msg?.message ?? " "}</p>
       <p className="care-sub">{t.careEvenInsured}</p>
+      <p className="care-free">
+        <strong>{t.bannerNotLoan}</strong>{" "}
+        <Link href="/help-paying#what">{t.bannerWhat}</Link>
+      </p>
       <form onSubmit={submit} noValidate>
         <CareFields size={size} setSize={setSize} income={income} setIncome={setIncome} />
         {error && (

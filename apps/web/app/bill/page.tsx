@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useApp } from "@/components/AppState";
+import { ExtText } from "@/components/ExtText";
 import { Receipt } from "@/components/Icons";
 
 export default function BillHelp() {
@@ -28,7 +29,9 @@ export default function BillHelp() {
             </span>
             <div>
               <h2>{title}</h2>
-              <p>{body}</p>
+              <p>
+                <ExtText text={body} />
+              </p>
               {i === 0 && (
                 <Link className="btn ghost sm" href="/">
                   {t.billCheckPrices}

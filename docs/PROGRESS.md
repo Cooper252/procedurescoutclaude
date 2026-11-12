@@ -2,6 +2,21 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-12 — Search form changes and coral accent (Cooper's requests)
+
+Implemented (website, API):
+- "Type of facility" with "All facility types"; several kinds can be ticked at once (`components/TypePicker.tsx`; `search.py` takes a comma list; `/v1/services?provider_types=`).
+- "Search within" distance on the home form (5/10/25/50/100 miles).
+- "How are you paying?" on the home form, with an insurance picker (`components/InsurancePicker.tsx`) so insurance prices show on the first results page.
+- In insurance mode, a place with no rate listed for that insurance shows its cash price with a note ("no price listed for your insurance"), and "Cash price is lower" when cash beats the insurance rate (`FacilityResult.no_plan_rate`, `ResultCard.tsx`). Hospital files don't say whether a place accepts an insurer, so the site never claims it doesn't.
+- Free care is labelled "Not a loan or credit card. Nothing to pay back." everywhere, with a "What is this?" link to a short explainer on Help paying (`/help-paying#what`).
+- Government and .org site names in Help paying and Got a bill? are links that open in a new tab (`components/ExtText.tsx`).
+- Coral from the logo used for the search button, eyebrows, the lowest-price card and badge (`globals.css` `--accent*`; coral text uses darker shades for contrast).
+
+Tested (this session): `test_insurance_search_shows_cash_when_no_rate_for_that_insurance`, `test_several_kinds_of_care_in_one_search`; full suite `377 passed, 1 skipped`; ruff and mypy clean; `tsc` clean; `next build` compiled; preview crawl at 1280 px and 390 px: no page errors, no sideways scrolling, type menu 6 checkboxes, help-paying explainer opens from `#what`.
+
+Deployed / verified in production: not yet (needs Cooper's push).
+
 ## 2026-11-12 — Upload hardened before the next all-states run; logo; first approved assistance policies
 
 **Upload (Cooper: "anticipate anything that could go wrong")**
@@ -14,7 +29,7 @@ Status levels: Implemented → Tested → Deployed → Verified in production. O
 
 **Logo:** original mark chosen by Cooper (option C of several): a map pin with a coral medical cross on the brand teal (`components/Icons.tsx`); browser-tab icon `app/icon.svg`, `app/favicon.ico` (16/32/48), `app/apple-icon.png` (180). Checked on light and dark tabs.
 
-**Assistance policies (D-060):** all 13 Nevada drafts checked against each hospital's own document and approved as `Claude (delegated by Cooper, D-060)`; Renown and Banner corrected to their exact published tiers; UMC copays and residency, HCA emergency-only noted. They reach the live site with the next state load (catalog step). Nevada hospitals without a findable policy (e.g. Valley Health System) stay "not reviewed" (never guessed).
+**Assistance policies (D-060):** all 13 Nevada drafts checked against each hospital's own document and approved as `Claude (delegated by Cooper, D-060)`; Renown and Banner corrected to their exact published tiers; UMC copays and residency, HCA emergency-only noted. Then 19 Alabama hospitals from their own policies: UAB (University Hospital, Medical West, five St. Vincent's; 2026 policy), Huntsville Hospital Health System (Huntsville, Marshall, Decatur Morgan, Athens Limestone, Helen Keller), Infirmary Health (Mobile Infirmary, Thomas, North Baldwin), USA Health (University, Children's & Women's, Providence) and Jackson Hospital. Then 14 in Rhode Island, Delaware and Vermont (Brown University Health, Care New England, ChristianaCare, Bayhealth, UVM Health, Rutland). 46 approved in all; they reach the live site with the next state load (the catalog step loads the whole file). Hospitals that publish no income limits (Valley Health System in Las Vegas, Southeast Health in Dothan) stay "not reviewed" (never guessed).
 
 Full run: `375 passed, 1 skipped`; ruff, mypy, tsc clean.
 

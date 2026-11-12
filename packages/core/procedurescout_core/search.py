@@ -45,6 +45,25 @@ class SearchError(ValueError):
     """A filter failed validation; no price was read."""
 
 
+def _kinds(conn: Connection, provider_type: str | None) -> list[str]:
+    """One kind of care or several, comma-separated ("hospital,surgery_center");
+    every one must be an approved kind (2026-11-12: visitors can pick several)."""
+    kinds = sorted({k.strip() for k in (provider_type or "").split(",") if k.strip()})
+    if len(kinds) > 15 or any(not _PTYPE.match(k) for k in kinds):
+        raise SearchError(f"unknown provider type: {provider_type!r}")
+    if kinds:
+        found = conn.execute(
+            text(
+                "SELECT count(*) FROM ref.provider_type WHERE code = ANY(:k) "
+                "AND review_state = 'approved'"
+            ),
+            {"k": kinds},
+        ).scalar_one()
+        if int(found) != len(kinds):
+            raise SearchError(f"unknown provider type: {provider_type!r}")
+    return kinds
+
+
 @dataclass(frozen=True, slots=True)
 class FacilityResult:
     facility_id: str
@@ -60,6 +79,9 @@ class FacilityResult:
     badges: Badges = field(default_factory=Badges)
     change_percent: Decimal | None = None  # headline vs the previous published file
     all_plans_rate: bool = False  # plan rates here are the insurer's one rate for all plans
+    # insurance search: this place lists no rate for that insurance, so its cash
+    # price is shown instead, labeled (Cooper, 2026-11-12)
+    no_plan_rate: bool = False
     special: Special | None = None  # provider special on its own regular price (D-042)
     delivery: str | None = None  # provider price: 'in_person', 'online' or 'both'
 
@@ -172,18 +194,7 @@ def search(
         fallback = all_plans_spellings(conn, plan_id)
     if not 1 <= max_facilities <= MAX_FACILITIES:
         raise SearchError(f"max_facilities must be 1 to {MAX_FACILITIES}")
-    if provider_type is not None:
-        ok = (
-            _PTYPE.match(provider_type)
-            and conn.execute(
-                text(
-                    "SELECT 1 FROM ref.provider_type WHERE code = :c AND review_state = 'approved'"
-                ),
-                {"c": provider_type},
-            ).first()
-        )
-        if not ok:
-            raise SearchError(f"unknown provider type: {provider_type!r}")
+    kinds = _kinds(conn, provider_type)
 
     name: str | None = None
     unit: str | None = None
@@ -223,16 +234,18 @@ def search(
                  WHERE f.id IN (SELECT id FROM answers)
                    AND f.geom IS NOT NULL AND f.status = 'active'
                    AND ST_DWithin(f.geom, p.pt, :meters)
-                   AND (CAST(:ptype AS text) IS NULL OR EXISTS (
+                   AND (cardinality(CAST(:kinds AS text[])) = 0 OR EXISTS (
                         SELECT 1 FROM ref.facility_provider_type x
-                        WHERE x.facility_id = f.id AND x.provider_type = :ptype)))
+                        WHERE x.facility_id = f.id
+                          AND x.provider_type = ANY(CAST(:kinds AS text[])))))
                 UNION
                 (SELECT f.id FROM ref.facility f, p
                  WHERE f.geom IS NOT NULL AND f.status = 'active'
                    AND ST_DWithin(f.geom, p.pt, :meters)
-                   AND (CAST(:ptype AS text) IS NULL OR EXISTS (
+                   AND (cardinality(CAST(:kinds AS text[])) = 0 OR EXISTS (
                         SELECT 1 FROM ref.facility_provider_type x
-                        WHERE x.facility_id = f.id AND x.provider_type = :ptype))
+                        WHERE x.facility_id = f.id
+                          AND x.provider_type = ANY(CAST(:kinds AS text[]))))
                  ORDER BY f.geom <-> p.pt
                  LIMIT :n)
             )
@@ -257,7 +270,7 @@ def search(
             "lng": longitude,
             "meters": radius_miles * METERS_PER_MILE,
             "mpm": METERS_PER_MILE,
-            "ptype": provider_type,
+            "kinds": kinds,
             "n": max_facilities,
             "slug": service_slug,
             "codes": [f"{sys_}:{c}" for sys_, c in codes],
@@ -347,7 +360,12 @@ def search(
     heads = {fid: headline(rows, mode) for fid, rows in by_facility.items()}
     cash_heads = {fid: headline(rows, "cash") for fid, rows in by_facility.items()}
     present = [h for h in heads.values() if h is not None]
-    typ = typical(present)
+    typ = typical(present)  # insurance rates only: cash fallbacks never mix in
+    cash_instead = {
+        fid
+        for fid in by_facility
+        if mode == "plan" and heads.get(fid) is None and cash_heads.get(fid) is not None
+    }
     previous: dict[str, list[PublishedPrice]] = {}
     if with_files:
         for system, value in codes:
@@ -395,8 +413,11 @@ def search(
             status="prices" if by_facility.get(str(f[0])) else "no_published_prices",
             published_at=published.get(str(f[0])),
             prices=tuple(by_facility.get(str(f[0]), ())),
-            headline=heads.get(str(f[0])),
+            headline=(
+                cash_heads.get(str(f[0])) if str(f[0]) in cash_instead else heads.get(str(f[0]))
+            ),
             badges=badges(heads.get(str(f[0])), present, typ, cash_heads.get(str(f[0]))),
+            no_plan_rate=str(f[0]) in cash_instead,
             change_percent=change(str(f[0])),
             all_plans_rate=str(f[0]) in uses_all_plans,
             special=specials.get(str(f[0])),
@@ -449,14 +470,7 @@ def nearby(
         raise SearchError("latitude/longitude out of range")
     if not (Decimal(1) <= radius_miles <= Decimal(MAX_RADIUS_MILES)):
         raise SearchError(f"radius must be 1 to {MAX_RADIUS_MILES} miles")
-    if provider_type is not None and not (
-        _PTYPE.match(provider_type)
-        and conn.execute(
-            text("SELECT 1 FROM ref.provider_type WHERE code = :c AND review_state = 'approved'"),
-            {"c": provider_type},
-        ).first()
-    ):
-        raise SearchError(f"unknown provider type: {provider_type!r}")
+    kinds = _kinds(conn, provider_type)
     rows = conn.execute(
         text(
             """
@@ -467,9 +481,10 @@ def nearby(
                 SELECT f.id FROM ref.facility f, p
                 WHERE f.geom IS NOT NULL AND f.status = 'active'
                    AND ST_DWithin(f.geom, p.pt, :meters)
-                   AND (CAST(:ptype AS text) IS NULL OR EXISTS (
+                   AND (cardinality(CAST(:kinds AS text[])) = 0 OR EXISTS (
                         SELECT 1 FROM ref.facility_provider_type x
-                        WHERE x.facility_id = f.id AND x.provider_type = :ptype))
+                        WHERE x.facility_id = f.id
+                          AND x.provider_type = ANY(CAST(:kinds AS text[]))))
                 ORDER BY f.geom <-> p.pt
                 LIMIT :n
             )
@@ -490,7 +505,7 @@ def nearby(
             "lng": longitude,
             "meters": radius_miles * METERS_PER_MILE,
             "mpm": METERS_PER_MILE,
-            "ptype": provider_type,
+            "kinds": kinds,
             "n": max(1, min(limit, MAX_FACILITIES)),
         },
     ).all()

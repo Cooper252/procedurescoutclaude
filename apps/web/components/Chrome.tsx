@@ -95,14 +95,20 @@ export function Header() {
         )}
       </header>
       {path !== "/help-paying" && (
-        <Link href="/help-paying" className="care-banner">
+        <div className="care-banner">
           <span className="wrap care-banner-in">
             <Heart size={18} />
             <span>
-              <strong>{t.bannerLead}</strong> <span className="care-banner-cta">{t.bannerCta} →</span>
+              <Link href="/help-paying" className="care-banner-main">
+                <strong>{t.bannerLead}</strong> <span className="care-banner-free">{t.bannerNotLoan}</span>{" "}
+                <span className="care-banner-cta">{t.bannerCta} →</span>
+              </Link>{" "}
+              <Link href="/help-paying#what" className="care-banner-what">
+                {t.bannerWhat}
+              </Link>
             </span>
           </span>
-        </Link>
+        </div>
       )}
     </>
   );

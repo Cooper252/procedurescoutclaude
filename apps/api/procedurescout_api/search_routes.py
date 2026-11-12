@@ -128,6 +128,8 @@ class FacilityOut(BaseModel):
     badge_notes: list[str]
     change_percent_since_last_file: str | None
     plan_rate_is_all_plans: bool = False
+    # insurance search: no rate listed for that insurance here, cash price shown
+    no_plan_rate: bool = False
     special: SpecialOut | None = None
     delivery: str | None = None  # provider price: in_person, online or both
     rating_average: str | None = None  # patient reviews (D-050), never affects order
@@ -231,7 +233,8 @@ def facilities_near(
     lat: Annotated[Decimal, Query(ge=-90, le=90)],
     lng: Annotated[Decimal, Query(ge=-180, le=180)],
     radius_miles: Annotated[Decimal, Query(ge=1, le=100)] = Decimal(25),
-    provider_type: Annotated[str | None, Query(max_length=40)] = None,
+    # one kind of care or several, comma-separated (hospital,surgery_center)
+    provider_type: Annotated[str | None, Query(max_length=400)] = None,
 ) -> list[NearbyOut]:
     """Facilities near a place, nearest first (no prices), for the help-paying check."""
     try:
@@ -393,7 +396,8 @@ def search_endpoint(
     service: Annotated[str | None, Query(max_length=80)] = None,
     code_system: Annotated[str | None, Query(max_length=20)] = None,
     code: Annotated[str | None, Query(max_length=20)] = None,
-    provider_type: Annotated[str | None, Query(max_length=40)] = None,
+    # one kind of care or several, comma-separated (hospital,surgery_center)
+    provider_type: Annotated[str | None, Query(max_length=400)] = None,
     mode: Annotated[str, Query(pattern="^(cash|list|plan)$")] = "cash",
     plan_id: Annotated[str | None, Query(max_length=36)] = None,
     payer: Annotated[str | None, Query(max_length=200)] = None,
@@ -499,6 +503,7 @@ def search_endpoint(
                 if f.change_percent is None
                 else format(f.change_percent, "f"),
                 plan_rate_is_all_plans=f.all_plans_rate,
+                no_plan_rate=f.no_plan_rate,
                 rating_average=ratings.get(f.facility_id, (None, 0))[0],
                 rating_count=ratings.get(f.facility_id, (None, 0))[1],
                 special=None

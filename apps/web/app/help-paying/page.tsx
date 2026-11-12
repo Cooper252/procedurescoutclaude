@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useId, useState, type FormEvent } from "react";
 import { useApp } from "@/components/AppState";
+import { ExtText } from "@/components/ExtText";
 import { CareFields } from "@/components/FreeCare";
 import { Heart, Lock, Phone } from "@/components/Icons";
 import { api } from "@/lib/api";
@@ -20,6 +21,18 @@ export default function HelpPaying() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [centers, setCenters] = useState<HealthCenter[] | null>(null);
+  // "What is this?" from the banner opens the explanation (#what)
+  const [whatOpen, setWhatOpen] = useState(false);
+  useEffect(() => {
+    const sync = () => setWhatOpen(window.location.hash === "#what");
+    sync();
+    const late = setTimeout(sync, 60); // after an in-site link, the hash is set a moment later
+    window.addEventListener("hashchange", sync);
+    return () => {
+      clearTimeout(late);
+      window.removeEventListener("hashchange", sync);
+    };
+  }, []);
 
   useEffect(() => {
     api.message(place?.state ?? null).then(setMsg).catch(() => setMsg(null));
@@ -85,6 +98,14 @@ export default function HelpPaying() {
           <h1 className="page-title">{t.helpTitle}</h1>
           <p className="lead">{t.helpSub}</p>
           {msg && <p className="care-msg big">{msg.message}</p>}
+          <details className="free-what" id="what" open={whatOpen}>
+            <summary>
+              <strong>{t.freeWhatTitle}</strong> <span className="free-what-tag">{t.bannerNotLoan}</span>
+            </summary>
+            <p>{t.freeWhat1}</p>
+            <p>{t.freeWhat2}</p>
+            <p>{t.freeWhat3}</p>
+          </details>
         </div>
         <form className="card help-form" onSubmit={submit} noValidate>
           <CareFields size={size} setSize={setSize} income={income} setIncome={setIncome} />
@@ -250,8 +271,12 @@ export default function HelpPaying() {
       <section className="more-help">
         <h2>{t.helpNextTitle}</h2>
         <ul className="tiles">
-          <li>{t.helpMedicaid}</li>
-          <li>{t.helpChc}</li>
+          <li>
+            <ExtText text={t.helpMedicaid} />
+          </li>
+          <li>
+            <ExtText text={t.helpChc} />
+          </li>
           <li>{t.helpAfter}</li>
           <li>{t.helpChecklist}</li>
         </ul>

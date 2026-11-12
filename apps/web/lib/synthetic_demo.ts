@@ -180,7 +180,11 @@ export function demoSearch(slug: string, mode: Mode, planId: string | null, prov
   const near = FACILITIES.filter((f) => offers(f, svc.slug) || f.published === null)
     .filter((f) => Number(f.miles) <= Number(radius))
     .filter(
-    (f) => providerType === null || f.types.includes(providerType),
+    (f) => {
+      // a comma list of kinds of care, like the real search (Cooper, 2026-11-12)
+      const kinds = (providerType ?? "").split(",").filter(Boolean);
+      return kinds.length === 0 || kinds.some((k) => f.types.includes(k));
+    },
   );
   const rows: Facility[] = near.map((f) => {
     const prices = f.published ? pricesFor(f, svc.slug) : [];

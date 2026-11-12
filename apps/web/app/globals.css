@@ -7,6 +7,14 @@
   --brand-600: #085a60;
   --brand-50: #ebf5f5;
   --brand-100: #d2e9ea;
+  /* coral accent, from the logo's cross (Cooper, 2026-11-12). Bright coral is
+     used as a background with dark text; text in coral uses the darker shades
+     so it meets contrast rules. */
+  --accent: #ff8a65;
+  --accent-600: #b4441c;
+  --accent-700: #8f3412;
+  --accent-50: #fff3ee;
+  --accent-100: #ffdccd;
   --ink: #0f1d2b;
   --ink-2: #334355;
   --muted: #586776;
@@ -410,7 +418,7 @@ svg {
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--accent-600);
   margin-bottom: 8px;
 }
 .lead {
@@ -556,14 +564,17 @@ svg {
     grid-template-columns: 1fr 160px auto;
     align-items: end;
   }
+  /* full form: what / ZIP, distance, type / paying, button / foot */
   .search:has(.type) {
-    grid-template-columns: 1fr 1fr auto;
-    grid-template-areas: "what what what" "zip type btn" "foot foot foot";
+    grid-template-columns: 0.85fr 1.1fr 1.25fr;
+    grid-template-areas: "what what what" "zip radius type" "pay pay btn" "foot foot foot";
   }
   .search:has(.type) .grow { grid-area: what; }
   .search:has(.type) .zip { grid-area: zip; }
+  .search:has(.type) .radius { grid-area: radius; }
   .search:has(.type) .type { grid-area: type; }
-  .search:has(.type) .search-btn { grid-area: btn; }
+  .search:has(.type) .paying { grid-area: pay; }
+  .search:has(.type) .search-btn { grid-area: btn; align-self: end; }
   .search:has(.type) .search-foot { grid-area: foot; }
   .search-btn {
     width: auto;
@@ -964,8 +975,8 @@ svg {
   }
 }
 .result.best {
-  border-color: #9fd3c1;
-  box-shadow: 0 0 0 1px #9fd3c1, var(--shadow);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent), var(--shadow);
 }
 .results-list.muted .result {
   background: #fbfcfd;
@@ -1025,7 +1036,7 @@ svg {
   margin-top: 4px;
 }
 .result.best .price-num {
-  color: var(--care-600);
+  color: var(--accent-600);
 }
 .price-unit {
   font-size: 13.5px;
@@ -1061,8 +1072,8 @@ svg {
   color: var(--ink-2);
 }
 .badge.good {
-  background: var(--care);
-  color: #fff;
+  background: var(--accent);
+  color: var(--ink);
 }
 .badge.good-soft {
   background: var(--care-50);
@@ -2330,3 +2341,185 @@ details.unpriced > summary:focus-visible { outline: 2px solid var(--accent, #0b6
 .estimate-line { margin: 6px 0 0; }
 .filter-online { display: flex; align-items: center; gap: 6px; }
 .pp-copay { display: block; }
+
+
+/* ---------- search choices (Cooper, 2026-11-12) ---------- */
+.search .search-btn {
+  background: var(--accent);
+  color: var(--ink);
+}
+.search .search-btn:hover {
+  background: #ff7a50;
+}
+.field.paying {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.field.paying legend {
+  font-weight: 650;
+  font-size: 14.5px;
+  color: var(--ink-2);
+  margin-bottom: 6px;
+  padding: 0;
+}
+.field.paying .segmented.two {
+  max-width: 420px;
+}
+.insurer {
+  margin-top: 10px;
+  position: relative;
+}
+.insurance-picker {
+  position: relative;
+}
+.insurance-picker input {
+  width: 100%;
+  min-height: 52px;
+  border: 1.5px solid var(--line-2);
+  border-radius: 12px;
+  background: var(--surface);
+  padding: 0 14px;
+  font-size: 17px;
+}
+.insurance-picker input:focus {
+  border-color: var(--brand);
+  outline: 3px solid var(--brand-100);
+}
+.type-picker {
+  position: relative;
+}
+.type-picker > summary {
+  list-style: none;
+  min-height: 52px;
+  border: 1.5px solid var(--line-2);
+  border-radius: 12px;
+  background: var(--surface)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23586776' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")
+    no-repeat right 12px center;
+  padding: 0 40px 0 14px;
+  font-size: 17px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.type-picker > summary::-webkit-details-marker {
+  display: none;
+}
+.type-picker[open] > summary,
+.type-picker > summary:focus-visible {
+  border-color: var(--brand);
+  outline: 3px solid var(--brand-100);
+}
+.type-menu {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 6px);
+  left: 0;
+  width: min(360px, calc(100vw - 32px));
+  max-height: 60vh;
+  overflow: auto;
+  background: var(--surface);
+  border: 1px solid var(--line-2);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  padding: 8px 14px;
+  display: grid;
+  gap: 0;
+}
+.type-menu .check {
+  margin: 0;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  font-size: 15.5px;
+  padding: 4px 0;
+  cursor: pointer;
+}
+.type-menu input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  min-height: 0;
+  flex: none;
+  margin: 0;
+  accent-color: var(--brand);
+}
+.type-group {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: 4px 0 0;
+  padding: 8px 0 0;
+}
+.type-group legend {
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--accent-600);
+  padding: 0;
+}
+.type-all {
+  font-weight: 650 !important;
+}
+.no-plan-rate {
+  margin: 6px 0 0;
+  font-size: 14px;
+  color: var(--accent-700);
+  background: var(--accent-50);
+  border: 1px solid var(--accent-100);
+  border-radius: 8px;
+  padding: 6px 10px;
+}
+/* free care: not a loan (Cooper, 2026-11-12) */
+.care-banner-main {
+  color: inherit;
+  text-decoration: none;
+}
+.care-banner-main:hover .care-banner-cta {
+  text-decoration: underline;
+}
+.care-banner-free {
+  font-weight: 600;
+}
+.care-banner-what {
+  color: var(--care-600);
+  font-weight: 650;
+  text-decoration: underline;
+  white-space: nowrap;
+}
+.care-free {
+  margin: 6px 0 12px;
+  font-size: 15px;
+  color: var(--care-600);
+}
+.care-free a {
+  color: var(--care-600);
+  font-weight: 650;
+}
+.free-what {
+  margin-top: 16px;
+  background: var(--care-50);
+  border: 1px solid var(--care-100);
+  border-radius: 12px;
+  padding: 12px 16px;
+  color: var(--ink-2);
+}
+.free-what summary {
+  cursor: pointer;
+  color: var(--care-600);
+}
+.free-what p {
+  margin: 10px 0 0;
+}
+.free-what-tag {
+  display: inline-block;
+  margin-left: 4px;
+  font-size: 14px;
+  font-weight: 600;
+}

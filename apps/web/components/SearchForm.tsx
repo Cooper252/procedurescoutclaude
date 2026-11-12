@@ -3,19 +3,32 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { api } from "@/lib/api";
-import { SERVICE_ES, TYPE_ES, GROUP_ES } from "@/lib/i18n";
+import { fill, SERVICE_ES } from "@/lib/i18n";
 import type { ProviderType, Suggestion } from "@/lib/types";
 import { useApp } from "./AppState";
 import { Locate, Pin, Search } from "./Icons";
+import { InsurancePicker, type Insurance } from "./InsurancePicker";
+import { parseTypes, TypePicker } from "./TypePicker";
+
+const RADII = ["5", "10", "25", "50", "100"];
 
 interface Props {
   initialService?: { slug: string; name: string } | null;
   initialZip?: string;
   initialType?: string | null;
+  initialRadius?: string | null;
+  initialInsurance?: Insurance | null;
   compact?: boolean;
 }
 
-export function SearchForm({ initialService = null, initialZip = "", initialType = null, compact = false }: Props) {
+export function SearchForm({
+  initialService = null,
+  initialZip = "",
+  initialType = null,
+  initialRadius = null,
+  initialInsurance = null,
+  compact = false,
+}: Props) {
   const { t, lang, place, setPlace } = useApp();
   const router = useRouter();
   const listId = useId();
@@ -26,7 +39,10 @@ export function SearchForm({ initialService = null, initialZip = "", initialType
   const [active, setActive] = useState(-1);
   const [zip, setZip] = useState(initialZip || place?.zip || "");
   const [types, setTypes] = useState<ProviderType[]>([]);
-  const [ptype, setPtype] = useState<string>(initialType ?? "");
+  const [kinds, setKinds] = useState<string[]>(parseTypes(initialType));
+  const [radius, setRadius] = useState<string>(RADII.includes(initialRadius ?? "") ? initialRadius! : "25");
+  const [paying, setPaying] = useState<"cash" | "plan">(initialInsurance ? "plan" : "cash");
+  const [insurance, setInsurance] = useState<Insurance | null>(initialInsurance);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const coords = useRef<{ lat: string; lng: string } | null>(null);
@@ -113,7 +129,17 @@ export function SearchForm({ initialService = null, initialZip = "", initialType
     const params = new URLSearchParams(
       service.code && service.code_system ? { code_system: service.code_system, code: service.code } : { service: service.slug },
     );
-    if (ptype) params.set("type", ptype);
+    if (kinds.length) params.set("type", kinds.join(","));
+    if (radius !== "25") params.set("r", radius);
+    if (paying === "plan") {
+      if (!insurance) {
+        setError(t.insurerPick);
+        return;
+      }
+      params.set("mode", "plan");
+      if ("plan" in insurance) params.set("plan", insurance.plan);
+      else params.set("payer", insurance.payer);
+    }
     if (coords.current && !zip) {
       params.set("lat", coords.current.lat);
       params.set("lng", coords.current.lng);
@@ -205,24 +231,48 @@ export function SearchForm({ initialService = null, initialZip = "", initialType
           />
         </div>
       </div>
+      <div className="field radius">
+        <label htmlFor={`${listId}-r`}>{t.radiusLabel}</label>
+        <select id={`${listId}-r`} value={radius} onChange={(e) => setRadius(e.target.value)}>
+          {RADII.map((r) => (
+            <option key={r} value={r}>
+              {fill(t.withinMiles, { r })}
+            </option>
+          ))}
+        </select>
+      </div>
       {!compact && types.length > 0 && (
         <div className="field type">
           <label htmlFor={`${listId}-type`}>{t.typeLabel}</label>
-          <select id={`${listId}-type`} value={ptype} onChange={(e) => setPtype(e.target.value)}>
-            <option value="">{t.typeAny}</option>
-            {[...new Set(types.map((ty) => ty.grouping ?? "Other"))].map((g) => (
-              <optgroup key={g} label={lang === "es" ? GROUP_ES[g] ?? g : g}>
-                {types
-                  .filter((ty) => (ty.grouping ?? "Other") === g)
-                  .map((ty) => (
-                    <option key={ty.code} value={ty.code}>
-                      {lang === "es" ? TYPE_ES[ty.code] ?? ty.name : ty.name}
-                    </option>
-                  ))}
-              </optgroup>
-            ))}
-          </select>
+          <TypePicker id={`${listId}-type`} types={types} value={kinds} onChange={setKinds} />
         </div>
+      )}
+      {!compact && (
+        <fieldset className="field paying">
+          <legend>{t.payingHow}</legend>
+          <div className="segmented two" role="radiogroup">
+            {(["cash", "plan"] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                role="radio"
+                aria-checked={paying === m}
+                className={paying === m ? "seg on" : "seg"}
+                onClick={() => setPaying(m)}
+              >
+                {m === "cash" ? t.modeCash : t.modePlan}
+              </button>
+            ))}
+          </div>
+          {paying === "plan" && (
+            <div className="insurer">
+              <label htmlFor={`${listId}-ins`} className="sr">
+                {t.insurerLabel}
+              </label>
+              <InsurancePicker id={`${listId}-ins`} value={insurance} onChange={setInsurance} />
+            </div>
+          )}
+        </fieldset>
       )}
       <button className="btn primary search-btn" type="submit" disabled={busy}>
         <Search size={20} /> <span>{t.searchBtn}</span>

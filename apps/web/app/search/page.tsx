@@ -9,8 +9,9 @@ import { PayerAsWritten } from "@/components/PayerAsWritten";
 import { ResultCard } from "@/components/ResultCard";
 import { portalText } from "@/lib/i18n_portal";
 import { SearchForm } from "@/components/SearchForm";
+import { parseTypes, TypePicker } from "@/components/TypePicker";
 import { api } from "@/lib/api";
-import { fill, SERVICE_ES, TYPE_ES } from "@/lib/i18n";
+import { fill, SERVICE_ES } from "@/lib/i18n";
 import { EMPTY_PLAN, type PlanDetails } from "@/lib/estimate";
 import { compareDecimal, money, unitLabel } from "@/lib/money";
 import type { Mode, Plan, ProviderType, SearchResult, Service } from "@/lib/types";
@@ -40,7 +41,8 @@ function Results() {
   const mode = (sp.get("mode") === "plan" ? "plan" : "cash") as Mode;
   const planId = sp.get("plan");
   const payerRaw = sp.get("payer");
-  const ptype = sp.get("type");
+  const kinds = parseTypes(sp.get("type"));
+  const ptype = kinds.length ? kinds.join(",") : null;
   const radius = RADII.includes(sp.get("r") ?? "") ? (sp.get("r") as string) : "25";
   const online = sp.get("online") === "1";
   const [myPlan, setMyPlan] = useState<PlanDetails>(EMPTY_PLAN);
@@ -158,6 +160,17 @@ function Results() {
             initialService={svc ? { slug: svc.slug, name: svc.name } : null}
             initialZip={zip ?? ""}
             initialType={ptype}
+            initialRadius={radius}
+            initialInsurance={
+              mode === "plan" && planId
+                ? (() => {
+                    const p = plans?.find((x) => x.plan_id === planId);
+                    return { plan: planId, label: p ? `${p.payer} · ${p.plan}` : "" };
+                  })()
+                : mode === "plan" && payerRaw
+                  ? { payer: payerRaw, label: payerRaw }
+                  : null
+            }
           />
         </div>
         {error && <p className="form-error">{error}</p>}
@@ -284,14 +297,12 @@ function Results() {
               </div>
               <div className="field">
                 <label htmlFor="f-t">{t.typeLabel}</label>
-                <select id="f-t" value={ptype ?? ""} onChange={(e) => setParam({ type: e.target.value || null })}>
-                  <option value="">{t.typeAny}</option>
-                  {types.map((ty) => (
-                    <option key={ty.code} value={ty.code}>
-                      {lang === "es" ? TYPE_ES[ty.code] ?? ty.name : ty.name}
-                    </option>
-                  ))}
-                </select>
+                <TypePicker
+                  id="f-t"
+                  types={types}
+                  value={kinds}
+                  onChange={(next) => setParam({ type: next.length ? next.join(",") : null })}
+                />
               </div>
               <div className="field">
                 <label htmlFor="f-s">{t.sortLabel}</label>
@@ -371,7 +382,7 @@ function Results() {
               <Link href="/disclaimer">{t.readMore}</Link>
             </aside>
             <Link href="/help-paying" className="care-inline">
-              <Heart size={18} /> <strong>{t.bannerLead}</strong> {t.bannerCta} →
+              <Heart size={18} /> <strong>{t.bannerLead}</strong> {t.bannerNotLoan} {t.bannerCta} →
             </Link>
           </>
         )}

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { fill, TYPE_ES, TYPE_EN } from "@/lib/i18n";
 import { centsToDollars, estimate, type PlanDetails } from "@/lib/estimate";
-import { formatMoney, money, subtractDecimal, unitLabel } from "@/lib/money";
+import { compareDecimal, formatMoney, money, subtractDecimal, unitLabel } from "@/lib/money";
 import type { Facility, Mode } from "@/lib/types";
 import { useApp } from "./AppState";
 import { Alert, Chevron, Heart, Pin, TrendDown, TrendUp } from "./Icons";
@@ -49,7 +49,9 @@ export function ResultCard({
   const label =
     provider && mode === "cash"
       ? t.regularPrice
-      : mode === "plan"
+      : mode === "plan" && f.no_plan_rate
+        ? t.cash
+        : mode === "plan"
       ? f.plan_rate_is_all_plans
         ? fill(t.allPlansTag, { payer: payer ?? "" })
         : t.plan
@@ -59,6 +61,11 @@ export function ResultCard({
   const typeName = (c: string) =>
     (lang === "es" ? TYPE_ES[c] : undefined) ?? TYPE_EN[c] ?? c.replace(/_/g, " ").replace(/^\w/, (x) => x.toUpperCase());
   const change = f.change_percent_since_last_file;
+  // the lowest published cash price, for "Cash price is lower: $X"
+  const cashLow = f.prices
+    .filter((p) => p.price_type === "discounted_cash" && p.amount)
+    .map((p) => p.amount as string)
+    .sort(compareDecimal)[0];
   const isHospital = f.provider_types.includes("hospital");
   const firstCode = f.prices[0]?.code;
   const maps = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${f.name} ${f.city ?? ""} ${f.state}`)}`;
@@ -134,11 +141,14 @@ export function ResultCard({
         </div>
       )}
 
+      {mode === "plan" && f.no_plan_rate && <p className="no-plan-rate">{t.noPlanRate}</p>}
       {(f.lowest_near_you || f.below_typical || f.cash_cheaper_than_plan || f.headline_possible_error || change) && (
         <ul className="badges">
           {f.lowest_near_you && <li className="badge good">{t.badgeLowest}</li>}
           {f.below_typical && <li className="badge good-soft">{t.badgeBelow}</li>}
-          {f.cash_cheaper_than_plan && <li className="badge info">{t.badgeCashCheaper}</li>}
+          {f.cash_cheaper_than_plan && (
+            <li className="badge info">{fill(t.badgeCashCheaper, { price: cashLow ? money(cashLow) : "" }).replace(/:\s*$/, "")}</li>
+          )}
           {f.headline_possible_error && (
             <li className="badge warn">
               <Alert size={13} /> {t.badgeCheck}
