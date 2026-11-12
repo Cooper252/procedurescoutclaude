@@ -2,6 +2,14 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-11 — Sign-in emails weren't sent (fixed), and a 5-minute retry
+
+- Found on the first live sign-in: FastAPI 0.162 runs background tasks *before* the request's database connection commits (checked: `['dep start', 'background', 'dep exit']`), so the email sender couldn't see the new email yet. `portal_routes._save_now` now commits before the email is queued (sign-in and review-request); `get_portal_conn` commits or rolls back explicitly.
+- `main.py`: the API now retries waiting emails every 5 minutes by itself (`_retry_mail_forever`), so a link queued while the email key was missing still goes out.
+- Test fix: the rolled-back test connection's "don't commit" flag stayed on the pooled connection and leaked into later tests; `conftest.conn` clears it.
+- Tested: `test_sign_in_email_is_really_sent_after_the_row_is_saved` (real commits), `test_waiting_emails_are_retried_every_few_minutes`. Full run: `363 passed, 1 skipped`. ruff and mypy clean.
+- Not yet deployed or verified in production (Cooper to push, then retry sign-in).
+
 ## 2026-11-11 — Resend verified; replies go to a real inbox
 - Cooper added procedurescout.com in Resend; "Auto configure" added the DKIM, SPF and MX (send.) records at IONOS; all three show Verified. IONOS mail (root MX) untouched.
 - `EMAIL_REPLY_TO` (Render, optional): our emails come from noreply@procedurescout.com; replies now go to this inbox (`mailer.ResendSender.reply_to`, SMTP `Reply-To`). Test: `test_resend_request_shape`. `pytest -q` → `361 passed, 1 skipped, 1 warning in 17.91s`.

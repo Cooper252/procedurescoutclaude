@@ -71,10 +71,13 @@ def conn(engine: Engine) -> Iterator[Connection]:
     """A connection whose work is always rolled back."""
     with engine.connect() as connection:
         trans = connection.begin()
+        connection.info["no_commit"] = True  # routes' early commits must not end this
         try:
             yield connection
         finally:
             trans.rollback()
+            # info lives on the pooled connection: clear it so later tests commit
+            connection.info.pop("no_commit", None)
 
 
 @pytest.fixture(scope="session")

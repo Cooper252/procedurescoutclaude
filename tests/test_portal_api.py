@@ -13,7 +13,7 @@ from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import Connection, text
+from sqlalchemy import Connection, Engine, text
 
 from procedurescout_api import admin_routes, portal_routes, search_routes
 from procedurescout_api.main import app
@@ -382,3 +382,60 @@ def test_price_list_template_and_upload(client: TestClient, conn: Connection) ->
     assert r.status_code == 303
     status = conn.execute(text("SELECT status FROM prov.service_suggestion")).scalar_one()
     assert status == "added"
+
+
+def test_sign_in_email_is_really_sent_after_the_row_is_saved(
+    engine: Engine, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """First live sign-in (2026-11-11): FastAPI runs background tasks before the
+    request's connection closes, so the queued email wasn't saved yet and was
+    never sent. This uses real commits (no rolled-back test connection)."""
+    sent: list[tuple[str, str]] = []
+
+    class Capture:
+        def send(self, to: str, subject: str, body: str) -> None:
+            sent.append((to, subject))
+
+    monkeypatch.setenv("PORTAL_SECRET", "synthetic-portal-secret-123")
+    monkeypatch.setenv("SITE_URL", "https://example.test")
+    get_settings.cache_clear()
+    monkeypatch.setattr(portal_routes, "portal_engine", lambda: engine)
+    monkeypatch.setattr(type(get_settings()), "mail_sender", lambda self: Capture())
+    email = "commit-check@synthetic-clinic.test"
+    try:
+        r = TestClient(app, base_url="https://testserver").post(
+            "/v1/portal/sign-in", json={"email": email}, headers=H
+        )
+        assert r.status_code == 202, r.text
+        with engine.connect() as c:
+            rows = c.execute(
+                text("SELECT to_email, sent_at FROM prov.outbox WHERE to_email = :e"),
+                {"e": email},
+            ).all()
+        assert sent and sent[0][0] == email, (r.json(), rows)
+    finally:
+        with engine.begin() as c:
+            c.execute(text("DELETE FROM prov.outbox WHERE to_email = :e"), {"e": email})
+            c.execute(
+                text(
+                    "DELETE FROM prov.login_token WHERE account_id IN "
+                    "(SELECT id FROM prov.account WHERE email = :e)"
+                ),
+                {"e": email},
+            )
+            c.execute(text("DELETE FROM prov.account WHERE email = :e"), {"e": email})
+        get_settings.cache_clear()
+
+
+def test_waiting_emails_are_retried_every_few_minutes(monkeypatch: pytest.MonkeyPatch) -> None:
+    """An email that couldn't go out at once is tried again by the API itself."""
+    from procedurescout_api import main
+
+    calls: list[int] = []
+    monkeypatch.setattr(main, "MAIL_RETRY_SECONDS", 0)
+    monkeypatch.setattr(main, "send_mail_soon", lambda: calls.append(1))
+    with TestClient(main.app) as c:
+        deadline = __import__("time").monotonic_ns() + 2_000_000_000
+        while not calls and __import__("time").monotonic_ns() < deadline:
+            c.get("/healthz")
+    assert calls

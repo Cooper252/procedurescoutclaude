@@ -3,6 +3,10 @@ review page (admin_routes, off unless configured)."""
 
 from __future__ import annotations
 
+import asyncio
+import contextlib
+from collections.abc import AsyncIterator
+
 from fastapi import FastAPI
 from pydantic import BaseModel
 
@@ -12,11 +16,34 @@ from .admin_portal_routes import router as admin_portal_router
 from .admin_routes import router as admin_router
 from .care_routes import router as care_router
 from .portal_routes import router as portal_router
+from .portal_routes import send_mail_soon
 from .search_routes import router as search_router
 
 API_VERSION = "v1"
+MAIL_RETRY_SECONDS = 300
+
+
+async def _retry_mail_forever() -> None:
+    """Every 5 minutes, send any email still waiting (a sign-in link whose first
+    try failed, or one queued while the email key wasn't set). Never raises."""
+    while True:
+        await asyncio.sleep(MAIL_RETRY_SECONDS)
+        await asyncio.to_thread(send_mail_soon)
+
+
+@contextlib.asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    task = asyncio.create_task(_retry_mail_forever())
+    try:
+        yield
+    finally:
+        task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await task
+
 
 app = FastAPI(
+    lifespan=lifespan,
     title="ProcedureScout API",
     version=core_version,
     docs_url="/docs",

@@ -67,11 +67,25 @@ def get_portal_conn() -> Iterator[Connection]:
     engine = portal_engine()
     if engine is None:
         raise HTTPException(status_code=404, detail="The provider portal is not turned on.")
-    with engine.begin() as conn:
-        yield conn
+    with engine.connect() as conn:
+        try:
+            yield conn
+        except BaseException:
+            conn.rollback()
+            raise
+        conn.commit()
 
 
 PortalConn = Annotated[Connection, Depends(get_portal_conn)]
+
+
+def _save_now(conn: Connection) -> None:
+    """Commit before queuing a background email: FastAPI runs background tasks
+    before this request's connection is closed (and committed), so without
+    this the email row isn't saved yet and nothing is sent (first live sign-in,
+    2026-11-11). Test connections that must roll back set info['no_commit']."""
+    if not conn.info.get("no_commit"):
+        conn.commit()
 
 
 def require_header(x_procedurescout: Annotated[str | None, Header()] = None) -> None:
@@ -314,6 +328,7 @@ def review_request(body: ReviewRequestIn, conn: PortalConn, background: Backgrou
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     dev = f"{settings.site_url}/review#{token}" if token and settings.show_dev_links else None
     if token:
+        _save_now(conn)
         background.add_task(send_mail_soon)
     return LinkOut(ok=True, dev_link=dev)
 
@@ -385,6 +400,7 @@ def sign_in(body: EmailIn, conn: PortalConn, _: Guard, background: BackgroundTas
         else None
     )
     if token:
+        _save_now(conn)
         background.add_task(send_mail_soon)
     return LinkOut(ok=True, dev_link=dev)
 
