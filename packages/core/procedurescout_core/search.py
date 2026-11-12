@@ -597,7 +597,7 @@ def suggest(conn: Connection, query: str, limit: int = 8) -> list[Suggestion]:
                 FROM ref.procedure_synonym
                 WHERE review_state = 'approved' AND term_normalized LIKE :like
             ) m ON m.pid = p.id
-            WHERE p.review_state = 'approved' AND p.slug IS NOT NULL
+            WHERE p.review_state = 'approved' AND p.slug IS NOT NULL AND p.kind = 'service'
             GROUP BY p.slug, p.consumer_name, p.unit, m.matched, p.includes
             ORDER BY r, length(m.matched), p.consumer_name
             LIMIT :n
@@ -669,6 +669,7 @@ def _code_suggestions(conn: Connection, raw: str, normalized: str, n: int) -> li
                        p.includes
                 FROM ref.procedure_code pc JOIN ref.procedure p ON p.id = pc.procedure_id
                 WHERE pc.review_state = 'approved' AND p.review_state = 'approved'
+                  AND p.kind = 'service'
                   AND p.slug IS NOT NULL
                   AND pc.code_system::text || ':' || pc.code = ANY(:pairs)
                 ORDER BY pc.code_system::text || ':' || pc.code, p.consumer_name

@@ -2,6 +2,14 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-12 — Live check after deploy; two fixes
+
+Checked on procedurescout.com after Cooper's push (deployed): card-reader files served (`/ocr/worker.min.js` 200), page counting answers 204, "birth" suggests "Vaginal birth (hospital stay)" with its explanation, the pediatrician type exists, insurance near Birmingham lists Blue Cross Blue Shield of Alabama and Viva Health plans from the new naming rules.
+
+Fixed:
+- A bundle ("vaginal-birth-complete") was offered in the search box as if it were a service; suggestions now list services only (`search.suggest`); test added to `test_childbirth_is_findable_in_plain_words_with_an_explanation`.
+- "SilverSummit Healthplan (Centene) · Medicare Advantage" was listed near Birmingham: Nevada's reviewed "Centene" spellings made the automatic rule treat Alabama's "Centene | Medicare Advantage" as Nevada's plan. Insurers that only cover one state (`data/reference/payer_states.csv`) now get spellings automatically only from their own state's hospitals, and earlier wrong automatic matches are removed on the next load (`plan_resolver.py`); `test_one_state_insurers_are_matched_only_in_their_state`. Full suite `391 passed, 1 skipped`.
+
 ## 2026-11-12 — Accessibility check of the new features
 
 - axe-core (WCAG 2.0/2.1 A and AA) on the home page with the insurance and facility-type menus open, results with the whole-cost panel, details, email form and plan tips open, and Help paying, at 1280 px and 390 px: no violations.

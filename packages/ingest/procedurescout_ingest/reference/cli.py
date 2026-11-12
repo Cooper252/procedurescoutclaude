@@ -903,17 +903,24 @@ def cmd_health_centers(args: argparse.Namespace, engine: Engine) -> None:
 
 def cmd_resolve_plans(args: argparse.Namespace, engine: Engine) -> None:
     """Match new insurance spellings when certain; list the rest for Claude (D-047)."""
-    from procedurescout_ingest.plan_resolver import load_name_rules, resolve_new_spellings
+    from procedurescout_ingest.plan_resolver import (
+        load_name_rules,
+        load_payer_states,
+        resolve_new_spellings,
+    )
 
     rules_file = Path("data/reference/payer_name_rules.csv")
     rules = load_name_rules(rules_file.read_text()) if rules_file.exists() else []
+    states_file = Path("data/reference/payer_states.csv")
+    states = load_payer_states(states_file.read_text()) if states_file.exists() else {}
     with engine.begin() as conn:
-        res = resolve_new_spellings(conn, rules)
+        res = resolve_new_spellings(conn, rules, states)
     print(
         json.dumps(
             {
                 "dataset": "plan_name_resolution",
                 "matched_by_rule": len(res.matched),
+                "removed_wrong_state": [list(r) for r in res.removed[:50]],
                 "unresolved": len(res.unresolved),
                 "matched": [list(m) for m in res.matched[:50]],
                 "unresolved_top": [list(u) for u in res.unresolved[:60]],

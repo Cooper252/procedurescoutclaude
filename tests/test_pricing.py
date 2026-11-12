@@ -649,3 +649,62 @@ def test_reviewed_insurer_names_place_real_hospital_spellings(
         if got.get((normalize_name(payer), normalize_name(plan))) != expected
     ]
     assert wrong == []
+
+
+def test_one_state_insurers_are_matched_only_in_their_state(
+    conn: Connection, world: LocalStore
+) -> None:
+    """Found live (2026-11-12): an Alabama hospital's "Centene | Medicare
+    Advantage" was matched to Nevada's SilverSummit plan, because Nevada's
+    "Centene" spellings are SilverSummit. One-state insurers now get spellings
+    automatically only from their own state's hospitals, and wrong automatic
+    matches are removed."""
+    from procedurescout_ingest.plan_resolver import (
+        RULE,
+        load_name_rules,
+        load_payer_states,
+        resolve_new_spellings,
+    )
+
+    root = Path(__file__).resolve().parent.parent
+    catalog.load_payers(conn, (root / "data/reference/payers.csv").read_text())
+    fid, dv = conn.execute(
+        text("SELECT facility_id, dataset_version_id FROM src.published_file LIMIT 1")
+    ).one()  # a Nevada hospital
+    for payer, plan in (("Viva Health", "HMO"), ("Medicare A AL JJ", "Default")):
+        conn.execute(
+            text(
+                "INSERT INTO price.file_payer_summary (dataset_version_id, facility_id, "
+                "payer_name_raw, plan_name_raw, prices) VALUES (:d, :f, :p, :pl, 1)"
+            ),
+            {"d": dv, "f": fid, "p": payer, "pl": plan},
+        )
+    # an earlier automatic match of Alabama's Viva to a Nevada hospital's spelling
+    conn.execute(
+        text(
+            "INSERT INTO ref.plan_alias (raw_payer_normalized, raw_plan_text, "
+            "raw_plan_normalized, plan_id, match_type, review_state, reviewed_by, reviewed_at) "
+            "SELECT 'viva health', 'HMO', 'hmo', pl.id, 'normalized', 'approved', :rb, now() "
+            "FROM ref.plan pl JOIN ref.payer py ON py.id = pl.payer_id "
+            "WHERE py.canonical_name = 'Viva Health' AND pl.canonical_name = 'HMO'"
+        ),
+        {"rb": RULE},
+    )
+    res = resolve_new_spellings(
+        conn,
+        load_name_rules((root / "data/reference/payer_name_rules.csv").read_text()),
+        load_payer_states((root / "data/reference/payer_states.csv").read_text()),
+    )
+    assert ("Viva Health", "HMO", "Viva Health") in res.removed
+    still = conn.execute(
+        text("SELECT count(*) FROM ref.plan_alias WHERE raw_payer_normalized = 'viva health'")
+    ).scalar()
+    assert still == 0  # Alabama's Viva is never matched from a Nevada hospital
+    medicare = conn.execute(
+        text(
+            "SELECT py.canonical_name FROM ref.plan_alias a JOIN ref.plan pl ON pl.id = a.plan_id "
+            "JOIN ref.payer py ON py.id = pl.payer_id "
+            "WHERE a.raw_payer_normalized = 'medicare a al jj'"
+        )
+    ).scalar()
+    assert medicare == "Original Medicare"  # national: matched in any state

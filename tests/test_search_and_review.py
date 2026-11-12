@@ -385,6 +385,9 @@ def test_childbirth_is_findable_in_plain_words_with_an_explanation(conn: Connect
         assert first.slug.startswith("vaginal-birth"), word
         assert first.about and "billed separately" in first.about
     assert suggest(conn, "pediatrician visit")[0].slug == "well-child-checkup-1-4"
+    catalog.load_bundles(conn, (ROOT / "data/reference/bundles.csv").read_text())
+    # a bundle (the whole procedure's parts) is never offered as a service to search
+    assert all(not s.slug.endswith("-complete") for s in suggest(conn, "birth"))
     assert (
         drg_plain("VAGINAL DELIVERY W/O STERILIZATION/D&C W/O CC/MCC")
         == "Vaginal delivery without getting tubes tied (sterilization)/D&C "

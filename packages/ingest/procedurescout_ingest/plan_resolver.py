@@ -19,6 +19,12 @@ wordings are understood ("Medicare Managed Care Plan", "Managed Medicaid",
 "All Commercial Plans", a plan text that only repeats the insurer's name).
 Plans that aren't regular health coverage (workers' comp, transplant
 contracts, behavioral health carve-outs, prisons) are never matched.
+
+Insurers that only cover one state (data/reference/payer_states.csv) get a
+spelling automatically only when it comes from that state's hospitals: an
+Alabama hospital's "Centene | Medicare Advantage" is not Nevada's SilverSummit
+plan, even though Nevada's "Centene" spellings are (found live 2026-11-12).
+Automatic matches that break this are removed.
 """
 
 from __future__ import annotations
@@ -137,6 +143,7 @@ def _only_repeats_insurer(plan_raw: str, payer_raw: str, insurer_name: str) -> b
 class Resolution:
     matched: list[tuple[str, str, str, str]] = field(default_factory=list)
     unresolved: list[tuple[str, str, int]] = field(default_factory=list)
+    removed: list[tuple[str, str, str]] = field(default_factory=list)  # wrong-state matches
 
 
 def plan_type(plan_raw: str) -> str | None:
@@ -209,26 +216,94 @@ def _pick_plan(
     return plans.get(label), label
 
 
-def resolve_new_spellings(conn: Connection, rules: list[NameRule] | None = None) -> Resolution:
+def load_payer_states(csv_text: str) -> dict[str, set[str]]:
+    """Insurer name -> the states it covers (reviewed rows only)."""
+    import csv
+    import io
+
+    out: dict[str, set[str]] = {}
+    for row in csv.DictReader(io.StringIO(csv_text)):
+        if (row.get("reviewed_by") or "").strip():
+            out.setdefault(row["payer"].strip(), set()).add(row["state"].strip().upper())
+    return out
+
+
+def _insurer_name(conn: Connection, insurer: str) -> str:
+    return str(
+        conn.execute(
+            text("SELECT canonical_name FROM ref.payer WHERE id = :p"), {"p": insurer}
+        ).scalar()
+    )
+
+
+def resolve_new_spellings(
+    conn: Connection,
+    rules: list[NameRule] | None = None,
+    payer_states: dict[str, set[str]] | None = None,
+) -> Resolution:
     """New spellings in staged prices and published files' summaries."""
-    pairs = conn.execute(
+    payer_states = payer_states or {}
+    rows = conn.execute(
         text(
             """
-            SELECT payer_name_raw, plan_name_raw, sum(n) FROM (
-                SELECT payer_name_raw, plan_name_raw, count(*) AS n FROM price.price p
-                WHERE payer_name_raw IS NOT NULL AND plan_name_raw IS NOT NULL
+            SELECT payer_name_raw, plan_name_raw, state_code, sum(n) FROM (
+                SELECT p.payer_name_raw, p.plan_name_raw, f.state_code, count(*) AS n
+                FROM price.price p
+                JOIN src.dataset_version dv ON dv.id = p.dataset_version_id
+                JOIN ref.facility f ON f.id = dv.facility_id
+                WHERE p.payer_name_raw IS NOT NULL AND p.plan_name_raw IS NOT NULL
                   AND NOT EXISTS (SELECT 1 FROM price.file_payer_summary s
                                   WHERE s.dataset_version_id = p.dataset_version_id)
-                GROUP BY 1, 2
+                GROUP BY 1, 2, 3
                 UNION ALL
                 -- spellings from published files whose staged rows were removed (D-054)
-                SELECT payer_name_raw, plan_name_raw, prices FROM price.file_payer_summary
-                WHERE plan_name_raw <> ''
+                SELECT s.payer_name_raw, s.plan_name_raw, f.state_code, s.prices
+                FROM price.file_payer_summary s JOIN ref.facility f ON f.id = s.facility_id
+                WHERE s.plan_name_raw <> ''
             ) x
-            GROUP BY 1, 2
+            GROUP BY 1, 2, 3
             """
         )
     ).all()
+    # each spelling once, with the states whose hospitals publish it
+    spellings: dict[tuple[str, str], tuple[str, str, int, set[str]]] = {}
+    for payer_raw, plan_raw, state, n in rows:
+        key = (normalize_name(str(payer_raw)), normalize_name(str(plan_raw)))
+        got = spellings.get(key)
+        if got is None:
+            spellings[key] = (str(payer_raw), str(plan_raw), int(n), {str(state)})
+        else:
+            got[3].add(str(state))
+            spellings[key] = (got[0], got[1], got[2] + int(n), got[3])
+
+    def allowed(insurer_name: str, states: set[str]) -> bool:
+        only = payer_states.get(insurer_name)
+        return only is None or bool(states & only)
+
+    out = Resolution()
+    # automatic matches of a one-state insurer to spellings no hospital in that
+    # state publishes are removed (reviewed matches are never touched)
+    for rp, rpl, insurer_name in conn.execute(
+        text(
+            """
+            SELECT a.raw_payer_normalized, a.raw_plan_normalized, py.canonical_name
+            FROM ref.plan_alias a JOIN ref.plan pl ON pl.id = a.plan_id
+            JOIN ref.payer py ON py.id = pl.payer_id
+            WHERE a.review_state = 'approved' AND a.reviewed_by IN (:r1, :r2)
+            """
+        ),
+        {"r1": RULE, "r2": NAME_RULE},
+    ).all():
+        found = spellings.get((str(rp), str(rpl)))
+        if found is not None and not allowed(str(insurer_name), found[3]):
+            conn.execute(
+                text(
+                    "DELETE FROM ref.plan_alias WHERE raw_payer_normalized = :a "
+                    "AND raw_plan_normalized = :b AND reviewed_by IN (:r1, :r2)"
+                ),
+                {"a": rp, "b": rpl, "r1": RULE, "r2": NAME_RULE},
+            )
+            out.removed.append((found[0], found[1], str(insurer_name)))
     approved = {
         (str(r[0]), str(r[1]))
         for r in conn.execute(
@@ -238,23 +313,23 @@ def resolve_new_spellings(conn: Connection, rules: list[NameRule] | None = None)
             )
         ).all()
     }
-    out = Resolution()
-    seen: set[tuple[str, str]] = set()
-    for payer_raw, plan_raw, n in pairs:
-        key = (normalize_name(str(payer_raw)), normalize_name(str(plan_raw)))
-        if key in approved or key in seen:
+    for key, (payer_raw, plan_raw, n, states) in spellings.items():
+        if key in approved:
             continue
-        seen.add(key)
         insurer = _insurer_for(conn, key[0])
+        if insurer is not None and not allowed(_insurer_name(conn, insurer), states):
+            insurer = None
         by_rule = False
         if insurer is None and rules:
-            insurer = _rule_insurer(conn, rules, str(payer_raw))
+            insurer = _rule_insurer(conn, rules, payer_raw)
+            if insurer is not None and not allowed(_insurer_name(conn, insurer), states):
+                insurer = None
             by_rule = insurer is not None
         plan, label = (None, "")
         if insurer is not None:
-            plan, label = _pick_plan(conn, insurer, str(payer_raw), str(plan_raw))
+            plan, label = _pick_plan(conn, insurer, payer_raw, plan_raw)
         if plan is None:
-            out.unresolved.append((str(payer_raw), str(plan_raw), int(n)))
+            out.unresolved.append((payer_raw, plan_raw, n))
             continue
         conn.execute(
             text(
@@ -271,15 +346,12 @@ def resolve_new_spellings(conn: Connection, rules: list[NameRule] | None = None)
             ),
             {
                 "rp": key[0],
-                "t": str(plan_raw),
+                "t": plan_raw,
                 "k": key[1],
                 "pl": plan,
                 "rb": NAME_RULE if by_rule else RULE,
             },
         )
-        name = conn.execute(
-            text("SELECT canonical_name FROM ref.payer WHERE id = :p"), {"p": insurer}
-        ).scalar()
-        out.matched.append((str(payer_raw), str(plan_raw), str(name), label or ""))
+        out.matched.append((payer_raw, plan_raw, _insurer_name(conn, insurer or ""), label))
     out.unresolved.sort(key=lambda r: -r[2])
     return out
