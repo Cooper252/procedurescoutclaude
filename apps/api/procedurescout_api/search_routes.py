@@ -119,6 +119,7 @@ class FacilityOut(BaseModel):
     change_percent_since_last_file: str | None
     plan_rate_is_all_plans: bool = False
     special: SpecialOut | None = None
+    delivery: str | None = None  # provider price: in_person, online or both
     rating_average: str | None = None  # patient reviews (D-050), never affects order
     rating_count: int = 0
     prices: list[Price]
@@ -372,6 +373,7 @@ def search_endpoint(
     mode: Annotated[str, Query(pattern="^(cash|list|plan)$")] = "cash",
     plan_id: Annotated[str | None, Query(max_length=36)] = None,
     payer: Annotated[str | None, Query(max_length=200)] = None,
+    online: bool = False,
 ) -> SearchOut:
     try:
         result = search(
@@ -387,6 +389,7 @@ def search_endpoint(
             mode=mode,
             plan_id=plan_id,
             payer_raw=payer,
+            online_only=online,
         )
     except SearchError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
@@ -486,6 +489,7 @@ def search_endpoint(
                     terms=f.special.terms,
                 ),
                 prices=[_plan_match(_price(p), p, result) for p in f.prices],
+                delivery=f.delivery,
             )
             for f in result.facilities
         ],

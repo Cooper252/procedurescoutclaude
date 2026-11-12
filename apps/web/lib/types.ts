@@ -76,6 +76,7 @@ export interface Facility {
   badge_notes: string[];
   change_percent_since_last_file: string | null;
   plan_rate_is_all_plans?: boolean;
+  delivery?: "in_person" | "online" | "both" | null;
   special?: {
     price: string;
     regular?: string;

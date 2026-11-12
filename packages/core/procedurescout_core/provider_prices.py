@@ -75,6 +75,27 @@ def _piece(
     return None, system, c
 
 
+DELIVERY = ("in_person", "online", "both")
+
+
+def _delivery(value: str) -> str:
+    if value not in DELIVERY:
+        raise ProviderPriceError("Choose in person, online, or both.")
+    return value
+
+
+def copay_option(kind: str | None, amount: object) -> tuple[str | None, Decimal | None]:
+    """'standard' = with insurance, the plan's usual copay applies; 'amount' = the
+    copay the practice usually charges insured patients (Cooper, 2026-11-11)."""
+    if kind in (None, ""):
+        return None, None
+    if kind == "standard":
+        return "standard", None
+    if kind == "amount":
+        return "amount", money(amount, "Copay")
+    raise ProviderPriceError("Choose a copay option from the list.")
+
+
 def _qty(quantity: int) -> int:
     if not 1 <= quantity <= 100:
         raise ProviderPriceError("Sessions must be between 1 and 100.")
@@ -92,22 +113,28 @@ def save_listing(
     code: str | None = None,
     quantity: int = 1,
     regular_price: object,
+    delivery: str = "in_person",
+    copay_kind: str | None = None,
+    copay_amount: object = None,
 ) -> str:
     """Add a price or change one. New prices wait for review; a change to a
-    live price is proposed and the live price stays until it's approved."""
+    live price is proposed and the live price stays until it's approved.
+    The same service can be listed once in person and once online."""
     pid, system, c = _piece(conn, service_slug, code_system, code)
     q = _qty(quantity)
     price = money(regular_price, "Regular price")
+    how = _delivery(delivery)
+    ck, ca = copay_option(copay_kind, copay_amount)
     row = conn.execute(
         text(
             """
             SELECT id, status, regular_price FROM prov.listing_price
-            WHERE facility_id = CAST(:f AS uuid) AND quantity = :q
+            WHERE facility_id = CAST(:f AS uuid) AND quantity = :q AND delivery = :d
               AND ((CAST(:p AS uuid) IS NOT NULL AND procedure_id = CAST(:p AS uuid))
                    OR (CAST(:c AS text) IS NOT NULL AND code_system::text = :s AND code = :c))
             """
         ),
-        {"f": facility_id, "q": q, "p": pid, "s": system, "c": c},
+        {"f": facility_id, "q": q, "p": pid, "s": system, "c": c, "d": how},
     ).first()
     if row is None:
         count = conn.execute(
@@ -123,9 +150,10 @@ def save_listing(
             text(
                 """
                 INSERT INTO prov.listing_price (facility_id, procedure_id, code_system, code,
-                    quantity, regular_price, status, submitted_by)
+                    quantity, regular_price, status, submitted_by, delivery, copay_kind,
+                    copay_amount)
                 VALUES (CAST(:f AS uuid), CAST(:p AS uuid), CAST(:s AS ref.code_system), :c, :q,
-                        :price, 'pending_review', :a)
+                        :price, 'pending_review', :a, :d, :ck, :ca)
                 RETURNING id
                 """
             ),
@@ -137,10 +165,18 @@ def save_listing(
                 "q": q,
                 "price": price,
                 "a": account_id,
+                "d": how,
+                "ck": ck,
+                "ca": ca,
             },
         ).scalar_one()
         return str(lid)
     lid, status, current = row
+    # the copay note is information, not a price: it changes right away
+    conn.execute(
+        text("UPDATE prov.listing_price SET copay_kind = :ck, copay_amount = :ca WHERE id = :id"),
+        {"ck": ck, "ca": ca, "id": lid},
+    )
     if status == "published":
         if Decimal(current) == price:
             conn.execute(
@@ -430,16 +466,20 @@ def for_provider(conn: Connection, facility_id: str) -> dict[str, Any]:
             "proposed_price": _s(r[8]),
             "status": r[9],
             "review_note": r[10],
+            "delivery": r[11],
+            "copay_kind": r[12],
+            "copay_amount": _s(r[13]),
             "offers": [],
         }
         for r in conn.execute(
             text(
                 """
                 SELECT lp.id, p.slug, p.consumer_name, p.unit, lp.code_system::text, lp.code,
-                       lp.quantity, lp.regular_price, lp.proposed_price, lp.status, lp.review_note
+                       lp.quantity, lp.regular_price, lp.proposed_price, lp.status, lp.review_note,
+                       lp.delivery, lp.copay_kind, lp.copay_amount
                 FROM prov.listing_price lp LEFT JOIN ref.procedure p ON p.id = lp.procedure_id
                 WHERE lp.facility_id = CAST(:f AS uuid) AND lp.status <> 'withdrawn'
-                ORDER BY coalesce(p.consumer_name, lp.code), lp.quantity
+                ORDER BY coalesce(p.consumer_name, lp.code), lp.quantity, lp.delivery
                 """
             ),
             {"f": facility_id},
@@ -566,6 +606,8 @@ def search_prices(
     code_system: str | None,
     code: str | None,
     today: date,
+    online_only: bool = False,
+    delivery_out: dict[str, str] | None = None,
 ) -> tuple[dict[str, PublishedPrice], dict[str, Special]]:
     """Published single-visit provider prices for one service or code, shaped
     like hospital prices (price_source 'provider_entered', cash), plus each
@@ -576,18 +618,25 @@ def search_prices(
         text(
             """
             SELECT id, facility_id, coalesce(code_system, ''), coalesce(code, ''),
-                   regular_price, service_name
+                   regular_price, service_name, delivery
             FROM prov.published_listing
             WHERE facility_id = ANY(CAST(:ids AS uuid[])) AND quantity = 1
+              AND (NOT :online OR delivery IN ('online', 'both'))
               AND ((CAST(:slug AS text) IS NOT NULL AND service_slug = :slug)
                    OR (CAST(:c AS text) IS NOT NULL AND code_system = :s AND code = :c))
             """
         ),
-        {"ids": facility_ids, "slug": service_slug, "s": (code_system or "").upper(), "c": code},
+        {
+            "ids": facility_ids,
+            "slug": service_slug,
+            "s": (code_system or "").upper(),
+            "c": code,
+            "online": online_only,
+        },
     ).all()
     prices: dict[str, PublishedPrice] = {}
     listing_of: dict[str, str] = {}
-    for lid, fid, system, c, regular, sname in rows:
+    for lid, fid, system, c, regular, sname, how in rows:
         f = str(fid)
         have = prices[f].amount if f in prices else None
         if have is not None and have <= Decimal(regular):
@@ -609,6 +658,8 @@ def search_prices(
             dataset_version_id="",
         )
         listing_of[f] = str(lid)
+        if delivery_out is not None:
+            delivery_out[f] = str(how)
     specials = _offers(conn, list(listing_of.values()), today)
     return prices, {f: specials[lid] for f, lid in listing_of.items() if lid in specials}
 
@@ -622,8 +673,9 @@ def public_prices(conn: Connection, facility_id: str, today: date) -> dict[str, 
     rows = conn.execute(
         text(
             "SELECT id, service_slug, service_name, unit, code_system, code, quantity, "
-            "regular_price, reviewed_at FROM prov.published_listing "
-            "WHERE facility_id = CAST(:f AS uuid) ORDER BY coalesce(service_name, code), quantity"
+            "regular_price, reviewed_at, delivery, copay_kind, copay_amount "
+            "FROM prov.published_listing WHERE facility_id = CAST(:f AS uuid) "
+            "ORDER BY coalesce(service_name, code), quantity, delivery"
         ),
         {"f": fid},
     ).all()
@@ -640,6 +692,9 @@ def public_prices(conn: Connection, facility_id: str, today: date) -> dict[str, 
                 "quantity": int(r[6]),
                 "regular_price": _s(r[7]),
                 "updated_at": r[8].date().isoformat() if r[8] else None,
+                "delivery": r[9],
+                "copay_kind": r[10],
+                "copay_amount": _s(r[11]),
                 "special": None
                 if s is None
                 else {

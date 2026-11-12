@@ -62,6 +62,9 @@ function AddPrice({ fid, p, services, onSaved }: { fid: string; p: PortalDict; s
   const [code, setCode] = useState("");
   const [qty, setQty] = useState(1);
   const [price, setPrice] = useState("");
+  const [delivery, setDelivery] = useState<"in_person" | "online" | "both">("in_person");
+  const [copay, setCopay] = useState<"" | "standard" | "amount">("");
+  const [copayAmt, setCopayAmt] = useState("");
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
   return (
@@ -81,6 +84,9 @@ function AddPrice({ fid, p, services, onSaved }: { fid: string; p: PortalDict; s
               code: slug ? null : code,
               quantity: qty,
               regular_price: price,
+              delivery,
+              copay_kind: copay || null,
+              copay_amount: copay === "amount" ? copayAmt : null,
             });
             setMsg(p.prAdded);
             setPrice("");
@@ -130,6 +136,30 @@ function AddPrice({ fid, p, services, onSaved }: { fid: string; p: PortalDict; s
             <input id="pr-price" inputMode="decimal" required value={price} onChange={(e) => setPrice(e.target.value)} />
           </div>
         </div>
+        <div className="acct-two">
+          <div className="field">
+            <label htmlFor="pr-how">{p.prDelivery}</label>
+            <select id="pr-how" value={delivery} onChange={(e) => setDelivery(e.target.value as typeof delivery)}>
+              <option value="in_person">{p.dlvInPerson}</option>
+              <option value="online">{p.dlvOnline}</option>
+              <option value="both">{p.dlvBoth}</option>
+            </select>
+          </div>
+          <div className="field">
+            <label htmlFor="pr-copay">{p.prCopay}</label>
+            <select id="pr-copay" value={copay} onChange={(e) => setCopay(e.target.value as typeof copay)}>
+              <option value="">{p.copayNone}</option>
+              <option value="standard">{p.copayStandard}</option>
+              <option value="amount">{p.copayAmount}</option>
+            </select>
+          </div>
+        </div>
+        {copay === "amount" && (
+          <div className="field">
+            <label htmlFor="pr-copay-amt">{p.copayAmountLabel}</label>
+            <input id="pr-copay-amt" inputMode="decimal" required value={copayAmt} onChange={(e) => setCopayAmt(e.target.value)} />
+          </div>
+        )}
         {err && <p className="form-error">{err}</p>}
         {msg && <p className="notice good">{msg}</p>}
         <button className="btn primary">{p.prAdd}</button>
@@ -165,6 +195,10 @@ function Listing({ l, fid, p, canEdit, onChange }: { l: MyListing; fid: string; 
         <div>
           <strong>{name}</strong>
           {l.quantity > 1 && <span className="muted"> · {fill(p.ppSessions, { n: l.quantity })}</span>}
+          {l.delivery !== "in_person" && <span className="badge"> {l.delivery === "online" ? p.dlvOnline : p.dlvBoth}</span>}
+          {l.copay_kind && (
+            <span className="muted small"> · {l.copay_kind === "standard" ? p.copayStandard : fill(p.copayIs, { p: m(l.copay_amount) })}</span>
+          )}
           <div>{statusBadge(p, l.status)}</div>
         </div>
         <div className="my-price-amt">
@@ -214,6 +248,9 @@ function Listing({ l, fid, p, canEdit, onChange }: { l: MyListing; fid: string; 
                 code: l.service_slug ? null : l.code,
                 quantity: l.quantity,
                 regular_price: price,
+                delivery: l.delivery,
+                copay_kind: l.copay_kind,
+                copay_amount: l.copay_amount,
               }),
             );
           }}

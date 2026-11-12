@@ -2322,3 +2322,11 @@ details.unpriced > summary:focus-visible { outline: 2px solid var(--accent, #0b6
 .tpl-lines li { padding: 4px 0; border-bottom: 1px solid var(--line, #e5e7eb); overflow-wrap: anywhere; }
 .tpl-error { color: var(--danger, #b42318); }
 .tpl-suggestion { color: var(--muted, #555); }
+
+/* "What will I pay?" and online visits (2026-11-11) */
+.estimate-panel { padding: 12px 16px; margin: 12px 0; }
+.estimate-panel > summary { cursor: pointer; }
+.estimate-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px 16px; margin-top: 10px; }
+.estimate-line { margin: 6px 0 0; }
+.filter-online { display: flex; align-items: center; gap: 6px; }
+.pp-copay { display: block; }

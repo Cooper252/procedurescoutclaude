@@ -11,6 +11,7 @@ import { portalText } from "@/lib/i18n_portal";
 import { SearchForm } from "@/components/SearchForm";
 import { api } from "@/lib/api";
 import { fill, SERVICE_ES, TYPE_ES } from "@/lib/i18n";
+import { EMPTY_PLAN, type PlanDetails } from "@/lib/estimate";
 import { compareDecimal, money, unitLabel } from "@/lib/money";
 import type { Mode, Plan, ProviderType, SearchResult, Service } from "@/lib/types";
 
@@ -41,6 +42,26 @@ function Results() {
   const payerRaw = sp.get("payer");
   const ptype = sp.get("type");
   const radius = RADII.includes(sp.get("r") ?? "") ? (sp.get("r") as string) : "25";
+  const online = sp.get("online") === "1";
+  const [myPlan, setMyPlan] = useState<PlanDetails>(EMPTY_PLAN);
+  const [planLoaded, setPlanLoaded] = useState(false);
+  useEffect(() => {
+    try {
+      const saved = window.sessionStorage.getItem("ps-plan");
+      if (saved) setMyPlan({ ...EMPTY_PLAN, ...(JSON.parse(saved) as Partial<PlanDetails>) });
+    } catch {
+      /* private window: start empty */
+    }
+    setPlanLoaded(true);
+  }, []);
+  useEffect(() => {
+    if (!planLoaded) return;
+    try {
+      window.sessionStorage.setItem("ps-plan", JSON.stringify(myPlan));
+    } catch {
+      /* private window: keep it in memory only */
+    }
+  }, [myPlan, planLoaded]);
   const sort = sp.get("sort") === "near" ? "near" : "price";
 
   const [services, setServices] = useState<Service[]>([]);
@@ -92,14 +113,14 @@ function Results() {
     setLoading(true);
     setError(null);
     api
-      .search({ lat: coords.lat, lng: coords.lng, service, codeSystem, code, mode, planId, payerRaw, providerType: ptype, radius })
+      .search({ lat: coords.lat, lng: coords.lng, service, codeSystem, code, mode, planId, payerRaw, providerType: ptype, radius, online })
       .then((r) => live && setResult(r))
       .catch((e: Error) => live && setError(e.message))
       .finally(() => live && setLoading(false));
     return () => {
       live = false;
     };
-  }, [coords, service, codeSystem, code, mode, planId, payerRaw, ptype, radius, attempt]);
+  }, [coords, service, codeSystem, code, mode, planId, payerRaw, ptype, radius, online, attempt]);
 
   const svc = services.find((s) => s.slug === service) ?? null;
   const name = code
@@ -247,6 +268,10 @@ function Results() {
               </div>
             )}
             <div className="filters">
+              <label className="check filter-online">
+                <input type="checkbox" checked={online} onChange={(e) => setParam({ online: e.target.checked ? "1" : null })} />{" "}
+                {t.filterOnline}
+              </label>
               <div className="field">
                 <label htmlFor="f-r">{t.filterDistance}</label>
                 <select id="f-r" value={radius} onChange={(e) => setParam({ r: e.target.value === "25" ? null : e.target.value })}>
@@ -307,6 +332,7 @@ function Results() {
                 <p className="fine">{portalText(lang).sponsoredNote}</p>
               </aside>
             )}
+            {mode === "plan" && <EstimatePanel value={myPlan} onChange={setMyPlan} />}
             <div className="results-list">
               {priced.map((f) => (
                 <ResultCard
@@ -316,9 +342,11 @@ function Results() {
                   unit={unit}
                   service={service}
                   payer={plans?.find((p) => p.plan_id === planId)?.payer}
+                  plan={mode === "plan" ? myPlan : null}
                 />
               ))}
             </div>
+            {online && priced.length === 0 && <p className="notice">{t.onlineNone}</p>}
             {unpriced.length > 0 && (
               // places without prices stay out of the way (Cooper, 2026-11-11)
               <details className="unpriced" open={priced.length === 0}>
@@ -363,5 +391,36 @@ function ResultsSkeleton() {
         </div>
       ))}
     </div>
+  );
+}
+
+// "What will I pay?": the visitor's own plan numbers, kept in this tab only.
+function EstimatePanel({ value, onChange }: { value: PlanDetails; onChange: (p: PlanDetails) => void }) {
+  const { t } = useApp();
+  const field = (k: keyof PlanDetails, label: string, hint: string) => (
+    <div className="field">
+      <label htmlFor={`est-${k}`}>{label}</label>
+      <input
+        id={`est-${k}`}
+        inputMode="decimal"
+        value={value[k]}
+        placeholder={hint}
+        onChange={(e) => onChange({ ...value, [k]: e.target.value })}
+      />
+    </div>
+  );
+  return (
+    <details className="card estimate-panel">
+      <summary>
+        <strong>{t.estTitle}</strong> <span className="muted small">{t.estSub}</span>
+      </summary>
+      <div className="estimate-fields">
+        {field("deductibleLeft", t.estDeductible, "1000")}
+        {field("coinsurance", t.estCoinsurance, "20")}
+        {field("oopLeft", t.estOop, "4000")}
+        {field("copay", t.estCopay, "40")}
+      </div>
+      <p className="fine">{t.estFine}</p>
+    </details>
   );
 }

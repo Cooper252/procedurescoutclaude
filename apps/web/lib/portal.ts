@@ -117,6 +117,9 @@ export type PublicListing = {
   quantity: number;
   regular_price: string;
   updated_at: string | null;
+  delivery?: "in_person" | "online" | "both";
+  copay_kind?: "standard" | "amount" | null;
+  copay_amount?: string | null;
   special: PublicSpecial | null;
 };
 export type PackageItem = { service_name: string | null; code: string | null; quantity: number };
@@ -147,11 +150,23 @@ export type MyListing = {
   proposed_price: string | null;
   status: string;
   review_note: string | null;
+  delivery: "in_person" | "online" | "both";
+  copay_kind: "standard" | "amount" | null;
+  copay_amount: string | null;
   offers: MyOffer[];
 };
 export type MyPackage = { id: string; name: string; description: string | null; price: string; status: string; review_note: string | null; items: PackageItem[] };
 export type MyPrices = { listings: MyListing[]; packages: MyPackage[] };
-export type ListingIn = { service_slug?: string | null; code_system?: string | null; code?: string | null; quantity: number; regular_price: string };
+export type ListingIn = {
+  service_slug?: string | null;
+  code_system?: string | null;
+  code?: string | null;
+  quantity: number;
+  regular_price: string;
+  delivery?: "in_person" | "online" | "both";
+  copay_kind?: "standard" | "amount" | null;
+  copay_amount?: string | null;
+};
 export type OfferIn = { kind: string; who: string; value: string; starts_on: string; ends_on: string | null; terms: string | null };
 export type PackageIn = {
   name: string;

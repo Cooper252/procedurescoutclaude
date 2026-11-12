@@ -86,6 +86,7 @@ export const api = {
     payerRaw?: string | null;
     providerType?: string | null;
     radius?: string;
+    online?: boolean;
   }): Promise<SearchResult> =>
     DEMO
       ? later({ ...demo.demoSearch(p.code ? demo.demoServiceForCode(p.code) : p.service, p.mode, p.planId ?? null, p.providerType ?? null, p.radius ?? "25"), code_description: p.code ? "Sample hospital wording for this code" : null })
@@ -100,6 +101,7 @@ export const api = {
           payer: p.mode === "plan" && !p.planId ? p.payerRaw : null,
           provider_type: p.providerType,
           radius_miles: p.radius ?? "25",
+          online: p.online ? "true" : null,
         }),
   nearby: (lat: string, lng: string): Promise<NearbyFacility[]> =>
     DEMO ? later(demo.demoNearby()) : get("/v1/facilities/near", { lat, lng, provider_type: "hospital" }),

@@ -220,9 +220,9 @@ export function demoProviderPrices(id: string): ProviderPrices {
 export function demoMyPrices(): MyPrices {
   return {
     listings: [
-      { id: "l1", service_slug: "mri-brain", service_name: "MRI of the brain", unit: "per_service", code_system: null, code: null, quantity: 1, regular_price: "425", proposed_price: null, status: "published", review_note: null, offers: [{ id: "o1", kind: "amount_off", who: "new_patients", offer_price: null, percent_off: null, amount_off: "50", starts_on: "2026-11-01", ends_on: "2026-12-31", terms: "Sample special", status: "published", review_note: null }] },
-      { id: "l2", service_slug: "x-ray-chest", service_name: "Chest X-ray", unit: "per_service", code_system: null, code: null, quantity: 1, regular_price: "65", proposed_price: "59", status: "published", review_note: null, offers: [] },
-      { id: "l3", service_slug: null, service_name: null, unit: null, code_system: "CPT", code: "76700", quantity: 1, regular_price: "180", proposed_price: null, status: "pending_review", review_note: null, offers: [] },
+      { id: "l1", delivery: "in_person", copay_kind: "standard", copay_amount: null, service_slug: "mri-brain", service_name: "MRI of the brain", unit: "per_service", code_system: null, code: null, quantity: 1, regular_price: "425", proposed_price: null, status: "published", review_note: null, offers: [{ id: "o1", kind: "amount_off", who: "new_patients", offer_price: null, percent_off: null, amount_off: "50", starts_on: "2026-11-01", ends_on: "2026-12-31", terms: "Sample special", status: "published", review_note: null }] },
+      { id: "l2", delivery: "in_person", copay_kind: null, copay_amount: null, service_slug: "x-ray-chest", service_name: "Chest X-ray", unit: "per_service", code_system: null, code: null, quantity: 1, regular_price: "65", proposed_price: "59", status: "published", review_note: null, offers: [] },
+      { id: "l3", delivery: "in_person", copay_kind: null, copay_amount: null, service_slug: null, service_name: null, unit: null, code_system: "CPT", code: "76700", quantity: 1, regular_price: "180", proposed_price: null, status: "pending_review", review_note: null, offers: [] },
     ],
     packages: [{ id: "k1", name: "Sample screening pair", description: "Made up for preview.", price: "220", status: "published", review_note: null, items: [{ service_name: "Chest X-ray", code: null, quantity: 1 }, { service_name: null, code: "CPT 76700", quantity: 1 }] }],
   };

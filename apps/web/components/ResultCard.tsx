@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { fill, TYPE_ES, TYPE_EN } from "@/lib/i18n";
+import { centsToDollars, estimate, type PlanDetails } from "@/lib/estimate";
 import { formatMoney, money, subtractDecimal, unitLabel } from "@/lib/money";
 import type { Facility, Mode } from "@/lib/types";
 import { useApp } from "./AppState";
@@ -30,14 +31,18 @@ export function ResultCard({
   unit,
   service,
   payer,
+  plan,
 }: {
   f: Facility;
   mode: Mode;
   unit: string | null;
   service?: string;
   payer?: string;
+  plan?: PlanDetails | null;
 }) {
   const { t, lang } = useApp();
+  // a rough "you'd pay" only from this plan's negotiated rate, never a list price
+  const est = mode === "plan" && plan && f.headline && f.headline_price_type === "negotiated" ? estimate(f.headline, plan) : null;
   const [open, setOpen] = useState(false);
   const head = formatMoney(f.headline);
   const provider = f.prices.some((p) => p.price_source === "provider_entered");
@@ -74,6 +79,9 @@ export function ResultCard({
           ) : null}
           <p className="meta">
             <span>{f.provider_types.map(typeName).join(" · ")}</span>
+            {f.delivery && f.delivery !== "in_person" && (
+              <span className="badge">{f.delivery === "online" ? t.dlvOnline : t.dlvBoth}</span>
+            )}
             <span aria-hidden="true">•</span>
             <span>
               <Pin size={14} /> {f.city ? `${f.city} · ` : ""}
@@ -99,6 +107,13 @@ export function ResultCard({
           )}
         </div>
       </div>
+
+      {est && (
+        <p className="estimate-line">
+          <strong>{fill(t.estYouPay, { p: centsToDollars(est.cents) })}</strong>{" "}
+          <span className="muted small">{t[`estHow_${est.how}` as const]}</span>
+        </p>
+      )}
 
       {f.special && (f.special.regular ?? f.headline) && (
         <div className="special">

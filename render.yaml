@@ -53,6 +53,9 @@ services:
         value: resend
       - key: EMAIL_FROM
         value: ProcedureScout <noreply@procedurescout.com>
+      # replies to our emails go to this real inbox (IONOS mail); set it in Render
+      - key: EMAIL_REPLY_TO
+        sync: false
       - key: RESEND_API_KEY
         sync: false
       # Billing stays off until Cooper adds Stripe keys (D-051)

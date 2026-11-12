@@ -75,3 +75,5 @@ Status levels are separate on purpose. A cell is filled only with evidence. Depl
 | SVC-03 | Cosmetic surgery, psychiatry, fertility, specialist services | 11 | Yes (`service_catalog.csv`, `service_synonyms.csv`) | Yes (`test_committed_catalog_files_load_with_review_state`) | — | — | |
 | SRCH-05 | Unpriced places folded in search | 11 | Yes (`app/search/page.tsx`) | tsc only | — | — | |
 | PRV-09 | Price-list templates by kind of care, upload checked line by line, new-service suggestions | 11 | Yes (`price_templates.py`, `portal_routes.py`, `0023_price_upload_suggestions.py`, `components/PortalPrices.tsx`) | Yes (`test_price_list_template_and_upload`) | — | — | |
+| PRV-10 | In person / online prices, copay note, "Online visits only" filter | 11 | Yes (`0024_delivery_copay.py`, `provider_prices.py`, `search.py`, `components/PortalPrices.tsx`, `app/search/page.tsx`) | Yes (`test_online_and_in_person_prices_and_copay`, `test_price_list_template_and_upload`) | — | — | |
+| EST-01 | "What will I pay?" estimate from the visitor's plan numbers | 11 | Yes (`apps/web/lib/estimate.ts`, `components/ResultCard.tsx`) | Yes (`lib/estimate.test.mts`) | — | — | |

@@ -29,7 +29,19 @@ from sqlalchemy import Connection, text
 
 from . import provider_prices as prices
 
-COLUMNS = ("section", "service_id", "service", "unit", "codes", "your_price", "sessions", "notes")
+COLUMNS = (
+    "section",
+    "service_id",
+    "service",
+    "unit",
+    "codes",
+    "your_price",
+    "sessions",
+    "in_person_or_online",
+    "copay",
+    "notes",
+)
+DELIVERY_WORDS = {"": "in_person", "in person": "in_person", "online": "online", "both": "both"}
 OWN_ROWS = 10  # empty lines at the bottom for services we don't have yet
 MAX_BYTES = 1_000_000
 MAX_LINES = 2_000
@@ -114,9 +126,22 @@ def template_csv(conn: Connection, provider_types: list[str]) -> str:
     for code, name in sorted(chosen, key=lambda c: (-size[c[0]], c[1])):
         for slug, svc, unit, codes in per_type[code]:
             if home[slug] == code:
-                w.writerow([name, slug, svc, UNIT_WORDS.get(unit, unit), codes, "", "1", ""])
+                w.writerow(
+                    [
+                        name,
+                        slug,
+                        svc,
+                        UNIT_WORDS.get(unit, unit),
+                        codes,
+                        "",
+                        "1",
+                        "in person",
+                        "",
+                        "",
+                    ]
+                )
     for _ in range(OWN_ROWS):
-        w.writerow(["Your own services", "", "", "", "", "", "1", ""])
+        w.writerow(["Your own services", "", "", "", "", "", "1", "in person", "", ""])
     return out.getvalue()
 
 
@@ -136,6 +161,8 @@ class Line:
 @dataclass(slots=True)
 class UploadCheck:
     lines: list[Line] = field(default_factory=list)
+    # line number -> (delivery, copay kind, copay amount)
+    extras: dict[int, tuple[str, str | None, Decimal | None]] = field(default_factory=dict)
 
     def count(self, status: str) -> int:
         return sum(1 for x in self.lines if x.status == status)
@@ -168,7 +195,7 @@ def check_upload(conn: Connection, csv_text: str) -> UploadCheck:
         ).all()
     }
     result = UploadCheck()
-    seen: set[tuple[str, int]] = set()
+    seen: set[tuple[str, int, str]] = set()
     for n, row in enumerate(reader, start=2):
         if n > MAX_LINES + 1:
             raise TemplateError(f"Up to {MAX_LINES} lines per upload.")
@@ -183,6 +210,24 @@ def check_upload(conn: Connection, csv_text: str) -> UploadCheck:
         except ValueError:
             result.lines.append(Line(n, "error", "Sessions must be a whole number from 1 to 100."))
             continue
+        how = DELIVERY_WORDS.get(cell(row, "in_person_or_online").lower())
+        if how is None:
+            result.lines.append(
+                Line(n, "error", "In person or online: write 'in person', 'online' or 'both'.")
+            )
+            continue
+        copay = cell(row, "copay").lower()
+        try:
+            ck, ca = prices.copay_option(
+                None if not copay else "standard" if copay.startswith("standard") else "amount",
+                copay.replace("$", "").replace(",", "") or None,
+            )
+        except prices.ProviderPriceError:
+            result.lines.append(
+                Line(n, "error", "Copay: write 'standard' or an amount like 25, or leave it blank.")
+            )
+            continue
+        result.extras[n] = (how, ck, ca)
         try:
             price = prices.money(raw.replace("$", "").replace(",", ""), "Price")
         except prices.ProviderPriceError as exc:
@@ -202,12 +247,12 @@ def check_upload(conn: Connection, csv_text: str) -> UploadCheck:
                     )
                 )
                 continue
-            if (slug, sessions) in seen:
+            if (slug, sessions, how) in seen:
                 result.lines.append(
                     Line(n, "error", "This service is listed twice.", slug, known[slug])
                 )
                 continue
-            seen.add((slug, sessions))
+            seen.add((slug, sessions, how))
             result.lines.append(
                 Line(n, "ready", "Ready.", slug, known[slug], price=str(price), sessions=sessions)
             )
@@ -239,8 +284,8 @@ def check_upload(conn: Connection, csv_text: str) -> UploadCheck:
                 ),
                 {"s": system, "c": code},
             ).scalar()
-            if slug_for_code is not None and (str(slug_for_code), sessions) not in seen:
-                seen.add((str(slug_for_code), sessions))
+            if slug_for_code is not None and (str(slug_for_code), sessions, how) not in seen:
+                seen.add((str(slug_for_code), sessions, how))
                 result.lines.append(
                     Line(
                         n,
@@ -277,6 +322,7 @@ def apply_upload(
     sent = kept = 0
     for x in check.lines:
         if x.status == "ready" and x.service_id and x.price:
+            how, ck, ca = check.extras.get(x.line, ("in_person", None, None))
             prices.save_listing(
                 conn,
                 facility_id,
@@ -284,6 +330,9 @@ def apply_upload(
                 service_slug=x.service_id,
                 quantity=x.sessions,
                 regular_price=x.price,
+                delivery=how,
+                copay_kind=ck,
+                copay_amount=ca,
             )
             sent += 1
         elif x.status == "suggestion" and x.service and x.price:

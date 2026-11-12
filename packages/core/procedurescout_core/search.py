@@ -61,6 +61,7 @@ class FacilityResult:
     change_percent: Decimal | None = None  # headline vs the previous published file
     all_plans_rate: bool = False  # plan rates here are the insurer's one rate for all plans
     special: Special | None = None  # provider special on its own regular price (D-042)
+    delivery: str | None = None  # provider price: 'in_person', 'online' or 'both'
 
 
 @dataclass(frozen=True, slots=True)
@@ -132,6 +133,7 @@ def search(
     mode: str = "cash",
     plan_id: str | None = None,
     payer_raw: str | None = None,
+    online_only: bool = False,
 ) -> SearchResult:
     if (service_slug is None) == (code is None):
         raise SearchError("give either a service or a code, not both")
@@ -217,7 +219,18 @@ def search(
                     SELECT 1 FROM ref.facility_provider_type x
                     WHERE x.facility_id = f.id AND x.provider_type = :ptype))
             GROUP BY f.id, f.name, f.city, f.state_code, p.pt, f.geom
-            ORDER BY miles, f.name
+            -- places that can answer come first (a published hospital file, or a
+            -- provider price for this service), then the nearest of the rest:
+            -- otherwise thousands of nearby offices push the hospitals out of
+            -- the first 50 (first live Nevada load, 2026-11-11)
+            ORDER BY (EXISTS (SELECT 1 FROM price.published_file pf
+                              WHERE pf.facility_id = f.id)
+                      OR EXISTS (SELECT 1 FROM prov.published_listing pl
+                                 WHERE pl.facility_id = f.id
+                                   AND (pl.service_slug = CAST(:slug AS text)
+                                        OR pl.code_system || ':' || pl.code = ANY(:codes))))
+                     DESC,
+                     miles, f.name
             LIMIT :n
             """
         ),
@@ -228,6 +241,8 @@ def search(
             "mpm": METERS_PER_MILE,
             "ptype": provider_type,
             "n": max_facilities,
+            "slug": service_slug,
+            "codes": [f"{sys_}:{c}" for sys_, c in codes],
         },
     ).all()
     ids = [str(f[0]) for f in facilities]
@@ -252,7 +267,9 @@ def search(
     wanted_types = ["discounted_cash", "gross"]
     if mode == "plan" or plan_id is not None or payer_key is not None:
         wanted_types.append("negotiated")
-    if with_files:
+    # online visits: only providers who price this service online (hospital
+    # files don't say whether a price is for a video visit)
+    if with_files and not online_only:
         for system, value in codes:
             for p in find_prices(
                 conn,
@@ -267,6 +284,7 @@ def search(
     # their specials are kept apart and never used in comparisons (D-042)
     from datetime import UTC, datetime
 
+    delivery: dict[str, str] = {}
     provider, specials = search_prices(
         conn,
         ids,
@@ -274,6 +292,8 @@ def search(
         None if service_slug else codes[0][0] if codes else None,
         None if service_slug else codes[0][1] if codes else None,
         datetime.now(UTC).date(),
+        online_only=online_only,
+        delivery_out=delivery,
     )
     for fid, p in provider.items():
         by_facility.setdefault(fid, []).append(p)
@@ -362,8 +382,10 @@ def search(
             change_percent=change(str(f[0])),
             all_plans_rate=str(f[0]) in uses_all_plans,
             special=specials.get(str(f[0])),
+            delivery=delivery.get(str(f[0])),
         )
         for f in facilities
+        if not online_only or str(f[0]) in delivery
     )
     note = None
     if not codes:

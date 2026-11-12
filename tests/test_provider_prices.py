@@ -3,7 +3,7 @@ and the facility page (PRV-02, PRV-08, PRV-09). Synthetic data, rolled back."""
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 
@@ -198,3 +198,38 @@ def test_public_api_role_reads_published_price_views_only(api_engine) -> None:  
         c.execute(text("SELECT count(*) FROM prov.published_listing")).scalar_one()
         c.execute(text("SELECT count(*) FROM prov.published_offer")).scalar_one()
         c.execute(text("SELECT count(*) FROM prov.published_package_item")).scalar_one()
+
+
+def test_online_and_in_person_prices_and_copay(conn: Connection, fac: str, tmp_path: Path) -> None:
+    """Cooper (2026-11-11): in-person AND telehealth pricing, and copays."""
+    a = _acct(conn)
+    slug = "therapy-session-60"
+    office = pp.save_listing(conn, fac, a, service_slug=slug, regular_price="160")
+    video = pp.save_listing(
+        conn,
+        fac,
+        a,
+        service_slug=slug,
+        regular_price="120",
+        delivery="online",
+        copay_kind="amount",
+        copay_amount="30",
+    )
+    assert office != video  # the same service once in person and once online
+    with pytest.raises(pp.ProviderPriceError):
+        pp.save_listing(conn, fac, a, service_slug=slug, regular_price="1", delivery="phone")
+    with pytest.raises(pp.ProviderPriceError):
+        pp.save_listing(conn, fac, a, service_slug=slug, regular_price="160", copay_kind="free")
+    for lid in (office, video):
+        pp.review_listing(conn, lid, "Synthetic Reviewer", approve=True, note=None)
+    anywhere = _mine(_search(conn, tmp_path, service_slug=slug), fac)
+    assert anywhere.headline is not None and anywhere.headline.amount == 120  # lowest
+    online = _search(conn, tmp_path, service_slug=slug, online_only=True)
+    assert [f.facility_id for f in online.facilities] == [fac]
+    assert online.facilities[0].delivery == "online"
+    page = pp.public_prices(conn, fac, date(2026, 11, 11))
+    shown = {(x["delivery"], x["copay_kind"], x["copay_amount"]) for x in page["listings"]}
+    assert shown == {("in_person", None, None), ("online", "amount", "30")}
+    # only the in-person price: nobody shows up for "online visits"
+    pp.withdraw_listing(conn, fac, video)
+    assert _search(conn, tmp_path, service_slug=slug, online_only=True).facilities == ()

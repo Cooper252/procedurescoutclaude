@@ -14,7 +14,7 @@ function day(iso: string, lang: "en" | "es"): string {
 }
 
 export function ProviderPrices({ data }: { data: PP }) {
-  const { lang } = useApp();
+  const { t, lang } = useApp();
   const p = portalText(lang);
   if (data.listings.length === 0 && data.packages.length === 0) return null;
   const m = (v: string) => formatMoney(v)?.text ?? `$${v}`;
@@ -38,6 +38,14 @@ export function ProviderPrices({ data }: { data: PP }) {
               </div>
               <div className="pp-price">
                 <span className="price-num">{m(l.regular_price)}</span>
+                {l.delivery && l.delivery !== "in_person" && (
+                  <span className="badge">{l.delivery === "online" ? t.dlvOnline : t.dlvBoth}</span>
+                )}
+                {l.copay_kind && (
+                  <span className="muted small pp-copay">
+                    {l.copay_kind === "standard" ? t.copayStandard : fill(t.copayIs, { p: m(l.copay_amount ?? "") })}
+                  </span>
+                )}
               </div>
               {l.special && (
                 <div className="special pp-special">

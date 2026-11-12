@@ -40,6 +40,7 @@ class Settings(BaseSettings):
     # Email (Q26): "resend" or "smtp"; nothing is sent until these are set.
     email_provider: str = ""
     email_from: str = ""
+    email_reply_to: str = ""  # replies go here (a real inbox)
     resend_api_key: str = ""
     smtp_host: str = ""
     smtp_port: int = 587
@@ -93,6 +94,7 @@ class Settings(BaseSettings):
             self.smtp_port,
             self.smtp_username,
             self.smtp_password,
+            self.email_reply_to,
         )
 
     def store_args(self) -> tuple[str, str, str, str]:

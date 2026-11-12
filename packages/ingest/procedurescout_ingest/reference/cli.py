@@ -539,6 +539,7 @@ def cmd_send_email(args: argparse.Namespace, engine: Engine) -> None:
         int(os.environ.get("SMTP_PORT", "587")),
         os.environ.get("SMTP_USERNAME", ""),
         os.environ.get("SMTP_PASSWORD", ""),
+        os.environ.get("EMAIL_REPLY_TO", ""),
     )
     if sender is None:
         print("no email service is set up (EMAIL_PROVIDER, EMAIL_FROM and keys); nothing sent")

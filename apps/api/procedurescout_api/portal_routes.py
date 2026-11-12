@@ -784,6 +784,9 @@ class ListingIn(BaseModel):
     code: str | None = Field(default=None, max_length=12)
     quantity: int = Field(default=1, ge=1, le=100)
     regular_price: str = Field(max_length=20)
+    delivery: str = Field(default="in_person", pattern="^(in_person|online|both)$")
+    copay_kind: str | None = Field(default=None, pattern="^(standard|amount)$")
+    copay_amount: str | None = Field(default=None, max_length=20)
 
 
 @router.post("/portal/facilities/{facility_id}/prices", status_code=201)
@@ -801,6 +804,9 @@ def portal_price_save(
             code=body.code or None,
             quantity=body.quantity,
             regular_price=body.regular_price,
+            delivery=body.delivery,
+            copay_kind=body.copay_kind,
+            copay_amount=body.copay_amount,
         )
     except prices.ProviderPriceError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc

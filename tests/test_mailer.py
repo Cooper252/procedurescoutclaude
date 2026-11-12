@@ -80,6 +80,13 @@ def test_resend_request_shape(monkeypatch: pytest.MonkeyPatch) -> None:
         "subject": "Hi",
         "text": "Body",
     }
+    # replies go to a real inbox when one is set
+    sender = mailer.sender_from(
+        "resend", "hi@example.test", "re_test", reply_to="help@example.test"
+    )
+    assert sender is not None
+    sender.send("a@b.test", "Hi", "Body")
+    assert seen["json"]["reply_to"] == "help@example.test"
     monkeypatch.setattr(mailer.httpx, "post", lambda url, **kw: httpx.Response(422))
     with pytest.raises(RuntimeError):
         mailer.ResendSender("re_test", "hi@example.test").send("a@b.test", "Hi", "Body")

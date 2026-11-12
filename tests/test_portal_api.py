@@ -331,6 +331,9 @@ def test_price_list_template_and_upload(client: TestClient, conn: Connection) ->
     for x in rows:
         if x["service_id"] == "teeth-cleaning-adult":
             x["your_price"] = "$129.50"
+            x["copay"] = "standard"
+        if x["service_id"] == "ortho-consultation":
+            x.update(your_price="75", in_person_or_online="online")
         if x["service_id"] == "braces-full-adult":
             x["your_price"] = "5,900"
         if x["service_id"] == "night-guard":
@@ -344,7 +347,7 @@ def test_price_list_template_and_upload(client: TestClient, conn: Connection) ->
     w.writerows(rows)
     url = f"/v1/portal/facilities/{fid}/price-upload"
     first = client.post(url, json={"csv": out.getvalue()}, headers=H).json()
-    assert first["counts"]["ready"] == 3  # cleaning, braces, exam matched by its code
+    assert first["counts"]["ready"] == 4  # cleaning, braces, online consult, exam by its code
     assert first["counts"]["suggestion"] == 1 and first["counts"]["error"] == 1
     bad = next(x for x in first["lines"] if x["status"] == "error")
     assert "2 decimal places" in bad["message"]
@@ -358,9 +361,12 @@ def test_price_list_template_and_upload(client: TestClient, conn: Connection) ->
     w.writeheader()
     w.writerows(rows)
     done = client.post(url, json={"csv": out.getvalue(), "confirm": True}, headers=H).json()
-    assert done["applied"] == {"sent_for_review": 4, "suggestions": 1}
+    assert done["applied"] == {"sent_for_review": 5, "suggestions": 1}
     mine = client.get(f"/v1/portal/facilities/{fid}/prices").json()["listings"]
-    assert {x["status"] for x in mine} == {"pending_review"} and len(mine) == 4
+    assert {x["status"] for x in mine} == {"pending_review"} and len(mine) == 5
+    by = {x["service_slug"]: x for x in mine}
+    assert by["teeth-cleaning-adult"]["copay_kind"] == "standard"
+    assert by["ortho-consultation"]["delivery"] == "online"
     assert client.get(f"/v1/facilities/{fid}/provider-prices").json()["listings"] == []
     kept = conn.execute(text("SELECT name, price FROM prov.service_suggestion")).all()
     assert [(k[0], str(k[1])) for k in kept] == [("Smile makeover consultation", "0.01")]

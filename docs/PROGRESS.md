@@ -2,6 +2,18 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-11 — Resend verified; replies go to a real inbox
+- Cooper added procedurescout.com in Resend; "Auto configure" added the DKIM, SPF and MX (send.) records at IONOS; all three show Verified. IONOS mail (root MX) untouched.
+- `EMAIL_REPLY_TO` (Render, optional): our emails come from noreply@procedurescout.com; replies now go to this inbox (`mailer.ResendSender.reply_to`, SMTP `Reply-To`). Test: `test_resend_request_shape`. `pytest -q` → `361 passed, 1 skipped, 1 warning in 17.91s`.
+
+## 2026-11-11 — In person vs online prices, copays, "What will I pay?"
+- Migration `0024_delivery_copay.py`: `prov.listing_price.delivery` (in_person / online / both; the same service can be listed once each way), `copay_kind` ('standard' = "with insurance: standard copay", or 'amount' with `copay_amount`); `prov.published_listing` shows them.
+- `provider_prices.save_listing(delivery=, copay_kind=, copay_amount=)`; portal form and price-list template have both (template columns `in_person_or_online`, `copay`).
+- Search: `online=true` ("Online visits only") shows only providers who price that service online (hospital files don't say whether a price is for a video visit, so they're left out of that filter); results and provider price lists show "Online visit" / "In person or online" and the copay text.
+- "What will I pay?" (`apps/web/lib/estimate.ts`, search page in "My insurance" mode): deductible left, coinsurance %, out-of-pocket left, copay; each result with this plan's negotiated rate shows "You'd pay about $X" and why. Whole cents with BigInt; never from a list price; kept in the browser tab only. `npm test` → `estimate tests passed`.
+- Tests: `test_online_and_in_person_prices_and_copay`, `test_price_list_template_and_upload` (online consult, standard copay). `pytest -q` → `361 passed, 1 skipped, 1 warning in 17.48s`; ruff, mypy, tsc, next build clean. Phone-width check of the Prices tab: no sideways scroll, no page errors.
+- Not done yet: marketplace plans' own copays from CMS plan files (GAP 3.1 second half).
+
 ## 2026-11-11 — Price-list templates with upload checking (Cooper's idea)
 - `procedurescout_core/price_templates.py`, routes `GET /v1/portal/price-template?types=…` (CSV, opens in Excel) and `POST /v1/portal/facilities/{id}/price-upload` (check, then confirm). One file for several kinds of care; a shared service goes in the more specialised section. Each line: ready / skipped (blank price) / problem (shown on its line) / new to our list. Lines with only a code are matched by code. Nothing is sent until there are no problems and the practice confirms; prices then go to the usual review.
 - Migration `0023_price_upload_suggestions.py`: `prov.service_suggestion` and a staff queue "New services from price lists" on /admin/providers.
