@@ -506,3 +506,146 @@ def test_email_this_to_me_through_the_api(
     ).scalar()
     assert queued and "Synthetic" in queued
     assert client.post("/v1/email-prices", json={**body, "email": "nope"}).status_code == 422
+
+
+REAL_SPELLINGS = [
+    # (insurer as the hospital wrote it, plan as written, expected card name or None)
+    (
+        "BlueCross BlueShield of Alabama",
+        "Commercial",
+        "Blue Cross Blue Shield of Alabama · All plans (one rate published for all)",
+    ),
+    (
+        "BlueCross BlueShield of Alabama",
+        "Medicare Advantage",
+        "Blue Cross Blue Shield of Alabama · Medicare Advantage",
+    ),
+    (
+        "Blue Cross and Blue Shield of Alabama",
+        "Blue Advantage (Medicare Advantage)",
+        "Blue Cross Blue Shield of Alabama · Medicare Advantage",
+    ),
+    ("BCBS_Alabama_Exchange", "BCALEXCHNG", None),  # plan code only: left for research
+    (
+        "BLUE CROSS OF AL",
+        "BLUE CROSS AL COMMERCIAL",
+        "Blue Cross Blue Shield of Alabama · All plans (one rate published for all)",
+    ),
+    (
+        "Blue Cross Blue Shield of AL",
+        "Default",
+        "Blue Cross Blue Shield of Alabama · All plans (one rate published for all)",
+    ),
+    ("BlueCross BlueShield of Alabama", "Transplant", None),  # not regular coverage
+    ("BCBS", "Anthem HMO", None),  # which Blue? never guessed
+    ("Medicare A AL JJ", "Default", "Original Medicare · Original Medicare"),
+    ("Traditional Medicare", "Traditional Medicare", "Original Medicare · Original Medicare"),
+    (
+        "MEDICARE",
+        "MEDICARE ADVANTAGE",
+        None,
+    ),  # an Advantage plan of some insurer: not Original Medicare
+    (
+        "NODE Medicare Traditional",
+        "NODE Medicare Traditional",
+        "Original Medicare · Original Medicare",
+    ),
+    ("Aetna", "Medicare Managed Care Plan", "Aetna · Medicare Advantage"),
+    ("AETNA", "AETNA COMMERCIAL", "Aetna · All plans (one rate published for all)"),
+    ("AETNA HEALTH MANAGEMENT, LLC", "MANAGED MEDICARE", "Aetna · Medicare Advantage"),
+    (
+        "Connecticut General Life Insurance Company",
+        "COMMERCIAL",
+        "Cigna · All plans (one rate published for all)",
+    ),
+    (
+        "United Healthcare",
+        "All Payor/Commercial",
+        "UnitedHealthcare · All plans (one rate published for all)",
+    ),
+    (
+        "UnitedHealthcare",
+        "AARP Medicare Managed Care Plan",
+        "UnitedHealthcare · Medicare Advantage",
+    ),
+    ("United Healthcare", "VACCN", None),
+    ("Blue Cross & Blue Shield of Rhode Island", "Prime EPO", None),  # "Prime EPO": not plainly EPO
+    (
+        "Blue Cross & Blue Shield of Rhode Island",
+        "PPO",
+        "Blue Cross & Blue Shield of Rhode Island · PPO",
+    ),
+    (
+        "Blue Cross & Blue Shield of Rhode Island",
+        "MANAGED MEDICARE",
+        "Blue Cross & Blue Shield of Rhode Island · Medicare Advantage",
+    ),
+    ("Blue Cross & Blue Shield of Rhode Island", "OUT OF STATE", None),
+    (
+        "Neighborhood Health Plan of Rhode Island",
+        "Managed Medicaid",
+        "Neighborhood Health Plan of Rhode Island · Medicaid plan",
+    ),
+    ("Tufts Health Public Plans", "Managed Medicaid RI", "Tufts Health Plan · Medicaid plan"),
+    (
+        "[payer_BCBS DELAWARE ]",
+        "[plan_ BLUE CROSS]",
+        "Highmark Blue Cross Blue Shield Delaware · All plans (one rate published for all)",
+    ),
+    ("Bcbs", "Highmark Medicare Managed Care Plan", None),
+    ("DELAWARE FIRST HEALTH-MEDICARE", "DELAWARE FIRST HEALTH-MEDICARE", None),
+    ("Devoted Health", "Medicare Advantage", "Devoted Health · Medicare Advantage"),
+    ("Wellcare", "MANAGED MEDICARE", "Wellcare · Medicare Advantage"),
+    ("MVP", "Medicare Advantage", "MVP Health Care · Medicare Advantage"),
+    ("BlueCross BlueShield Vermont", "Indemnity", None),
+    ("Viva Health", "HMO", "Viva Health · HMO"),
+    ("Humana Military", "TRICARE", None),
+    ("CorVel", "Workers' Compensation", None),
+]
+
+
+def test_reviewed_insurer_names_place_real_hospital_spellings(
+    conn: Connection, world: LocalStore
+) -> None:
+    """Cooper (2026-11-12): typing "Medicare" listed "Medicare A AL JJ",
+    "Traditional Medicare"... These are spellings from the Alabama, Rhode
+    Island, Delaware and Vermont files, placed by Claude's reviewed naming
+    rules (D-047) or left for research, never guessed."""
+    from procedurescout_ingest.plan_resolver import load_name_rules, resolve_new_spellings
+
+    catalog.load_payers(
+        conn, (Path(__file__).resolve().parent.parent / "data/reference/payers.csv").read_text()
+    )
+    fid, dv = conn.execute(
+        text("SELECT facility_id, dataset_version_id FROM src.published_file LIMIT 1")
+    ).one()
+    for payer, plan, _ in REAL_SPELLINGS:
+        conn.execute(
+            text(
+                "INSERT INTO price.file_payer_summary (dataset_version_id, facility_id, "
+                "payer_name_raw, plan_name_raw, prices) VALUES (:d, :f, :p, :pl, 1)"
+            ),
+            {"d": dv, "f": fid, "p": payer, "pl": plan},
+        )
+    rules = load_name_rules(
+        (Path(__file__).resolve().parent.parent / "data/reference/payer_name_rules.csv").read_text()
+    )
+    resolve_new_spellings(conn, rules)
+    from procedurescout_core.matching import normalize_name
+
+    got = {
+        (str(r[0]), str(r[1])): f"{r[2]} · {r[3]}"
+        for r in conn.execute(
+            text(
+                "SELECT a.raw_payer_normalized, a.raw_plan_normalized, py.canonical_name, "
+                "pl.canonical_name FROM ref.plan_alias a JOIN ref.plan pl ON pl.id = a.plan_id "
+                "JOIN ref.payer py ON py.id = pl.payer_id WHERE a.review_state = 'approved'"
+            )
+        ).all()
+    }
+    wrong = [
+        (payer, plan, expected, got.get((normalize_name(payer), normalize_name(plan))))
+        for payer, plan, expected in REAL_SPELLINGS
+        if got.get((normalize_name(payer), normalize_name(plan))) != expected
+    ]
+    assert wrong == []

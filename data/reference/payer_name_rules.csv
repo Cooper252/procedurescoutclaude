@@ -1,0 +1,26 @@
+pattern,payer,notes,reviewed_by,reviewed_at
+(bcbs|blue ?cross( (and|&)? ?blue ?shield)?|bc)( of)? (al|alabama)( all| part b| commercial| exchange| state employees| regionalcare hospital)?|alabama blue cross blue shield|blue cross alabama,Blue Cross Blue Shield of Alabama,names Alabama's Blue Cross plan (Blue Advantage is its Medicare Advantage brand),"Claude (delegated by Cooper, D-047)",2026-11-12
+(bcbs|blue ?cross( (and|&)? ?blue ?shield)?)( of)? (ri|rhode island),Blue Cross & Blue Shield of Rhode Island,names Rhode Island's Blue Cross plan,"Claude (delegated by Cooper, D-047)",2026-11-12
+(bcbs|blue ?cross( blue ?shield)?)( of)? (de|delaware)|highmark (bc|bcbs|blue cross)( delaware)?|highmark delaware bcbs|bcbs delaware,Highmark Blue Cross Blue Shield Delaware,Highmark is Delaware's Blue Cross plan,"Claude (delegated by Cooper, D-047)",2026-11-12
+(bcbs|blue ?cross ?blue ?shield)( of)? (vt|vermont)( health connect| managed care| tvhp)?,Blue Cross and Blue Shield of Vermont,names Vermont's Blue Cross plan,"Claude (delegated by Cooper, D-047)",2026-11-12
+neighborhood health plan( of rhode island| ri)?|nhp,Neighborhood Health Plan of Rhode Island,Rhode Island plan; only loaded for RI hospitals so far,"Claude (delegated by Cooper, D-047)",2026-11-12
+tufts( health plan| associated health maintenance organization| health public plans)?,Tufts Health Plan,Tufts Health Plan and its public (Medicaid) plans,"Claude (delegated by Cooper, D-047)",2026-11-12
+harvard pilgrim( health ?care)?,Harvard Pilgrim Health Care,,"Claude (delegated by Cooper, D-047)",2026-11-12
+mvp( health ?care| vt commercial| vt health connect| gold medicare advantage| uvm medicare advantage)?,MVP Health Care,,"Claude (delegated by Cooper, D-047)",2026-11-12
+viva( health( plan)?| healthcare)?( mcr adv)?,Viva Health,Alabama's Viva Health,"Claude (delegated by Cooper, D-047)",2026-11-12
+amerihealth caritas( delaware| de)?( mco)?,AmeriHealth Caritas Delaware,Delaware Medicaid plan,"Claude (delegated by Cooper, D-047)",2026-11-12
+delaware first health|de first health,Delaware First Health,Delaware Medicaid plan (Centene),"Claude (delegated by Cooper, D-047)",2026-11-12
+health options highmark|de bcbsd health options,Highmark Health Options (Delaware Medicaid),Highmark's Delaware Medicaid plan,"Claude (delegated by Cooper, D-047)",2026-11-12
+devoted( health( care)?)?( medicare advantage)?,Devoted Health,Medicare Advantage only,"Claude (delegated by Cooper, D-047)",2026-11-12
+clover( health)?,Clover Health,Medicare Advantage only,"Claude (delegated by Cooper, D-047)",2026-11-12
+wellcare( health plans)?,Wellcare,Medicare Advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+ambetter( health| exchange)?,Ambetter,marketplace plans,"Claude (delegated by Cooper, D-047)",2026-11-12
+common ?wealth care alliance|common wellthcare alliance,Commonwealth Care Alliance,,"Claude (delegated by Cooper, D-047)",2026-11-12
+aetna( health management| commercial| medicare advantage| medicare| all plans| health| insurance| us healthcare non hmo)?,Aetna,,"Claude (delegated by Cooper, D-047)",2026-11-12
+cigna( health and life insurance( company)?| commercial| healthcare)?|connecticut general life insurance( company)?,Cigna,Connecticut General Life is Cigna's insurer,"Claude (delegated by Cooper, D-047)",2026-11-12
+(united ?health ?care|uhc)( insurance company.*| of alabama| commercial| medicare advantage| all payer)?,UnitedHealthcare,,"Claude (delegated by Cooper, D-047)",2026-11-12
+humana( inc| choice ?care| choicecare gold)?,Humana,ChoiceCare is Humana's network,"Claude (delegated by Cooper, D-047)",2026-11-12
+tricare( east)?|humana military,TRICARE,,"Claude (delegated by Cooper, D-047)",2026-11-12
+(traditional )?medicare( traditional| fee for service| part a| part b| [ab] al jj)?|node medicare traditional|medicare [ab] [a-z]{2} jj,Original Medicare,the government's own Medicare (not a Medicare Advantage plan),"Claude (delegated by Cooper, D-047)",2026-11-12
+(al|alabama) medicaid|medicaid alabama|traditional medicaid alabama,Alabama Medicaid (fee for service),,"Claude (delegated by Cooper, D-047)",2026-11-12
+(de|delaware) medicaid,Delaware Medicaid (fee for service),,"Claude (delegated by Cooper, D-047)",2026-11-12

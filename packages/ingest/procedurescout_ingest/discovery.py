@@ -41,6 +41,7 @@ from sqlalchemy import Connection, text
 from procedurescout_core.enums import Severity
 from procedurescout_core.facility_repo import (
     FacilityMatchStatus,
+    add_alias,
     resolve_facility_by_ccn,
     resolve_facility_by_name,
 )
@@ -285,6 +286,9 @@ def load_co_listed(conn: Connection, csv_text: str, stats: LoadStats) -> CoListe
     return out
 
 
+MAX_HEADS_PER_SITE = 150
+
+
 def discover(
     conn: Connection,
     state_code: str,
@@ -292,8 +296,49 @@ def discover(
     captured: dict[str, HptFetch] | None = None,
     home: dict[str, HptFetch] | None = None,
     co_listed: CoListed | None = None,
+    head: Callable[[str], bytes] | None = None,
 ) -> LoadStats:
+    """(2026-11-12, Vermont run: 3 of 17 hospitals found.) With `head`, a
+    listed location whose name matches no hospital is matched by its price
+    file's header instead: when the header's hospital_address gives exactly one
+    hospital's street number and ZIP code in this state, that name is saved as
+    an approved alias (D-058's evidence, now used for every listed location,
+    not only for website candidates). Health systems list their sister
+    hospitals this way (the UVM Health site lists Porter Medical Center), so
+    hospitals missing from the website list are found through their system's
+    file. A match in another state only records that hospital's website, so
+    its own state's run finds it."""
     stats = LoadStats()
+    from .website_verify import ADDRESS_REVIEWER, address_key, header_address_keys
+
+    head_cache: dict[str, set[str]] = {}
+    looked_up: dict[str, int] = {}
+
+    def by_address(site: str, mrf: str) -> list[tuple[uuid.UUID, str, str | None]]:
+        """Hospitals (with a CCN) whose street number + ZIP is in the file's header."""
+        if head is None or looked_up.get(site, 0) >= MAX_HEADS_PER_SITE:
+            return []
+        if mrf not in head_cache:
+            looked_up[site] = looked_up.get(site, 0) + 1
+            try:
+                head_cache[mrf] = header_address_keys(head(mrf))
+            except Exception:  # network trouble: this file just can't vouch
+                head_cache[mrf] = set()
+        keys = head_cache[mrf]
+        if not keys:
+            return []
+        zips = sorted({k.split("|")[1] for k in keys})
+        rows = conn.execute(
+            text(
+                "SELECT id, state_code, address_line1, zip5, website FROM ref.facility "
+                "WHERE ccn IS NOT NULL AND zip5 = ANY(:z)"
+            ),
+            {"z": zips},
+        ).all()
+        return [
+            (uuid.UUID(str(r[0])), str(r[1]), r[4]) for r in rows if address_key(r[2], r[3]) in keys
+        ]
+
     # Approved campus children: a file listing a hospital and its approved campus
     # children belongs to the hospital (the children point to the hospital's file).
     campus_parent = {
@@ -397,6 +442,41 @@ def discover(
                     status, facility_id = "matched", match.facility_id
                 elif match.status is FacilityMatchStatus.AMBIGUOUS:
                     status = "ambiguous"
+                elif mrf:
+                    found = by_address(site, mrf)
+                    here = [f for f in found if f[1] == state_code]
+                    if len(here) == 1:
+                        add_alias(
+                            conn,
+                            here[0][0],
+                            name,
+                            alias_type="mrf_name",
+                            source=mrf[:500],
+                            match_basis="manual",
+                            reviewed_by=ADDRESS_REVIEWER,
+                        )
+                        status, facility_id = "matched", here[0][0]
+                        stats.count("entries_matched_by_price_file_address")
+                        if here[0][2] is None:  # its own site, for later runs
+                            conn.execute(
+                                text(
+                                    "UPDATE ref.facility SET website = :w, "
+                                    "website_evidence_url = :e, website_reviewed_by = :r, "
+                                    "website_reviewed_at = now() WHERE id = :f"
+                                ),
+                                {"w": site, "e": mrf, "r": ADDRESS_REVIEWER, "f": here[0][0]},
+                            )
+                    for fid, other_state, web in found:
+                        if other_state != state_code and web is None:
+                            conn.execute(
+                                text(
+                                    "UPDATE ref.facility SET website = :w, "
+                                    "website_evidence_url = :e, website_reviewed_by = :r, "
+                                    "website_reviewed_at = now() WHERE id = :f"
+                                ),
+                                {"w": site, "e": mrf, "r": ADDRESS_REVIEWER, "f": fid},
+                            )
+                            stats.count("websites_found_for_other_states")
             entry_id = conn.execute(
                 text(
                     """

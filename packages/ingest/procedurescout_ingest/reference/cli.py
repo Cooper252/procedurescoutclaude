@@ -332,7 +332,9 @@ def cmd_discover(args: argparse.Namespace, engine: Engine) -> None:
             if Path(CO_LISTED_CSV).exists()
             else {}
         )
-        stats = discovery.discover(c, args.state, fetch, captured, home, co_listed)
+        stats = discovery.discover(
+            c, args.state, fetch, captured, home, co_listed, head=_head_reader(client)
+        )
         stats.summary["home_fetches_available"] = len(home)
         stats.rejects.extend(captured_stats.rejects)
         stats.summary.update({f"manifest_{k}": v for k, v in captured_stats.summary.items()})
@@ -843,10 +845,12 @@ def cmd_health_centers(args: argparse.Namespace, engine: Engine) -> None:
 
 def cmd_resolve_plans(args: argparse.Namespace, engine: Engine) -> None:
     """Match new insurance spellings when certain; list the rest for Claude (D-047)."""
-    from procedurescout_ingest.plan_resolver import resolve_new_spellings
+    from procedurescout_ingest.plan_resolver import load_name_rules, resolve_new_spellings
 
+    rules_file = Path("data/reference/payer_name_rules.csv")
+    rules = load_name_rules(rules_file.read_text()) if rules_file.exists() else []
     with engine.begin() as conn:
-        res = resolve_new_spellings(conn)
+        res = resolve_new_spellings(conn, rules)
     print(
         json.dumps(
             {

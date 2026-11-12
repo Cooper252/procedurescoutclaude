@@ -171,3 +171,47 @@ Universal Health Network,Network on your card,unknown,other,"Claude (delegated b
 VA Community Care,VA Community Care,unknown,tricare_va,Cooper,2026-11-08
 Wynn Resorts,Employee / member plan,unknown,employer_self_funded,Cooper,2026-11-08
 Zuffa,Employee / member plan,unknown,employer_self_funded,Cooper,2026-11-08
+Blue Cross Blue Shield of Alabama,All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross Blue Shield of Alabama,PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross Blue Shield of Alabama,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross Blue Shield of Alabama,Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross & Blue Shield of Rhode Island,All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross & Blue Shield of Rhode Island,HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross & Blue Shield of Rhode Island,PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross & Blue Shield of Rhode Island,EPO,epo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross & Blue Shield of Rhode Island,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Highmark Blue Cross Blue Shield Delaware,All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Highmark Blue Cross Blue Shield Delaware,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Highmark Blue Cross Blue Shield Delaware,Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Vermont,All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Vermont,Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Neighborhood Health Plan of Rhode Island,All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Neighborhood Health Plan of Rhode Island,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Neighborhood Health Plan of Rhode Island,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Tufts Health Plan,All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Tufts Health Plan,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Tufts Health Plan,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Harvard Pilgrim Health Care,All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Harvard Pilgrim Health Care,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+MVP Health Care,All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+MVP Health Care,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+MVP Health Care,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+MVP Health Care,Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Viva Health,All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Viva Health,HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Viva Health,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+AmeriHealth Caritas Delaware,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Delaware First Health,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Delaware First Health,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Highmark Health Options (Delaware Medicaid),Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Devoted Health,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Clover Health,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Wellcare,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Ambetter,Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Commonwealth Care Alliance,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Alabama Medicaid (fee for service),Medicaid,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Delaware Medicaid (fee for service),Medicaid,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+UnitedHealthcare,Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Cigna,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Cigna,Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Humana,Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12

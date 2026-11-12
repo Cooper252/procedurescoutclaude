@@ -2,6 +2,19 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-12 — More hospitals found; insurer names for AL, RI, DE, VT
+
+Why only 3 of 17 Vermont hospitals: the website hints (DoltHub) list only 10 Vermont hospitals, some with old addresses, and a health system's cms-hpt.txt names its sister hospitals in ways that matched none of ours.
+
+Implemented:
+- Discovery reads the header of each listed location's price file when its name matches no hospital; when the header's address gives exactly one hospital's street number and ZIP in the state, the name is saved as an approved alias (D-058's evidence) and that hospital gets its prices; a match in another state records that hospital's website for its own run (`discovery.discover(head=)`, `cmd_discover`).
+- Website hints also try the price page's own site from the same list (`website_verify.dolthub_candidates`).
+- Insurer names: reviewed naming rules (`data/reference/payer_name_rules.csv`, D-047) and 17 new insurers (`payers.csv`) for the loaded states; the resolver understands more plan wordings and never matches workers' comp, transplant, behavioral, prison, VA or out-of-state contracts (`plan_resolver.py`). The rules run on every state's load, for all states' spellings. Spellings were read from the live site's per-hospital plan lists (`/v1/facilities/{id}/plans`) for Alabama, Rhode Island, Delaware and Vermont.
+
+Tested: `test_a_listed_location_is_matched_by_its_price_file_address`, `test_reviewed_insurer_names_place_real_hospital_spellings` (35 real spellings, incl. ones that must stay unmatched); full suite `389 passed, 1 skipped`; ruff, mypy clean.
+
+Not yet: hospitals missing from every list we use (7 in Vermont) still need another source of websites.
+
 ## 2026-11-12 — Cooper's list: prices explained, whole cost, childbirth, online visits, email, analytics, card photos
 
 Implemented:

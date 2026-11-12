@@ -195,8 +195,13 @@ def dolthub_candidates(get_json: Callable[[str, dict[str, str]], Any], state_cod
     offset = 0
     while True:
         # state_code is validated above and offset is an int: nothing user-typed
+        # the price page's own site too (2026-11-12): some hospitals keep their
+        # price page, and so their cms-hpt.txt, on a different site than the
+        # homepage the list gives
         q = (
-            "SELECT ccn, homepage FROM hospitals WHERE state = '{s}' AND length(homepage) > 8 "
+            "SELECT ccn, homepage, standard_charge_file_indirect_url FROM hospitals "
+            "WHERE state = '{s}' AND (length(homepage) > 8 "
+            "OR length(standard_charge_file_indirect_url) > 8) "
             "ORDER BY ccn LIMIT 500 OFFSET {o}"
         )
         q = q.format(s=state_code, o=int(offset))
@@ -204,9 +209,15 @@ def dolthub_candidates(get_json: Callable[[str, dict[str, str]], Any], state_cod
         rows = (body.get("rows") or []) if isinstance(body, dict) else []
         for r in rows:
             ccn = str(r.get("ccn") or "").strip().upper()
-            url = str(r.get("homepage") or "").strip()
-            if re.fullmatch(r"[0-9A-Z]{6}", ccn) and url:
-                w.writerow([ccn, url, DOLTHUB_SOURCE])
+            if not re.fullmatch(r"[0-9A-Z]{6}", ccn):
+                continue
+            seen: set[str] = set()
+            for col in ("homepage", "standard_charge_file_indirect_url"):
+                url = str(r.get(col) or "").strip()
+                origin = _origin(url) if url else None
+                if origin and origin not in seen:
+                    seen.add(origin)
+                    w.writerow([ccn, url, DOLTHUB_SOURCE])
         if len(rows) < 500:
             break
         offset += 500

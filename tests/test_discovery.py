@@ -631,3 +631,42 @@ def test_campus_child_listed_with_parent_gives_file_to_parent(conn: Connection) 
     assert _source_owner(conn, f"{SITE}/mrf/shared.json") == "SYN503"
     child = [r for r in stats.rejects if r.rule == "listed_in_parent_file"]
     assert [r.row_ref for r in child] == ["ccn:SYN502"]
+
+
+def test_a_listed_location_is_matched_by_its_price_file_address(conn: Connection) -> None:
+    """Vermont run (2026-11-12): only 3 of 17 hospitals were found. A health
+    system's file lists its sister hospitals under other names; the price
+    file's header address (street number + ZIP) names the hospital."""
+    setup_hospitals(conn)
+    load_websites(conn, websites_csv())
+    conn.execute(
+        text(
+            "UPDATE ref.facility SET address_line1 = '77 PORTER DR', zip5 = '89991', "
+            "website = NULL WHERE ccn = 'SYN505'"
+        )
+    )
+    header = (
+        b'{"hospital_name": "Synthetic Clinic Nobody Knows", '
+        b'"hospital_address": ["77 Porter Drive, Testville, NV 89991"], '
+        b'"standard_charge_information": ['
+    )
+
+    def head(url: str) -> bytes:
+        return header if url.endswith("/mrf/unknown.json") else b""
+
+    stats = discover(conn, "NV", fake_fetcher, head=head)
+    assert stats.summary["entries_matched_by_price_file_address"] == 1
+    row = conn.execute(
+        text(
+            "SELECT e.match_status, f.ccn, f.website, f.website_reviewed_by "
+            "FROM src.hpt_txt_entry e "
+            "JOIN ref.facility f ON f.id = e.facility_id "
+            "WHERE e.location_name = 'Synthetic Clinic Nobody Knows'"
+        )
+    ).first()
+    assert row is not None and (row[0], row[1], row[2]) == ("matched", "SYN505", SITE)
+    assert "price file's header" in row[3]
+    # the name now resolves on later runs, as an approved alias with its evidence
+    from procedurescout_core.facility_repo import resolve_facility_by_name
+
+    assert resolve_facility_by_name(conn, "Synthetic Clinic Nobody Knows", "NV").facility_id
