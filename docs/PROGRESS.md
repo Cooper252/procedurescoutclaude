@@ -12,7 +12,7 @@ Status levels: Implemented → Tested → Deployed → Verified in production. O
 - `load-all-states.yml` rewritten as a chain: each run loads one state and starts the next (the old matrix stalled on "Queued"); a state whose price files didn't all get tried (no "done" note) or whose offices failed is run again, up to 4 passes; one state's trouble never stops the others; every step has a time limit (325 of 350 minutes), so "Start the next run" always runs; the national provider list is downloaded once (resumable, retried) and cached for later states; its monthly link is found automatically. The chain's shell logic was run here for 7 cases (finished, unfinished, offices failed, pass 4, last state, offices done, monthly).
 - `load-state-production.yml`: same limits, retries and geocode step.
 
-**Logo:** original mark, a price tag with a medical cross in the brand teal (`components/Icons.tsx`); browser-tab icon `app/icon.svg`, `app/favicon.ico` (16/32/48), `app/apple-icon.png` (180). Checked on light and dark tabs.
+**Logo:** original mark chosen by Cooper (option C of several): a map pin with a coral medical cross on the brand teal (`components/Icons.tsx`); browser-tab icon `app/icon.svg`, `app/favicon.ico` (16/32/48), `app/apple-icon.png` (180). Checked on light and dark tabs.
 
 **Assistance policies (D-060):** all 13 Nevada drafts checked against each hospital's own document and approved as `Claude (delegated by Cooper, D-060)`; Renown and Banner corrected to their exact published tiers; UMC copays and residency, HCA emergency-only noted. They reach the live site with the next state load (catalog step). Nevada hospitals without a findable policy (e.g. Valley Health System) stay "not reviewed" (never guessed).
 
