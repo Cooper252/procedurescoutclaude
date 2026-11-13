@@ -135,6 +135,34 @@ def test_assistance_check_says_may_qualify_never_eligible(
     )
 
 
+def test_health_system_policy_covers_its_hospitals_in_a_state(conn: Connection) -> None:
+    """One row for a health system's policy covers every one of its hospitals
+    in a state by the system's name (Banner, Kaiser, Sutter; D-060); a
+    hospital's own row wins."""
+    setup_hospitals(conn)
+    system_row = (
+        "system:NV:^SYNTHETIC,https://synthetic-health.example/system-fap.pdf,,,,2026,,"
+        f"2026-11-12,synthetic system policy,free<=300,,{REVIEWED}\n"
+    )
+    stats = catalog.load_assistance_policies(conn, POLICY_CSV + system_row)
+    assert stats.rejects == []
+    got = dict(
+        conn.execute(
+            text(
+                "SELECT f.ccn, p.policy_url FROM ref.assistance_policy p "
+                "JOIN ref.facility f ON f.id = p.facility_id"
+            )
+        ).all()
+    )
+    assert got["SYN501"] == "https://synthetic-health.example/fap.pdf"  # its own policy
+    assert got["SYN503"] == "https://synthetic-health.example/system-fap.pdf"
+    assert stats.summary.get("system_rows") == 1
+    bad = catalog.load_assistance_policies(
+        conn, ",".join(catalog.POLICY_COLUMNS) + "\n" + system_row.replace("system:NV:", "system:")
+    )
+    assert {r.rule for r in bad.rejects} == {"system"}
+
+
 def test_bundle_estimate_never_counts_missing_pieces_as_zero(
     conn: Connection, world: LocalStore
 ) -> None:

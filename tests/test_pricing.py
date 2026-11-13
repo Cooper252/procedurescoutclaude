@@ -353,6 +353,7 @@ def test_new_spellings_are_matched_only_when_certain(conn: Connection, world: Lo
     # the synthetic file has "Synthetic Payer Two | HMO"; its insurer is not yet known
     res = resolve_new_spellings(conn)
     assert ("Synthetic Payer Two", "HMO", 1) in res.unresolved and res.matched == []
+    assert ("Synthetic Payer Two", "HMO", 1) in res.unresolved_by_state["NV"]  # for the report
     # once one spelling of that insurer is approved and it has an HMO card name,
     # its plain "HMO" spelling matches by rule
     catalog.load_payers(
@@ -996,6 +997,36 @@ def test_state_medicaid_programs_by_their_names(conn: Connection, world: LocalSt
                 "Managed Medicaid",
                 "Peach State Health Plan · Medicaid plan",
             )
+        ],
+    }
+    wrong = _placed_by_state(conn, cases)
+    assert wrong == [], wrong
+
+
+def test_regional_insurers_by_their_own_names(conn: Connection, world: LocalStore) -> None:
+    """Regional health plans by their own names (D-047); names that other
+    organizations share ("Presbyterian", "Meridian", "Network Health") only in
+    the plan's own states."""
+    one = "All plans (one rate published for all)"
+    cases: dict[str, list[tuple[str, str, str | None]]] = {
+        "MI": [
+            ("Priority Health", "Medicare Advantage", "Priority Health · Medicare Advantage"),
+            ("HAP", "Commercial", f"Health Alliance Plan (HAP) · {one}"),
+        ],
+        "PA": [
+            ("UPMC for You", "UPMC for You", "UPMC Health Plan · Medicaid plan"),
+            ("Geisinger Health Plan", "Commercial", f"Geisinger Health Plan · {one}"),
+        ],
+        "TX": [("Superior HealthPlan", "STAR", "Superior HealthPlan · Medicaid plan")],
+        "NY": [
+            ("Fidelis Care", "Medicaid Managed Care", "Fidelis Care · Medicaid plan"),
+            ("Healthfirst", "Medicare Advantage", "Healthfirst (New York) · Medicare Advantage"),
+        ],
+        "FL": [("Healthfirst", "Medicare Advantage", None)],  # Florida's Health First is not it
+        "NJ": [("Meridian", "Commercial", None)],  # Hackensack Meridian, not the Michigan plan
+        "OH": [("Aetna Better Health of Ohio", "Medicaid", "Aetna · Medicaid plan")],
+        "MD": [
+            ("Wellpoint (fka Amerigroup)", "Medicaid", "Wellpoint (Amerigroup) · Medicaid plan")
         ],
     }
     wrong = _placed_by_state(conn, cases)

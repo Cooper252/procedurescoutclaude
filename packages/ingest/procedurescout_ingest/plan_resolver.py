@@ -60,7 +60,7 @@ _TYPES: list[tuple[re.Pattern[str], str]] = [
         re.compile(
             r"medicaid|\bmcd\b|\bmcaid\b|rite ?care|\bchip\b|\bahcccs\b"
             r"|health care cost containment|community plan|\bpasse\b|\bmedi cal\b"
-            r"|healthy families"
+            r"|healthy families|^star( plus| kids| health)?$|\bstar ?plus\b|\bstar kids\b"
         ),
         "Medicaid plan",
     ),
@@ -202,6 +202,8 @@ class Resolution:
     matched: list[tuple[str, str, str, str]] = field(default_factory=list)
     unresolved: list[tuple[str, str, int]] = field(default_factory=list)
     removed: list[tuple[str, str, str]] = field(default_factory=list)  # wrong-state matches
+    # the most-used spellings still unmatched in each state, for the load report
+    unresolved_by_state: dict[str, list[tuple[str, str, int]]] = field(default_factory=dict)
 
 
 def plan_type(plan_raw: str) -> str | None:
@@ -410,6 +412,7 @@ def resolve_new_spellings(
         if plan is None or insurer is None:
             got = unresolved.get((pk, plk))
             unresolved[(pk, plk)] = (payer_raw, plan_raw, (got[2] if got else 0) + n)
+            out.unresolved_by_state.setdefault(state, []).append((payer_raw, plan_raw, n))
             continue
         insurer_name = _insurer_name(conn, insurer)
         state_code = state if only(insurer_name) is not None else ""
@@ -439,4 +442,6 @@ def resolve_new_spellings(
         approved.add((pk, plk, state_code))
         out.matched.append((payer_raw, plan_raw, insurer_name, label))
     out.unresolved = sorted(unresolved.values(), key=lambda r: -r[2])
+    for st, items in out.unresolved_by_state.items():
+        out.unresolved_by_state[st] = sorted(items, key=lambda r: -r[2])[:25]
     return out

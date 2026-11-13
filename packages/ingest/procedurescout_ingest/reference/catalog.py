@@ -411,10 +411,49 @@ def load_assistance_policies(conn: Connection, csv_text: str) -> LoadStats:
     if not rows:
         return stats
     require_columns(rows, POLICY_COLUMNS, "assistance policies CSV")
+    # one hospital's own row wins over its health system's row
+    own = {
+        str(f)
+        for f in (
+            resolve_facility_by_ccn(conn, r["ccn"])
+            for r in rows
+            if not r["ccn"].startswith("system:")
+        )
+        if f is not None
+    }
+    work: list[tuple[int, dict[str, str], object]] = []
     for i, row in enumerate(rows, start=2):
+        if row["ccn"].startswith("system:"):
+            # "system:AZ:^BANNER ": every hospital of a health system in a state,
+            # by the system's name in the hospital's CMS name, when the system's
+            # policy says it covers all its hospitals (D-060)
+            m = re.fullmatch(r"system:([A-Z]{2}):(.+)", row["ccn"].strip())
+            if not m:
+                stats.rows_in += 1
+                stats.reject(f"line:{i}", "system", "not system:<state>:<name pattern>")
+                continue
+            found = (
+                conn.execute(
+                    text(
+                        "SELECT id FROM ref.facility WHERE state_code = :s AND ccn IS NOT NULL "
+                        "AND facility_type::text IN ('acute_care_hospital', "
+                        "'critical_access_hospital', 'childrens_hospital', 'psychiatric_hospital') "
+                        "AND name ~* :p ORDER BY ccn"
+                    ),
+                    {"s": m.group(1), "p": m.group(2)},
+                )
+                .scalars()
+                .all()
+            )
+            stats.count("system_rows")
+            for fid in found:
+                if str(fid) not in own:
+                    work.append((i, row, fid))
+            continue
+        work.append((i, row, resolve_facility_by_ccn(conn, row["ccn"])))
+    for i, row, fid in work:
         stats.rows_in += 1
         ref = f"line:{i} ccn:{row['ccn']}"
-        fid = resolve_facility_by_ccn(conn, row["ccn"])
         if fid is None:
             stats.reject(ref, "facility_not_found", "CCN not loaded")
             continue

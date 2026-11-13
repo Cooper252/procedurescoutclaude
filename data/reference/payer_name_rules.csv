@@ -72,7 +72,7 @@ cen ?cal health,CenCal Health,,,https://www.dhcs.ca.gov/services/medi-cal/Docume
 contra costa health plan,Contra Costa Health Plan,,,https://www.dhcs.ca.gov/services/medi-cal/Documents/MCP-Contact-List-Managed-Care-Plans-by-County.pdf,"Claude (delegated by Cooper, D-047)",2026-11-12
 community health group( medicare advantage)?,Community Health Group,,,San Diego Medi-Cal plan; https://www.dhcs.ca.gov/services/medi-cal/Documents/MCP-Contact-List-Managed-Care-Plans-by-County.pdf,"Claude (delegated by Cooper, D-047)",2026-11-12
 medi cal( medicaid| ffs| fee for service)?,California Medi-Cal (fee for service),Medicaid,,Medi-Cal is California's Medicaid; https://www.dhcs.ca.gov,"Claude (delegated by Cooper, D-047)",2026-11-12
-molina( healthcare)?( of (california|ca))?|molina (medi cal|covered ca|senior|medicare advantage),Molina Healthcare,,,,"Claude (delegated by Cooper, D-047)",2026-11-12
+molina( healthcare)?( of [a-z]+( [a-z]+)?)?|molina (medi cal|covered ca|senior|medicare advantage|medicaid|marketplace),Molina Healthcare,,,,"Claude (delegated by Cooper, D-047)",2026-11-12
 kaiser( permanente| foundation( health plan)?)?( commercial| senior| medi cal| medicare advantage| medicare adv| mcr adv)?,Kaiser Permanente,,,,"Claude (delegated by Cooper, D-047)",2026-11-12
 alignment( health( plan)?)?( senior hmo)?,Alignment Health,,,,"Claude (delegated by Cooper, D-047)",2026-11-12
 scan( health plan)?( mcr adv)?,SCAN Health Plan,,,,"Claude (delegated by Cooper, D-047)",2026-11-12
@@ -187,3 +187,83 @@ connecti ?care( insurance company| inc)?,ConnectiCare,,,Connecticut health plan;
 rocky mountain health ?plans?|rmhp,Rocky Mountain Health Plans,,,Colorado health plan (UnitedHealthcare); https://www.rmhp.org,"Claude (delegated by Cooper, D-047)",2026-11-12
 denver health medical plan|dhmp,Denver Health Medical Plan,,,Denver health plan; https://www.denverhealthmedicalplan.org,"Claude (delegated by Cooper, D-047)",2026-11-12
 colorado access,Colorado Access,,,Colorado Medicaid (Health First Colorado) regional organization; https://www.coaccess.com,"Claude (delegated by Cooper, D-047)",2026-11-12
+priority health( medicare| medicaid| choice)?,Priority Health,,,Michigan health plan; https://www.priorityhealth.com,"Claude (delegated by Cooper, D-047)",2026-11-12
+health alliance plan( of michigan)?,Health Alliance Plan (HAP),,,Michigan health plan (Henry Ford Health); https://www.hap.org,"Claude (delegated by Cooper, D-047)",2026-11-12
+hap( midwest| senior plus| empowered| cares)?,Health Alliance Plan (HAP),,MI,Michigan health plan (Henry Ford Health); https://www.hap.org,"Claude (delegated by Cooper, D-047)",2026-11-12
+mc ?laren health plan,McLaren Health Plan,,,Michigan health plan; https://www.mclarenhealthplan.org,"Claude (delegated by Cooper, D-047)",2026-11-12
+meridian( health( plan)?)?( of (michigan|illinois))?,Meridian Health Plan,,,"Michigan and Illinois Medicaid plan (Centene); ""Meridian"" alone also names hospital systems, so only in those states; https://www.mhplan.com","Claude (delegated by Cooper, D-047)",2026-11-12
+medica( choice| health plans?| medicare advantage| advantage solution| prime solution| elevate)?,Medica,,,Medica (Minnesota and nearby states); https://www.medica.com,"Claude (delegated by Cooper, D-047)",2026-11-12
+health ?partners( insurance company| inc| minnesota)?,HealthPartners,,,"HealthPartners (Minnesota, Wisconsin); other ""Health Partners"" plans exist elsewhere; https://www.healthpartners.com","Claude (delegated by Cooper, D-047)",2026-11-12
+ucare( minnesota| mn)?( medicaid| medicare)?,UCare,,,Minnesota health plan; https://www.ucare.org,"Claude (delegated by Cooper, D-047)",2026-11-12
+geisinger( health( plan)?)?( gold| family)?,Geisinger Health Plan,,,Pennsylvania health plan; https://www.geisinger.org/health-plan,"Claude (delegated by Cooper, D-047)",2026-11-12
+upmc( health plan| health options)?,UPMC Health Plan,,,"UPMC for You is its Medicaid plan, UPMC for Life its Medicare plan; https://www.upmchealthplan.com","Claude (delegated by Cooper, D-047)",2026-11-12
+upmc for you,UPMC Health Plan,Medicaid plan,,"UPMC for You is its Medicaid plan, UPMC for Life its Medicare plan; https://www.upmchealthplan.com","Claude (delegated by Cooper, D-047)",2026-11-12
+upmc for life,UPMC Health Plan,Medicare Advantage,,"UPMC for You is its Medicaid plan, UPMC for Life its Medicare plan; https://www.upmchealthplan.com","Claude (delegated by Cooper, D-047)",2026-11-12
+health partners plans|jefferson health plans,Jefferson Health Plans,,,Philadelphia health plan (formerly Health Partners Plans); https://www.jeffersonhealthplans.com,"Claude (delegated by Cooper, D-047)",2026-11-12
+keystone first( community health choices)?,Keystone First,,,Pennsylvania Medicaid plan (AmeriHealth Caritas); https://www.keystonefirstpa.com,"Claude (delegated by Cooper, D-047)",2026-11-12
+(pa|pennsylvania) health (and|&) wellness,PA Health & Wellness,,,Pennsylvania Medicaid plan (Centene); https://www.pahealthwellness.com,"Claude (delegated by Cooper, D-047)",2026-11-12
+cdphp|capital district physicians( health plan)?,CDPHP,,,Albany-area New York health plan; https://www.cdphp.com,"Claude (delegated by Cooper, D-047)",2026-11-12
+fidelis( care)?( new york| ny)?,Fidelis Care,,,New York health plan (Centene); https://www.fideliscare.org,"Claude (delegated by Cooper, D-047)",2026-11-12
+healthfirst( new york| ny| of new york)?|health first( new york| ny| of new york),Healthfirst (New York),,NY,"New York City health plan; Florida's ""Health First"" is a different company; https://healthfirst.org","Claude (delegated by Cooper, D-047)",2026-11-12
+health first health plans?( medicare)?,Health First Health Plans (Florida),,,"Brevard County, Florida health plan; https://hf.org/health-plans","Claude (delegated by Cooper, D-047)",2026-11-12
+emblem( health)?,EmblemHealth,,,New York health plan (GHI and HIP); https://www.emblemhealth.com,"Claude (delegated by Cooper, D-047)",2026-11-12
+ghi|hip( of new york| health plan of new york)?,EmblemHealth,,NY,New York health plan (GHI and HIP); https://www.emblemhealth.com,"Claude (delegated by Cooper, D-047)",2026-11-12
+metro ?plus( health( plan)?)?,MetroPlus Health,,,New York City health plan; https://www.metroplus.org,"Claude (delegated by Cooper, D-047)",2026-11-12
+independent health( association)?,Independent Health,,,Buffalo-area New York health plan; https://www.independenthealth.com,"Claude (delegated by Cooper, D-047)",2026-11-12
+univera( healthcare)?,Univera Healthcare,,,Western New York health plan; https://www.univerahealthcare.com,"Claude (delegated by Cooper, D-047)",2026-11-12
+quartz( health solutions| health plan)?,Quartz Health Solutions,,,Wisconsin health plan; https://quartzbenefits.com,"Claude (delegated by Cooper, D-047)",2026-11-12
+security health plan( of wisconsin)?,Security Health Plan,,,Wisconsin health plan (Marshfield Clinic); https://www.securityhealth.org,"Claude (delegated by Cooper, D-047)",2026-11-12
+network health( plan| insurance)?,Network Health (Wisconsin),,,Wisconsin health plan; https://networkhealth.com,"Claude (delegated by Cooper, D-047)",2026-11-12
+dean health plan,Dean Health Plan,,,Wisconsin health plan; https://www.deancare.com,"Claude (delegated by Cooper, D-047)",2026-11-12
+presbyterian( health plan| centennial care| turquoise care| senior care| medicare)?,Presbyterian Health Plan,,,"New Mexico health plan; ""Presbyterian"" alone also names hospitals elsewhere; https://www.phs.org","Claude (delegated by Cooper, D-047)",2026-11-12
+sanford health plan,Sanford Health Plan,,,Dakotas and Iowa health plan; https://www.sanfordhealthplan.com,"Claude (delegated by Cooper, D-047)",2026-11-12
+avera health plans?,Avera Health Plans,,,South Dakota health plan; https://www.averahealthplans.com,"Claude (delegated by Cooper, D-047)",2026-11-12
+medical mutual( of ohio)?,Medical Mutual of Ohio,,,Ohio health plan; https://www.medmutual.com,"Claude (delegated by Cooper, D-047)",2026-11-12
+mmo,Medical Mutual of Ohio,,OH,Ohio health plan; https://www.medmutual.com,"Claude (delegated by Cooper, D-047)",2026-11-12
+paramount( health ?care| advantage| insurance( company)?)?,Paramount Health Care,,,Toledo-area health plan; https://www.paramounthealthcare.com,"Claude (delegated by Cooper, D-047)",2026-11-12
+summa ?care,SummaCare,,,"Akron, Ohio health plan; https://www.summacare.com","Claude (delegated by Cooper, D-047)",2026-11-12
+ault ?care,AultCare,,,"Canton, Ohio health plan; https://www.aultcare.com","Claude (delegated by Cooper, D-047)",2026-11-12
+buckeye( health plan| community health plan)?,Buckeye Health Plan,,,Ohio Medicaid plan (Centene); https://www.buckeyehealthplan.com,"Claude (delegated by Cooper, D-047)",2026-11-12
+passport( health( plan)?)?( by molina)?,Passport Health Plan,,,Kentucky Medicaid plan (Molina); https://www.passporthealthplan.com,"Claude (delegated by Cooper, D-047)",2026-11-12
+pacific ?source( health plans)?( medicare| community solutions)?,PacificSource,,,"Oregon, Idaho, Montana and Washington health plan; https://pacificsource.com","Claude (delegated by Cooper, D-047)",2026-11-12
+providence health (plans?|assurance),Providence Health Plan,,,Oregon health plan; https://healthplans.providence.org,"Claude (delegated by Cooper, D-047)",2026-11-12
+moda( health( plan)?)?,Moda Health,,,Oregon and Alaska health plan; https://www.modahealth.com,"Claude (delegated by Cooper, D-047)",2026-11-12
+samaritan health plans?,Samaritan Health Plans,,,Oregon health plan; https://www.samhealthplans.org,"Claude (delegated by Cooper, D-047)",2026-11-12
+trillium( community health plan)?,Trillium Community Health Plan,,,Oregon Medicaid plan (Centene); North Carolina's Trillium is a different organization; https://www.trilliumohp.com,"Claude (delegated by Cooper, D-047)",2026-11-12
+superior health ?plan( star| star plus| chip| medicaid)?,Superior HealthPlan,,,Texas Medicaid plan (Centene); https://www.superiorhealthplan.com,"Claude (delegated by Cooper, D-047)",2026-11-12
+community health choice( texas| of texas)?,Community Health Choice (Texas),,,Houston-area Texas plan; https://www.communityhealthchoice.org,"Claude (delegated by Cooper, D-047)",2026-11-12
+parkland( community health plan| health first| kids first)?,Parkland Community Health Plan,,,Dallas Medicaid plan; https://www.parklandhmo.com,"Claude (delegated by Cooper, D-047)",2026-11-12
+texas childrens health plan,Texas Children's Health Plan,,,Houston Medicaid and CHIP plan; https://www.texaschildrenshealthplan.org,"Claude (delegated by Cooper, D-047)",2026-11-12
+cook childrens health plan,Cook Children's Health Plan,,,Fort Worth Medicaid and CHIP plan; https://www.cookchp.org,"Claude (delegated by Cooper, D-047)",2026-11-12
+driscoll( childrens)? health plan,Driscoll Health Plan,,,South Texas Medicaid plan; https://www.driscollhealthplan.com,"Claude (delegated by Cooper, D-047)",2026-11-12
+el paso health( plan)?,El Paso Health,,,El Paso Medicaid plan; https://www.elpasohealth.com,"Claude (delegated by Cooper, D-047)",2026-11-12
+(baylor )?scott (and|&) white health plan|bswhp|swhp,Baylor Scott & White Health Plan,,,Central Texas health plan; https://www.bswhealthplan.com,"Claude (delegated by Cooper, D-047)",2026-11-12
+sentara health( plans?)?,Sentara Health Plans,,,Virginia health plan (formerly Optima Health); https://www.sentarahealthplans.com,"Claude (delegated by Cooper, D-047)",2026-11-12
+optima( health( plan)?)?,Sentara Health Plans,,VA NC,Virginia health plan (formerly Optima Health); https://www.sentarahealthplans.com,"Claude (delegated by Cooper, D-047)",2026-11-12
+virginia premier( health plan)?,Virginia Premier,,,Virginia Medicaid plan; https://www.virginiapremier.com,"Claude (delegated by Cooper, D-047)",2026-11-12
+university of utah health plans?|u of u health plans?|healthy u,University of Utah Health Plans,,,Utah health plan; https://uhealthplan.utah.edu,"Claude (delegated by Cooper, D-047)",2026-11-12
+well ?sense( health plan)?|bmc health ?net( plan)?|boston medical center health ?net( plan)?,WellSense Health Plan,,,Massachusetts and New Hampshire plan (formerly BMC HealthNet); https://www.wellsense.org,"Claude (delegated by Cooper, D-047)",2026-11-12
+fallon( health| community health plan)?,Fallon Health,,,Massachusetts health plan; https://fallonhealth.org,"Claude (delegated by Cooper, D-047)",2026-11-12
+martins point( health ?care| generations( advantage)?| us family health plan)?,Martin's Point Health Care,,,Maine and New Hampshire plan; https://martinspoint.org,"Claude (delegated by Cooper, D-047)",2026-11-12
+community health options,Community Health Options,,,Maine health plan; https://www.healthoptions.org,"Claude (delegated by Cooper, D-047)",2026-11-12
+absolute total care,Absolute Total Care,,,South Carolina Medicaid plan (Centene); https://www.absolutetotalcare.com,"Claude (delegated by Cooper, D-047)",2026-11-12
+select health of south carolina|first choice by select health,Select Health of South Carolina,,,South Carolina Medicaid plan (First Choice); https://www.selecthealthofsc.com,"Claude (delegated by Cooper, D-047)",2026-11-12
+first choice,Select Health of South Carolina,,SC,South Carolina Medicaid plan (First Choice); https://www.selecthealthofsc.com,"Claude (delegated by Cooper, D-047)",2026-11-12
+carolina complete health,Carolina Complete Health,,,North Carolina Medicaid plan; https://www.carolinacompletehealth.com,"Claude (delegated by Cooper, D-047)",2026-11-12
+louisiana healthcare connections,Louisiana Healthcare Connections,,,Louisiana Medicaid plan (Centene); https://www.louisianahealthconnect.com,"Claude (delegated by Cooper, D-047)",2026-11-12
+magnolia( health( plan)?)?,Magnolia Health,,,Mississippi Medicaid plan (Centene); https://www.magnoliahealthplan.com,"Claude (delegated by Cooper, D-047)",2026-11-12
+home state health( plan)?,Home State Health,,,Missouri Medicaid plan (Centene); https://www.homestatehealth.com,"Claude (delegated by Cooper, D-047)",2026-11-12
+sunflower( state)? health plan,Sunflower Health Plan,,,Kansas Medicaid plan (Centene); https://www.sunflowerhealthplan.com,"Claude (delegated by Cooper, D-047)",2026-11-12
+sunflower,Sunflower Health Plan,,KS,Kansas Medicaid plan (Centene); https://www.sunflowerhealthplan.com,"Claude (delegated by Cooper, D-047)",2026-11-12
+iowa total care,Iowa Total Care,,,Iowa Medicaid plan (Centene); https://www.iowatotalcare.com,"Claude (delegated by Cooper, D-047)",2026-11-12
+nebraska total care,Nebraska Total Care,,,Nebraska Medicaid plan (Centene); https://www.nebraskatotalcare.com,"Claude (delegated by Cooper, D-047)",2026-11-12
+western sky community care,Western Sky Community Care,,,New Mexico Medicaid plan (Centene); https://www.westernskycommunitycare.com,"Claude (delegated by Cooper, D-047)",2026-11-12
+oklahoma complete health( medicaid)?,Oklahoma Complete Health,,,Oklahoma Medicaid plan (Centene); https://www.oklahomacompletehealth.com,"Claude (delegated by Cooper, D-047)",2026-11-12
+managed health services( indiana| wisconsin)?,Managed Health Services,,,Indiana and Wisconsin Medicaid plan (Centene); https://www.mhsindiana.com,"Claude (delegated by Cooper, D-047)",2026-11-12
+mhs( indiana| wisconsin)?,Managed Health Services,,IN WI,Indiana and Wisconsin Medicaid plan (Centene); https://www.mhsindiana.com,"Claude (delegated by Cooper, D-047)",2026-11-12
+md ?wise,MDwise,,,Indiana Medicaid plan; https://www.mdwise.org,"Claude (delegated by Cooper, D-047)",2026-11-12
+coordinated care( of washington| health plan)?,Coordinated Care (Washington),,,Washington Medicaid plan (Centene); https://www.coordinatedcarehealth.com,"Claude (delegated by Cooper, D-047)",2026-11-12
+community health plan of washington|chpw,Community Health Plan of Washington,,,Washington Medicaid plan; https://www.chpw.org,"Claude (delegated by Cooper, D-047)",2026-11-12
+wellpoint( fka amerigroup)?|amerigroup( [a-z]+( [a-z]+)?)?|amerigroup real solutions,Wellpoint (Amerigroup),,,"Elevance's Medicaid and Medicare plans (Amerigroup, now Wellpoint); https://www.wellpoint.com","Claude (delegated by Cooper, D-047)",2026-11-12
+aetna better health( of [a-z]+( [a-z]+)?)?,Aetna,Medicaid plan,,Aetna Better Health is Aetna's Medicaid plan; https://www.aetnabetterhealth.com,"Claude (delegated by Cooper, D-047)",2026-11-12
+united ?health ?care community plan( of [a-z]+( [a-z]+)?)?,UnitedHealthcare,,,UnitedHealthcare Community Plan is its Medicaid plan; https://www.uhccommunityplan.com,"Claude (delegated by Cooper, D-047)",2026-11-12

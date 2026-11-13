@@ -926,6 +926,10 @@ def cmd_resolve_plans(args: argparse.Namespace, engine: Engine) -> None:
                 "unresolved": len(res.unresolved),
                 "matched": [list(m) for m in res.matched[:50]],
                 "unresolved_top": [list(u) for u in res.unresolved[:60]],
+                "unresolved_by_state": {
+                    st: [list(u) for u in items]
+                    for st, items in sorted(res.unresolved_by_state.items())
+                },
             }
         )
     )

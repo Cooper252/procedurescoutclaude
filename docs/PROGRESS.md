@@ -2,6 +2,16 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-12 — Health-system assistance policies; 69 regional insurers
+
+Implemented:
+- A financial assistance policy row can cover every hospital of a health system in a state ("system:AZ:^BANNER", matched on the hospital's CMS name; a hospital's own row wins) (`catalog.load_assistance_policies`). Added from each system's own document (D-060): Banner Health (all Banner hospitals except California: AZ, CO, WY, NE; free under 200% of poverty level, 75% off to 300%, 50% to 400%), Kaiser Permanente California (free to 200%, 50% off to 400%), Sutter Health (free to 400% for the uninsured), Providence Alaska Medical Center and Kodiak (free to 300%, 75% off to 350%). Later the same day: HonorHealth (Arizona; free to 200%, 87% off to 400%), AdventHealth (FL, GA, KS, KY, WI; free to 250%), Wellstar (Georgia; free to 125%, then 97%, 90%, 80% off to 300%), Ochsner (LA, MS; free to 200%; Ochsner LSU Health excluded, it has its own policy) Intermountain (UT, ID, CO, MT; free to 250%), Novant Health North Carolina (free to 300% uninsured), Corewell Health Michigan (free to 250%) and Sanford (SD, ND, MN, IA; free to 225%, sliding discount to 375%). Baptist Health Arkansas and Mercy were checked but their documents give no income limits, and Piedmont's and OhioHealth's documents could not be opened, so they are not added.
+- 69 regional and Medicaid health plans by their own names (Priority Health, HAP, Medica, HealthPartners, UCare, Geisinger, UPMC, Fidelis, Healthfirst, EmblemHealth, PacificSource, Moda, Superior HealthPlan, Sentara, Wellpoint/Amerigroup, the Centene state plans and more), each with its source; names other organizations share (Presbyterian, Meridian, Network Health, Trillium, Magnolia, Optima, HAP, GHI/HIP, "First Choice") only in the plan's states. Aetna Better Health is Aetna's Medicaid plan; Molina and UnitedHealthcare Community Plan spellings in any state. Texas Medicaid's STAR program names are read as Medicaid.
+
+- The load report now lists the 25 most-used unmatched insurance spellings for each state (`unresolved_by_state`), so each state's names can be added from its own hospitals' files.
+
+Tested: `test_health_system_policy_covers_its_hospitals_in_a_state`; `test_new_spellings_are_matched_only_when_certain` (per-state list); `test_regional_insurers_by_their_own_names` (Florida's Health First and New Jersey's Hackensack Meridian stay unmatched). `make check`: `396 passed, 1 skipped`.
+
 ## 2026-11-12 — Regional insurers for the next states (CO, CT, FL, GA)
 
 Ahead of those states' loads: Peach State Health Plan (its "Managed Medicaid" spelling is already in loaded files), Sunshine Health, Simply Healthcare, AvMed, Capital Health Plan, ConnectiCare, Rocky Mountain Health Plans, Denver Health Medical Plan and Colorado Access, each matched only by its own name and only in its state (sources in `payer_name_rules.csv`). Test case added to `test_state_medicaid_programs_by_their_names`. `make check`: `394 passed, 1 skipped`.
