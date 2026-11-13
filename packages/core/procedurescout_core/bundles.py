@@ -31,9 +31,12 @@ import uuid
 from collections.abc import Collection
 from dataclasses import dataclass, field
 from decimal import Decimal
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Connection, text
 
+if TYPE_CHECKING:
+    from .plans import Spellings
 from .object_store import ObjectStore
 from .price_store import PublishedPrice, facility_payer_plans, find_prices
 
@@ -128,7 +131,8 @@ def _price_line(
     mode: str,
     payer: str | None,
     plan: str | None,
-    spellings: set[tuple[str, str]] | None = None,
+    spellings: Spellings | None = None,
+    state: str = "",
 ) -> Line:
     if mode == "cash":
         rows = [p for p in prices if p.price_type == "discounted_cash"]
@@ -137,7 +141,7 @@ def _price_line(
     elif spellings is not None:
         from .plans import matches
 
-        rows = [p for p in prices if p.price_type == "negotiated" and matches(p, spellings)]
+        rows = [p for p in prices if p.price_type == "negotiated" and matches(p, spellings, state)]
     else:
         rows = [
             p
@@ -188,7 +192,7 @@ def estimate(
         raise BundleError("give a plan or an insurer, not both")
     if (mode == "insurance") != (by_id or (payer is not None and plan is not None)):
         raise BundleError("insurance needs a payer and a plan (and only insurance does)")
-    spellings: set[tuple[str, str]] | None = None
+    spellings: Spellings | None = None
     if by_id:
         from .plans import PlanError, approved_spellings, insurer_spellings
 
@@ -205,6 +209,9 @@ def estimate(
     except ValueError as exc:
         raise BundleError(str(exc)) from exc
     name, components = bundle_components(conn, bundle_slug)
+    from .plans import facility_states
+
+    state = facility_states(conn, [str(fid)]).get(str(fid), "")
     if (
         mode == "insurance"
         and not by_id
@@ -225,7 +232,7 @@ def estimate(
             lines.append(Line(comp, False, "left_out"))
             continue
         prices = find_prices(conn, store, [fid], comp.code_system, comp.code)
-        lines.append(_price_line(comp, prices, mode, payer, plan, spellings))
+        lines.append(_price_line(comp, prices, mode, payer, plan, spellings, state))
     priced = [ln.amount for ln in lines if ln.status == "priced" and ln.amount is not None]
     included_lines = [ln for ln in lines if ln.included]
     complete = bool(included_lines) and all(ln.status == "priced" for ln in included_lines)

@@ -240,3 +240,300 @@ Arizona Complete Health,Medicaid plan,other,medicaid_managed_care,"Claude (deleg
 Arizona Complete Health,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
 Arizona Complete Health,Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
 Arizona Medicaid (AHCCCS fee for service),Medicaid,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross (California),All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross (California),HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross (California),PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross (California),EPO,epo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross (California),Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross (California),Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross (California),Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Shield of California,All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Shield of California,HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Shield of California,PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Shield of California,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Shield of California,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Shield of California,Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+L.A. Care Health Plan,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+L.A. Care Health Plan,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Inland Empire Health Plan (IEHP),Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Inland Empire Health Plan (IEHP),Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+California Medi-Cal (fee for service),Medicaid,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Santa Clara Family Health Plan,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+San Francisco Health Plan,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Health Plan of San Mateo,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Health Plan of San Joaquin,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Alameda Alliance for Health,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+CalViva Health,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Partnership HealthPlan of California,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Central California Alliance for Health,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Kern Family Health Care,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Gold Coast Health Plan,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+CenCal Health,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Contra Costa Health Plan,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Community Health Group,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+CalOptima Health,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Health Net,HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Health Net,PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Health Net,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Health Net,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Health Net,Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Kaiser Permanente,All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Kaiser Permanente,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Colorado),All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Colorado),HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Colorado),PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Colorado),Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Colorado),Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Colorado),Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Connecticut),All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Connecticut),HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Connecticut),PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Connecticut),Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Connecticut),Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Connecticut),Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Georgia),All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Georgia),HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Georgia),PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Georgia),Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Georgia),Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Georgia),Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Indiana),All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Indiana),HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Indiana),PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Indiana),Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Indiana),Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Indiana),Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Kentucky),All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Kentucky),HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Kentucky),PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Kentucky),Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Kentucky),Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Kentucky),Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Maine),All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Maine),HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Maine),PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Maine),Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Maine),Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Maine),Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Missouri),All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Missouri),HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Missouri),PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Missouri),Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Missouri),Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Missouri),Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (New Hampshire),All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (New Hampshire),HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (New Hampshire),PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (New Hampshire),Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (New Hampshire),Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (New Hampshire),Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Ohio),All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Ohio),HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Ohio),PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Ohio),Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Ohio),Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Ohio),Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Virginia),All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Virginia),HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Virginia),PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Virginia),Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Virginia),Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Virginia),Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Wisconsin),All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Wisconsin),HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Wisconsin),PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Wisconsin),Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Wisconsin),Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (Wisconsin),Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Florida Blue,All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Florida Blue,HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Florida Blue,PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Florida Blue,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Florida Blue,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Florida Blue,Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+HMSA (Blue Cross Blue Shield of Hawaii),All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+HMSA (Blue Cross Blue Shield of Hawaii),HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+HMSA (Blue Cross Blue Shield of Hawaii),PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+HMSA (Blue Cross Blue Shield of Hawaii),Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+HMSA (Blue Cross Blue Shield of Hawaii),Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+HMSA (Blue Cross Blue Shield of Hawaii),Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Illinois,All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Illinois,HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Illinois,PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Illinois,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Illinois,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Illinois,Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Louisiana,All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Louisiana,HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Louisiana,PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Louisiana,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Louisiana,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Louisiana,Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross Blue Shield of Massachusetts,All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross Blue Shield of Massachusetts,HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross Blue Shield of Massachusetts,PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross Blue Shield of Massachusetts,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross Blue Shield of Massachusetts,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross Blue Shield of Massachusetts,Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross Blue Shield of Michigan,All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross Blue Shield of Michigan,HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross Blue Shield of Michigan,PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross Blue Shield of Michigan,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross Blue Shield of Michigan,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross Blue Shield of Michigan,Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Minnesota,All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Minnesota,HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Minnesota,PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Minnesota,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Minnesota,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Minnesota,Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross & Blue Shield of Mississippi,All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross & Blue Shield of Mississippi,HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross & Blue Shield of Mississippi,PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross & Blue Shield of Mississippi,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross & Blue Shield of Mississippi,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross & Blue Shield of Mississippi,Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Montana,All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Montana,HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Montana,PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Montana,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Montana,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Montana,Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Nebraska,All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Nebraska,HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Nebraska,PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Nebraska,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Nebraska,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Nebraska,Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Horizon Blue Cross Blue Shield of New Jersey,All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Horizon Blue Cross Blue Shield of New Jersey,HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Horizon Blue Cross Blue Shield of New Jersey,PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Horizon Blue Cross Blue Shield of New Jersey,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Horizon Blue Cross Blue Shield of New Jersey,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Horizon Blue Cross Blue Shield of New Jersey,Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of New Mexico,All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of New Mexico,HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of New Mexico,PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of New Mexico,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of New Mexico,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of New Mexico,Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross NC,All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross NC,HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross NC,PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross NC,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross NC,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross NC,Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross Blue Shield of North Dakota,All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross Blue Shield of North Dakota,HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross Blue Shield of North Dakota,PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross Blue Shield of North Dakota,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross Blue Shield of North Dakota,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross Blue Shield of North Dakota,Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Oklahoma,All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Oklahoma,HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Oklahoma,PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Oklahoma,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Oklahoma,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Oklahoma,Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+BlueCross BlueShield of South Carolina,All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+BlueCross BlueShield of South Carolina,HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+BlueCross BlueShield of South Carolina,PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+BlueCross BlueShield of South Carolina,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+BlueCross BlueShield of South Carolina,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+BlueCross BlueShield of South Carolina,Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+BlueCross BlueShield of Tennessee,All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+BlueCross BlueShield of Tennessee,HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+BlueCross BlueShield of Tennessee,PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+BlueCross BlueShield of Tennessee,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+BlueCross BlueShield of Tennessee,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+BlueCross BlueShield of Tennessee,Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Texas,All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Texas,HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Texas,PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Texas,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Texas,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Texas,Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Highmark Blue Cross Blue Shield (West Virginia),All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Highmark Blue Cross Blue Shield (West Virginia),HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Highmark Blue Cross Blue Shield (West Virginia),PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Highmark Blue Cross Blue Shield (West Virginia),Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Highmark Blue Cross Blue Shield (West Virginia),Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Highmark Blue Cross Blue Shield (West Virginia),Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross Blue Shield of Wyoming,All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross Blue Shield of Wyoming,HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross Blue Shield of Wyoming,PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross Blue Shield of Wyoming,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross Blue Shield of Wyoming,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross Blue Shield of Wyoming,Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+CareFirst BlueCross BlueShield,All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+CareFirst BlueCross BlueShield,HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+CareFirst BlueCross BlueShield,PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+CareFirst BlueCross BlueShield,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+CareFirst BlueCross BlueShield,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+CareFirst BlueCross BlueShield,Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Wellmark Blue Cross Blue Shield,All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Wellmark Blue Cross Blue Shield,HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Wellmark Blue Cross Blue Shield,PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Wellmark Blue Cross Blue Shield,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Wellmark Blue Cross Blue Shield,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Wellmark Blue Cross Blue Shield,Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Premera Blue Cross,All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Premera Blue Cross,HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Premera Blue Cross,PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Premera Blue Cross,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Premera Blue Cross,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Premera Blue Cross,Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Regence BlueCross BlueShield,All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Regence BlueCross BlueShield,HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Regence BlueCross BlueShield,PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Regence BlueCross BlueShield,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Regence BlueCross BlueShield,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Regence BlueCross BlueShield,Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross of Idaho,All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross of Idaho,HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross of Idaho,PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross of Idaho,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross of Idaho,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross of Idaho,Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Kansas,All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Kansas,HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Kansas,PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Kansas,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Kansas,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Kansas,Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Kansas City,All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Kansas City,HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Kansas City,PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Kansas City,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Kansas City,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross and Blue Shield of Kansas City,Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (New York),All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (New York),HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (New York),PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (New York),Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (New York),Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Anthem Blue Cross Blue Shield (New York),Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Excellus BlueCross BlueShield,All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Excellus BlueCross BlueShield,HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Excellus BlueCross BlueShield,PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Excellus BlueCross BlueShield,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Excellus BlueCross BlueShield,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Excellus BlueCross BlueShield,Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Highmark Blue Cross Blue Shield (Pennsylvania),All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Highmark Blue Cross Blue Shield (Pennsylvania),HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Highmark Blue Cross Blue Shield (Pennsylvania),PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Highmark Blue Cross Blue Shield (Pennsylvania),Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Highmark Blue Cross Blue Shield (Pennsylvania),Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Highmark Blue Cross Blue Shield (Pennsylvania),Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Independence Blue Cross,All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Independence Blue Cross,HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Independence Blue Cross,PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Independence Blue Cross,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Independence Blue Cross,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Independence Blue Cross,Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Capital Blue Cross,All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Capital Blue Cross,HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Capital Blue Cross,PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Capital Blue Cross,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Capital Blue Cross,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Capital Blue Cross,Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12

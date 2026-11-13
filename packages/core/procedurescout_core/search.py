@@ -19,7 +19,15 @@ from sqlalchemy import Connection, text
 
 from .enums import CodeSystem
 from .object_store import ObjectStore
-from .plans import PlanError, all_plans_spellings, approved_spellings, insurer_spellings, matches
+from .plans import (
+    PlanError,
+    Spellings,
+    all_plans_spellings,
+    approved_spellings,
+    facility_states,
+    insurer_spellings,
+    matches,
+)
 from .price_store import PublishedPrice, find_prices
 from .pricing import (
     MODE_PRICE_TYPE,
@@ -98,7 +106,7 @@ class SearchResult:
     note: str | None = None
     mode: str = "cash"
     typical: Typical | None = None
-    all_plans_spellings: frozenset[tuple[str, str]] = frozenset()
+    all_plans_spellings: Spellings = field(default_factory=Spellings)
     code_description: str | None = None  # hospitals' own wording for a searched code
     insurer_unsure: str | None = None  # insurer name when searching all its plans
 
@@ -189,8 +197,8 @@ def search(
         )
         if not known:
             raise SearchError("unknown insurer name")
-    spellings: set[tuple[str, str]] = set()
-    fallback: set[tuple[str, str]] = set()
+    spellings = Spellings()
+    fallback = Spellings()
     if plan_id is not None:
         try:
             spellings = approved_spellings(conn, plan_id)
@@ -323,6 +331,8 @@ def search(
     )
     by_facility: dict[str, list[PublishedPrice]] = {}
     with_files = [i for i in ids if i in published]
+    # insurance spellings are matched as they are in each place's state (0027)
+    st = facility_states(conn, ids)
     # only the price types this search shows: cash and list for every mode, plus
     # insurer rates when searching by plan or insurer
     wanted_types = ["discounted_cash", "gross"]
@@ -366,9 +376,15 @@ def search(
         # of the insurer's plans, that rate is used and labeled.
         filtered: dict[str, list[PublishedPrice]] = {}
         for fid, rows in by_facility.items():
-            exact = [p for p in rows if p.price_type == "negotiated" and matches(p, spellings)]
+            exact = [
+                p
+                for p in rows
+                if p.price_type == "negotiated" and matches(p, spellings, st.get(p.facility_id, ""))
+            ]
             pool = exact or [
-                p for p in rows if p.price_type == "negotiated" and matches(p, fallback)
+                p
+                for p in rows
+                if p.price_type == "negotiated" and matches(p, fallback, st.get(p.facility_id, ""))
             ]
             if pool and not exact:
                 uses_all_plans.add(fid)
@@ -376,7 +392,11 @@ def search(
         by_facility = filtered
     if payer_id is not None:
         by_facility = {
-            fid: [p for p in rows if p.price_type != "negotiated" or matches(p, spellings)]
+            fid: [
+                p
+                for p in rows
+                if p.price_type != "negotiated" or matches(p, spellings, st.get(p.facility_id, ""))
+            ]
             for fid, rows in by_facility.items()
         }
     if payer_key is not None:
@@ -419,10 +439,18 @@ def search(
         now = heads.get(fid)
         rows = previous.get(fid, [])
         if payer_id is not None:
-            rows = [p for p in rows if p.price_type != "negotiated" or matches(p, spellings)]
+            rows = [
+                p
+                for p in rows
+                if p.price_type != "negotiated" or matches(p, spellings, st.get(p.facility_id, ""))
+            ]
         if plan_id is not None:
             wanted = fallback if fid in uses_all_plans else spellings
-            rows = [p for p in rows if p.price_type != "negotiated" or matches(p, wanted)]
+            rows = [
+                p
+                for p in rows
+                if p.price_type != "negotiated" or matches(p, wanted, st.get(p.facility_id, ""))
+            ]
         if payer_key is not None:
             from .matching import normalize_name
 
@@ -479,7 +507,7 @@ def search(
         note=note,
         mode=mode,
         typical=typ,
-        all_plans_spellings=frozenset(fallback),
+        all_plans_spellings=fallback,
         code_description=code_description,
         insurer_unsure=insurer_name,
     )

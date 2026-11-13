@@ -368,9 +368,9 @@ def _price(p: PublishedPrice) -> Price:
     )
 
 
-def _plan_match(out: Price, p: PublishedPrice, result: SearchResult) -> Price:
+def _plan_match(out: Price, p: PublishedPrice, result: SearchResult, state: str) -> Price:
     if result.mode == "plan" and p.price_type == "negotiated":
-        out.plan_match = "all_plans" if matches(p, set(result.all_plans_spellings)) else "plan"
+        out.plan_match = "all_plans" if matches(p, result.all_plans_spellings, state) else "plan"
     return out
 
 
@@ -556,7 +556,7 @@ def search_endpoint(
                     ends_on=None if f.special.ends_on is None else f.special.ends_on.isoformat(),
                     terms=f.special.terms,
                 ),
-                prices=[_plan_match(_price(p), p, result) for p in f.prices],
+                prices=[_plan_match(_price(p), p, result, f.state_code) for p in f.prices],
                 delivery=f.delivery,
             )
             for f in result.facilities

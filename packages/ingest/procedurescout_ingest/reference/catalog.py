@@ -528,6 +528,35 @@ def load_payers(conn: Connection, csv_text: str) -> LoadStats:
     return stats
 
 
+def load_payer_states(conn: Connection, csv_text: str) -> LoadStats:
+    """Insurers that cover only some states (payer_states.csv, reviewed rows,
+    D-047): their hospital spellings are matched per state (migration 0027)."""
+    stats = LoadStats()
+    rows = read_delimited(csv_text, ",")
+    states: dict[str, set[str]] = {}
+    for i, row in enumerate(rows, start=2):
+        stats.rows_in += 1
+        if not (row.get("reviewed_by") or "").strip():
+            stats.count("unreviewed")
+            continue
+        st = (row.get("state") or "").strip().upper()
+        if not re.fullmatch(r"[A-Z]{2}", st):
+            stats.reject(f"line:{i}", "bad_state", st)
+            continue
+        states.setdefault(row["payer"].strip(), set()).add(st)
+    conn.execute(text("UPDATE ref.payer SET only_states = NULL WHERE only_states IS NOT NULL"))
+    for name, sts in states.items():
+        done = conn.execute(
+            text("UPDATE ref.payer SET only_states = :s WHERE canonical_name = :n"),
+            {"s": sorted(sts), "n": name},
+        ).rowcount
+        if done:
+            stats.rows_loaded += 1
+        else:
+            stats.reject(name, "payer_not_found", "not in payers.csv")
+    return stats
+
+
 def load_payer_aliases(conn: Connection, csv_text: str) -> LoadStats:
     """Reviewed links from a hospital file's exact payer + plan spelling to a plan
     on people's cards. Only rows with a reviewer are approved; the rest wait."""
@@ -545,7 +574,8 @@ def load_payer_aliases(conn: Connection, csv_text: str) -> LoadStats:
         state, who, when = _review(row, ref, stats)
         plan = conn.execute(
             text(
-                "SELECT pl.id, py.id FROM ref.plan pl JOIN ref.payer py ON py.id = pl.payer_id "
+                "SELECT pl.id, py.id, py.only_states FROM ref.plan pl "
+                "JOIN ref.payer py ON py.id = pl.payer_id "
                 "WHERE py.canonical_name = :py AND pl.canonical_name = :pl"
             ),
             {"py": row["payer"].strip(), "pl": row["plan"].strip()},
@@ -562,30 +592,45 @@ def load_payer_aliases(conn: Connection, csv_text: str) -> LoadStats:
             stats.count("payer_spelling_shared")
         else:
             _payer_alias(conn, raw_payer, payer_key, plan[1], state, who, when)
+        # a one-state insurer's spelling counts only in its own state(s) (0027):
+        # "Anthem | Commercial" is Anthem Nevada for Nevada hospitals only
+        in_states = list(plan[2] or [""])
+        plan_key = normalize_name(raw_plan)
+        # this reviewed spelling's rows for other states (an insurer's states changed)
         conn.execute(
             text(
-                """
-                INSERT INTO ref.plan_alias (raw_payer_normalized, raw_plan_text,
-                    raw_plan_normalized, plan_id, match_type, review_state, reviewed_by,
-                    reviewed_at)
-                VALUES (:rp, :t, :k, :pl, 'manual', CAST(:st AS ref.review_state), :rb,
-                        CAST(:ra AS timestamptz))
-                ON CONFLICT (raw_payer_normalized, raw_plan_normalized) DO UPDATE SET
-                    plan_id = EXCLUDED.plan_id, match_type = 'manual',
-                    review_state = EXCLUDED.review_state, reviewed_by = EXCLUDED.reviewed_by,
-                    reviewed_at = EXCLUDED.reviewed_at
-                """
+                "DELETE FROM ref.plan_alias WHERE raw_payer_normalized = :rp "
+                "AND raw_plan_normalized = :k AND plan_id = :pl AND state_code <> ALL(:sts)"
             ),
-            {
-                "rp": payer_key,
-                "t": raw_plan,
-                "k": normalize_name(raw_plan),
-                "pl": plan[0],
-                "st": state,
-                "rb": who,
-                "ra": when,
-            },
+            {"rp": payer_key, "k": plan_key, "pl": plan[0], "sts": in_states},
         )
+        for st_code in in_states:
+            conn.execute(
+                text(
+                    """
+                    INSERT INTO ref.plan_alias (raw_payer_normalized, raw_plan_text,
+                        raw_plan_normalized, plan_id, match_type, review_state, reviewed_by,
+                        reviewed_at, state_code)
+                    VALUES (:rp, :t, :k, :pl, 'manual', CAST(:st AS ref.review_state), :rb,
+                            CAST(:ra AS timestamptz), :sc)
+                    ON CONFLICT (raw_payer_normalized, raw_plan_normalized, state_code)
+                    DO UPDATE SET
+                        plan_id = EXCLUDED.plan_id, match_type = 'manual',
+                        review_state = EXCLUDED.review_state, reviewed_by = EXCLUDED.reviewed_by,
+                        reviewed_at = EXCLUDED.reviewed_at
+                    """
+                ),
+                {
+                    "rp": payer_key,
+                    "t": raw_plan,
+                    "k": plan_key,
+                    "pl": plan[0],
+                    "st": state,
+                    "rb": who,
+                    "ra": when,
+                    "sc": st_code,
+                },
+            )
         stats.rows_loaded += 1
         stats.count(state)
     return stats
@@ -649,7 +694,7 @@ def collect_unmapped_plans(conn: Connection) -> int:
                 INSERT INTO ref.plan_alias (raw_payer_normalized, raw_plan_text,
                     raw_plan_normalized, match_type, review_state)
                 VALUES (:rp, :t, :k, 'unmapped', 'proposed')
-                ON CONFLICT (raw_payer_normalized, raw_plan_normalized) DO NOTHING
+                ON CONFLICT (raw_payer_normalized, raw_plan_normalized, state_code) DO NOTHING
                 """
             ),
             {"rp": normalize_name(payer), "t": plan, "k": normalize_name(plan)},

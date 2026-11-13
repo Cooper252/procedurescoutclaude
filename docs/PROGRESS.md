@@ -2,6 +2,29 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-12 — Every state's Blue Cross Blue Shield company (D-062)
+
+Implemented (`data/reference/payers.csv`, `payer_name_rules.csv`, `payer_states.csv`; `plan_resolver.NameRule.states`):
+- 43 more Blue Cross Blue Shield companies, each limited to its own states (BCBSA company list): the 11 other Anthem states, Florida Blue, HMSA, the HCSC plans (IL, MT, NM, OK, TX), Horizon, CareFirst, Wellmark, Premera, Regence, Highmark (West Virginia, Pennsylvania), Independence, Capital, Excellus, Anthem/Empire (New York), Blue Cross of Idaho, both Kansas plans and the rest.
+- Where a state has one Blue company, a hospital's plain "BCBS"/"Blue Cross" means it; where it has two (CA, ID, KS, MO, NY, PA, VA, WA) only the company's own name is matched. Naming rules can be limited to states (`states` column).
+- The federal employee plan ("BCBS FEDERAL", "FEP") is matched in every state.
+
+Tested: `test_plain_blue_cross_is_the_states_own_blue_company` (12 states, including the two-Blue states staying unmatched); three earlier "never guessed" cases (Delaware, Arkansas, Arizona) now go to that state's only Blue company. `make check`: `393 passed, 1 skipped`.
+
+## 2026-11-12 — Insurance names per state; California insurers (D-062)
+
+Found in Cooper's California load report: California hospitals' "Blue Cross" and "Anthem" rates were matched to Anthem Nevada (one spelling could mean only one plan nationwide), and the biggest unmatched names were Blue Shield of California and the Medi-Cal plans.
+
+Implemented:
+- Migration `0027_state_plan_alias.py`: `ref.plan_alias.state_code` ('' = every state) and `ref.payer.only_states`. Reviewed and automatic matches of one-state insurers are saved for their state(s) only (`catalog.load_payer_states`, `catalog.load_payer_aliases`, `plan_resolver.resolve_new_spellings`); old every-state automatic matches of one-state insurers are removed and matched again per state.
+- `plans.Spellings`: search, the nearby insurance list, "not sure which plan", the "all plans" fallback and bundle estimates match each price as spelled in its hospital's state (`search.py`, `plans.py`, `bundles.py`, `search_routes.py`).
+- Naming rules for one-state insurers apply only to that state's hospitals, so "Blue Cross" is Anthem Blue Cross in California and stays unmatched elsewhere.
+- California: Anthem Blue Cross (California), Blue Shield of California (incl. Blue Shield Promise), Medi-Cal fee for service, L.A. Care, IEHP, CalOptima and 12 more county Medi-Cal plans (DHCS list); Health Net and Kaiser plan kinds; Molina, Kaiser, SCAN, Alignment, Aetna and Cigna California spellings. Medi-Cal, Healthy Families, Covered California, "Senior" and "65 Plus" are read as plan kinds; PACE, "non-contracted" and "supp" are left out.
+
+Tested: `test_one_state_insurer_spellings_count_only_in_its_state` (a one-state insurer's spelling stops counting for another state's hospital in search and the nearby list, and counts again when its state is added); `test_reviewed_insurer_names_place_real_hospital_spellings` now resolves each state's real spellings in that state (AL, RI, DE, VT, AR, AZ, CA; 27 California spellings). `make check`: ruff, mypy clean, `392 passed, 1 skipped`.
+
+Not done: deployed; the next state loads apply it (each load's catalog step rewrites the reviewed matches per state).
+
 ## 2026-11-12 — Insurer names for Arkansas and Arizona (D-047)
 
 From the real insurer and plan names published by Arkansas and Arizona hospitals on procedurescout.com (Cooper's load reports):

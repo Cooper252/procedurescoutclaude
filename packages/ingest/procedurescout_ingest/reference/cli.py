@@ -64,6 +64,7 @@ POVERTY_CSV = "data/reference/poverty_guidelines.csv"
 ASSISTANCE_CSV = "data/reference/assistance_policies.csv"
 PAYERS_CSV = "data/reference/payers.csv"
 PAYER_ALIASES_CSV = "data/reference/payer_aliases.csv"
+PAYER_STATES_CSV = "data/reference/payer_states.csv"
 SYNONYMS_CSV = "data/reference/service_synonyms.csv"
 COVERAGE_CSV = "data/reference/coverage_limits.csv"
 STEP_DATASETS = {
@@ -871,6 +872,7 @@ def cmd_catalog(args: argparse.Namespace, engine: Engine) -> None:
             ("poverty_guidelines", catalog.load_poverty_guidelines, POVERTY_CSV),
             ("assistance_policies", catalog.load_assistance_policies, ASSISTANCE_CSV),
             ("payers", catalog.load_payers, PAYERS_CSV),
+            ("payer_states", catalog.load_payer_states, PAYER_STATES_CSV),
             ("payer_aliases", catalog.load_payer_aliases, PAYER_ALIASES_CSV),
             ("synonyms", catalog.load_synonyms, SYNONYMS_CSV),
             ("coverage_limits", catalog.load_coverage_limits, COVERAGE_CSV),

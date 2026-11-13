@@ -16,7 +16,7 @@ PostgreSQL 16 + PostGIS 3.4. Defined in `db/migrations/versions/0001_initial_sch
 - `ref.facility` — one row per facility/campus; `ccn` unique when present; `geom geography(Point,4326)` with GiST index; rating requires an as-of date; geometry requires a geocode source.
 - `ref.code` — PK (system, code, version). CHECK: a CPT row may not carry a descriptor unless `descriptor_licensed`.
 - `ref.procedure_code` — links consumer procedures to codes; `approved` requires reviewer + time.
-- `ref.payer` / `ref.plan` — canonical entities. `ref.payer_alias` / `ref.plan_alias` — raw names, unique on normalized text; `match_type = 'unmapped'` exactly when no canonical link exists.
+- `ref.payer` / `ref.plan` — canonical entities. `ref.payer_alias` / `ref.plan_alias` — raw names, unique on normalized text (plan aliases per state: `state_code` '' = every state, D-062; `ref.payer.only_states` for one-state insurers); `match_type = 'unmapped'` exactly when no canonical link exists.
 - `src.transparency_file` — sha256, bytes, HTTP status, reported date, schema version, format, object store key, attestation; unique (source, sha256).
 - `src.import_run` — state machine enforced by trigger against `src.import_transition`; every change logged in `src.import_run_event`.
 - `src.dataset_version` — staged → published → retired; partial unique index guarantees one published version per facility.

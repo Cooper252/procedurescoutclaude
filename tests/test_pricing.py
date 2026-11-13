@@ -155,6 +155,57 @@ def test_plan_prices_only_through_approved_spellings(conn: Connection, world: Lo
     assert cash.facilities[0].headline.amount == Decimal("80.00")  # type: ignore[attr-defined]
 
 
+def test_one_state_insurer_spellings_count_only_in_its_state(
+    conn: Connection, world: LocalStore
+) -> None:
+    """Found live (2026-11-12): California hospitals' "Anthem | Commercial"
+    rates were listed as Anthem Nevada's plan, because one spelling could mean
+    only one plan for the whole country. A one-state insurer's spellings now
+    count only for hospitals in its state (migration 0027)."""
+    from procedurescout_core.plans import nearby_published, plans_near
+
+    gold = _plan_id(conn, "Gold PPO")
+    near = nearby_published(conn, LAS_VEGAS[0], LAS_VEGAS[1], Decimal(25))
+    assert [p.plan for p in plans_near(conn, near)] == ["Gold PPO"]
+    header = "payer,state,notes,reviewed_by,reviewed_at\n"
+    # Synthetic Health covers only California: its Nevada hospital's spelling no longer counts
+    catalog.load_payer_states(conn, header + "Synthetic Health,CA,,tester,2026-11-12\n")
+    catalog.load_payer_aliases(
+        conn,
+        ALIASES_HEADER + "Synthetic Payer One,PPO,Synthetic Health,Gold PPO,tester,2026-11-08,\n",
+    )
+    rows = (
+        conn.execute(
+            text("SELECT state_code FROM ref.plan_alias WHERE plan_id = CAST(:p AS uuid)"),
+            {"p": gold},
+        )
+        .scalars()
+        .all()
+    )
+    assert rows == ["CA"]
+    assert plans_near(conn, near) == []
+    res = run(conn, world, mode="plan", plan_id=gold)
+    assert all(p.price_type != "negotiated" for p in res.facilities[0].prices)  # type: ignore[attr-defined]
+    # it covers Nevada: counted again
+    catalog.load_payer_states(conn, header + "Synthetic Health,NV,,tester,2026-11-12\n")
+    catalog.load_payer_aliases(
+        conn,
+        ALIASES_HEADER + "Synthetic Payer One,PPO,Synthetic Health,Gold PPO,tester,2026-11-08,\n",
+    )
+    assert [p.plan for p in plans_near(conn, near)] == ["Gold PPO"]
+    rows = (
+        conn.execute(
+            text("SELECT state_code FROM ref.plan_alias WHERE plan_id = CAST(:p AS uuid)"),
+            {"p": gold},
+        )
+        .scalars()
+        .all()
+    )
+    assert rows == ["NV"]
+    res = run(conn, world, mode="plan", plan_id=gold)
+    assert res.facilities[0].headline.amount == Decimal("75.25")  # type: ignore[attr-defined]
+
+
 def test_price_history_between_published_files(
     conn: Connection, world: LocalStore, tmp_path: Path
 ) -> None:
@@ -508,246 +559,421 @@ def test_email_this_to_me_through_the_api(
     assert client.post("/v1/email-prices", json={**body, "email": "nope"}).status_code == 422
 
 
-REAL_SPELLINGS = [
-    # (insurer as the hospital wrote it, plan as written, expected card name or None)
-    (
-        "BlueCross BlueShield of Alabama",
-        "Commercial",
-        "Blue Cross Blue Shield of Alabama · All plans (one rate published for all)",
-    ),
-    (
-        "BlueCross BlueShield of Alabama",
-        "Medicare Advantage",
-        "Blue Cross Blue Shield of Alabama · Medicare Advantage",
-    ),
-    (
-        "Blue Cross and Blue Shield of Alabama",
-        "Blue Advantage (Medicare Advantage)",
-        "Blue Cross Blue Shield of Alabama · Medicare Advantage",
-    ),
-    (
-        "BCBS_Alabama_Exchange",
-        "BCALEXCHNG",
-        "Blue Cross Blue Shield of Alabama · Marketplace (exchange) plan",
-    ),  # the kind of plan is in the insurer text
-    (
-        "BLUE CROSS OF AL",
-        "BLUE CROSS AL COMMERCIAL",
-        "Blue Cross Blue Shield of Alabama · All plans (one rate published for all)",
-    ),
-    (
-        "Blue Cross Blue Shield of AL",
-        "Default",
-        "Blue Cross Blue Shield of Alabama · All plans (one rate published for all)",
-    ),
-    ("BlueCross BlueShield of Alabama", "Transplant", None),  # not regular coverage
-    ("BCBS", "Anthem HMO", None),  # which Blue? never guessed
-    ("Medicare A AL JJ", "Default", "Original Medicare · Original Medicare"),
-    ("Traditional Medicare", "Traditional Medicare", "Original Medicare · Original Medicare"),
-    (
-        "MEDICARE",
-        "MEDICARE ADVANTAGE",
-        None,
-    ),  # an Advantage plan of some insurer: not Original Medicare
-    (
-        "NODE Medicare Traditional",
-        "NODE Medicare Traditional",
-        "Original Medicare · Original Medicare",
-    ),
-    ("Aetna", "Medicare Managed Care Plan", "Aetna · Medicare Advantage"),
-    ("AETNA", "AETNA COMMERCIAL", "Aetna · All plans (one rate published for all)"),
-    ("AETNA HEALTH MANAGEMENT, LLC", "MANAGED MEDICARE", "Aetna · Medicare Advantage"),
-    (
-        "Connecticut General Life Insurance Company",
-        "COMMERCIAL",
-        "Cigna · All plans (one rate published for all)",
-    ),
-    (
-        "United Healthcare",
-        "All Payor/Commercial",
-        "UnitedHealthcare · All plans (one rate published for all)",
-    ),
-    (
-        "UnitedHealthcare",
-        "AARP Medicare Managed Care Plan",
-        "UnitedHealthcare · Medicare Advantage",
-    ),
-    ("United Healthcare", "VACCN", None),
-    ("Blue Cross & Blue Shield of Rhode Island", "Prime EPO", None),  # "Prime EPO": not plainly EPO
-    (
-        "Blue Cross & Blue Shield of Rhode Island",
-        "PPO",
-        "Blue Cross & Blue Shield of Rhode Island · PPO",
-    ),
-    (
-        "Blue Cross & Blue Shield of Rhode Island",
-        "MANAGED MEDICARE",
-        "Blue Cross & Blue Shield of Rhode Island · Medicare Advantage",
-    ),
-    ("Blue Cross & Blue Shield of Rhode Island", "OUT OF STATE", None),
-    (
-        "Neighborhood Health Plan of Rhode Island",
-        "Managed Medicaid",
-        "Neighborhood Health Plan of Rhode Island · Medicaid plan",
-    ),
-    ("Tufts Health Public Plans", "Managed Medicaid RI", "Tufts Health Plan · Medicaid plan"),
-    (
-        "[payer_BCBS DELAWARE ]",
-        "[plan_ BLUE CROSS]",
-        "Highmark Blue Cross Blue Shield Delaware · All plans (one rate published for all)",
-    ),
-    ("Bcbs", "Highmark Medicare Managed Care Plan", None),
-    ("DELAWARE FIRST HEALTH-MEDICARE", "DELAWARE FIRST HEALTH-MEDICARE", None),
-    ("Devoted Health", "Medicare Advantage", "Devoted Health · Medicare Advantage"),
-    ("Wellcare", "MANAGED MEDICARE", "Wellcare · Medicare Advantage"),
-    ("MVP", "Medicare Advantage", "MVP Health Care · Medicare Advantage"),
-    ("BlueCross BlueShield Vermont", "Indemnity", None),
-    ("Viva Health", "HMO", "Viva Health · HMO"),
-    ("Humana Military", "TRICARE", None),
-    ("CorVel", "Workers' Compensation", None),
-    # Arkansas and Arizona hospitals (2026-11-12 load reports)
-    (
-        "BLUE CROSS OF ARKANSAS",
-        "BLUE CROSS OF ARKANSAS",
-        "Arkansas Blue Cross and Blue Shield · All plans (one rate published for all)",
-    ),
-    (
-        "BLUE CROSS BLUE SHIELD/AR",
-        "BLUE CROSS BLUE SHIELD/AR",
-        "Arkansas Blue Cross and Blue Shield · All plans (one rate published for all)",
-    ),
-    ("ARKANSAS_BLUE_MEDICARE", "344_1", "Arkansas Blue Cross and Blue Shield · Medicare Advantage"),
-    ("MEDIPAK", "Medicare Advantage", "Arkansas Blue Cross and Blue Shield · Medicare Advantage"),
-    ("MEDIPAK", "MEDIPAK", None),  # may be the Medicare supplement
-    (
-        "HMO MEDIPAK ADV PLAN",
-        "HMO MEDIPAK ADV PLAN",
-        "Arkansas Blue Cross and Blue Shield · Medicare Advantage",
-    ),
-    ("HEALTH ADVANTAGE", "HEALTH ADVANTAGE", "Health Advantage (Arkansas Blue Cross) · HMO"),
-    (
-        "QUALCHOICE EXCHANGE",
-        "QUALCHOICE EXCHANGE",
-        "QualChoice (Arkansas) · Marketplace (exchange) plan",
-    ),
-    ("Qualchoice", "Qualchoice", "QualChoice (Arkansas) · All plans (one rate published for all)"),
-    ("QUALCHOICE ADV HMO", "QUALCHOICE ADV HMO", None),  # not plainly one kind of plan
-    ("Arkansas Total Care", "Medicaid", "Arkansas Total Care (PASSE) · Medicaid plan"),
-    ("Summitt", "Medicaid", "Summit Community Care (PASSE) · Medicaid plan"),
-    ("Summit", "All Plans", None),  # a short name: only with a Medicaid plan text
-    ("Empower", "Medicaid", "Empower Healthcare Solutions (PASSE) · Medicaid plan"),
-    ("Care Source", "Medicaid", "CareSource PASSE (Arkansas) · Medicaid plan"),
-    ("MEDICAID-ARKANSAS", "MEDICAID-ARKANSAS", "Arkansas Medicaid (fee for service) · Medicaid"),
-    ("ARKIDS-MEDICAID", "ARKIDS-MEDICAID", "Arkansas Medicaid (fee for service) · Medicaid"),
-    ("Medicaid", "Medicaid", None),  # which state's? never guessed
-    ("Blue Cross", "All Plans", None),  # which Blue? never guessed
-    ("Ambetter of Arkansas", "Ambetter of Arkansas", "Ambetter · Marketplace (exchange) plan"),
-    ("ALLWELL", "ALLWELL", "Wellcare · Medicare Advantage"),
-    ("HUMANA GOLD MEDICARE", "HUMANA GOLD MEDICARE", "Humana · Medicare Advantage"),
-    ("HMO HUMANA GOLD", "HMO HUMANA GOLD", None),
-    (
-        "Blue Cross Blue Shield of Arizona",
-        "Commercial",
-        "Blue Cross Blue Shield of Arizona · All plans (one rate published for all)",
-    ),
-    (
-        "Blue Cross Blue Shield of Arizona",
-        "Medicare Advantage",
-        "Blue Cross Blue Shield of Arizona · Medicare Advantage",
-    ),
-    ("Blue Cross Blue Shield of Arizona", "BCBSAZ Workers Comp", None),
-    ("Blue Cross Blue Shield of Arizona", "Medicare Supplemental Senior Preferred", None),
-    ("Blue Cross Blue Shield", "Medicare Advantage", None),
-    (
-        "Health Choice Arizona, Inc.",
-        "ACA Health Plan",
-        "Health Choice Arizona · Marketplace (exchange) plan",
-    ),
-    ("Health Choice Arizona, Inc.", "Medicaid", "Health Choice Arizona · Medicaid plan"),
-    ("Mercy Care", "Mercy Care Advantage", "Mercy Care (Arizona) · Medicare Advantage"),
-    ("Mercy Care", "Mercy Medicaid", "Mercy Care (Arizona) · Medicaid plan"),
-    (
-        "Banner University Health Plan",
-        "AZ Medicaid - AHCCCS",
-        "Banner University Health Plans · Medicaid plan",
-    ),
-    (
-        "Banner University Health Plan",
-        "University Care Advantage",
-        "Banner University Health Plans · Medicare Advantage",
-    ),
-    ("Banner University Health Plan", "University Family Plan", None),
-    (
-        "Arizona Complete",
-        "Arizona Health Care Cost Containment System (AHCCCS)",
-        "Arizona Complete Health · Medicaid plan",
-    ),
-    ("Arizona Physicians IPA", "Medicaid", "UnitedHealthcare · Medicaid plan"),
-    (
-        "United Healthcare Community Care",
-        "Arizona Health Care Cost Containment System (AHCCCS)",
-        "UnitedHealthcare · Medicaid plan",
-    ),
-    (
-        "Cigna Healthcare of Arizona, Inc.",
-        "HMO Medicare Advantage Plans",
-        "Cigna · Medicare Advantage",
-    ),
-    ("Devoted Health Services", "Medicare Advantage", "Devoted Health · Medicare Advantage"),
-    ("Oscar Health Plan", "Commercial", "Oscar Health · All plans (one rate published for all)"),
-    (
-        "AHCCCS MOLINA COMPLETE CARE",
-        "AHCCCS MOLINA COMPLETE CARE",
-        "Molina Healthcare · Medicaid plan",
-    ),
-    ("AHCCCS IHS", "AHCCCS IHS", "Arizona Medicaid (AHCCCS fee for service) · Medicaid"),
-]
+REAL_SPELLINGS: dict[str, list[tuple[str, str, str | None]]] = {
+    # state of the hospitals: (insurer as written, plan as written, expected card name or None)
+    "AL": [
+        (
+            "BlueCross BlueShield of Alabama",
+            "Commercial",
+            "Blue Cross Blue Shield of Alabama · All plans (one rate published for all)",
+        ),
+        (
+            "BlueCross BlueShield of Alabama",
+            "Medicare Advantage",
+            "Blue Cross Blue Shield of Alabama · Medicare Advantage",
+        ),
+        (
+            "Blue Cross and Blue Shield of Alabama",
+            "Blue Advantage (Medicare Advantage)",
+            "Blue Cross Blue Shield of Alabama · Medicare Advantage",
+        ),
+        (
+            "BCBS_Alabama_Exchange",
+            "BCALEXCHNG",
+            "Blue Cross Blue Shield of Alabama · Marketplace (exchange) plan",
+        ),  # the kind of plan is in the insurer text
+        (
+            "BLUE CROSS OF AL",
+            "BLUE CROSS AL COMMERCIAL",
+            "Blue Cross Blue Shield of Alabama · All plans (one rate published for all)",
+        ),
+        (
+            "Blue Cross Blue Shield of AL",
+            "Default",
+            "Blue Cross Blue Shield of Alabama · All plans (one rate published for all)",
+        ),
+        ("BlueCross BlueShield of Alabama", "Transplant", None),  # not regular coverage
+        ("BCBS", "Anthem HMO", None),  # which Blue? never guessed
+        ("Medicare A AL JJ", "Default", "Original Medicare · Original Medicare"),
+        ("Traditional Medicare", "Traditional Medicare", "Original Medicare · Original Medicare"),
+        (
+            "MEDICARE",
+            "MEDICARE ADVANTAGE",
+            None,
+        ),  # an Advantage plan of some insurer: not Original Medicare
+        (
+            "NODE Medicare Traditional",
+            "NODE Medicare Traditional",
+            "Original Medicare · Original Medicare",
+        ),
+        ("Aetna", "Medicare Managed Care Plan", "Aetna · Medicare Advantage"),
+        ("AETNA", "AETNA COMMERCIAL", "Aetna · All plans (one rate published for all)"),
+        ("AETNA HEALTH MANAGEMENT, LLC", "MANAGED MEDICARE", "Aetna · Medicare Advantage"),
+        (
+            "Connecticut General Life Insurance Company",
+            "COMMERCIAL",
+            "Cigna · All plans (one rate published for all)",
+        ),
+        (
+            "United Healthcare",
+            "All Payor/Commercial",
+            "UnitedHealthcare · All plans (one rate published for all)",
+        ),
+        (
+            "UnitedHealthcare",
+            "AARP Medicare Managed Care Plan",
+            "UnitedHealthcare · Medicare Advantage",
+        ),
+        ("United Healthcare", "VACCN", None),
+        ("Viva Health", "HMO", "Viva Health · HMO"),
+        ("Humana Military", "TRICARE", None),
+        ("CorVel", "Workers' Compensation", None),
+    ],
+    "RI": [
+        (
+            "Blue Cross & Blue Shield of Rhode Island",
+            "Prime EPO",
+            None,
+        ),  # "Prime EPO": not plainly EPO
+        (
+            "Blue Cross & Blue Shield of Rhode Island",
+            "PPO",
+            "Blue Cross & Blue Shield of Rhode Island · PPO",
+        ),
+        (
+            "Blue Cross & Blue Shield of Rhode Island",
+            "MANAGED MEDICARE",
+            "Blue Cross & Blue Shield of Rhode Island · Medicare Advantage",
+        ),
+        ("Blue Cross & Blue Shield of Rhode Island", "OUT OF STATE", None),
+        (
+            "Neighborhood Health Plan of Rhode Island",
+            "Managed Medicaid",
+            "Neighborhood Health Plan of Rhode Island · Medicaid plan",
+        ),
+        ("Tufts Health Public Plans", "Managed Medicaid RI", "Tufts Health Plan · Medicaid plan"),
+    ],
+    "DE": [
+        (
+            "[payer_BCBS DELAWARE ]",
+            "[plan_ BLUE CROSS]",
+            "Highmark Blue Cross Blue Shield Delaware · All plans (one rate published for all)",
+        ),
+        (
+            "Bcbs",
+            "Highmark Medicare Managed Care Plan",
+            "Highmark Blue Cross Blue Shield Delaware · Medicare Advantage",
+        ),  # Delaware's only Blue (D-062)
+        ("DELAWARE FIRST HEALTH-MEDICARE", "DELAWARE FIRST HEALTH-MEDICARE", None),
+    ],
+    "VT": [
+        ("Devoted Health", "Medicare Advantage", "Devoted Health · Medicare Advantage"),
+        ("Wellcare", "MANAGED MEDICARE", "Wellcare · Medicare Advantage"),
+        ("MVP", "Medicare Advantage", "MVP Health Care · Medicare Advantage"),
+        ("BlueCross BlueShield Vermont", "Indemnity", None),
+    ],
+    "AR": [
+        (
+            "BLUE CROSS OF ARKANSAS",
+            "BLUE CROSS OF ARKANSAS",
+            "Arkansas Blue Cross and Blue Shield · All plans (one rate published for all)",
+        ),
+        (
+            "BLUE CROSS BLUE SHIELD/AR",
+            "BLUE CROSS BLUE SHIELD/AR",
+            "Arkansas Blue Cross and Blue Shield · All plans (one rate published for all)",
+        ),
+        (
+            "ARKANSAS_BLUE_MEDICARE",
+            "344_1",
+            "Arkansas Blue Cross and Blue Shield · Medicare Advantage",
+        ),
+        (
+            "MEDIPAK",
+            "Medicare Advantage",
+            "Arkansas Blue Cross and Blue Shield · Medicare Advantage",
+        ),
+        ("MEDIPAK", "MEDIPAK", None),  # may be the Medicare supplement
+        (
+            "HMO MEDIPAK ADV PLAN",
+            "HMO MEDIPAK ADV PLAN",
+            "Arkansas Blue Cross and Blue Shield · Medicare Advantage",
+        ),
+        ("HEALTH ADVANTAGE", "HEALTH ADVANTAGE", "Health Advantage (Arkansas Blue Cross) · HMO"),
+        (
+            "QUALCHOICE EXCHANGE",
+            "QUALCHOICE EXCHANGE",
+            "QualChoice (Arkansas) · Marketplace (exchange) plan",
+        ),
+        (
+            "Qualchoice",
+            "Qualchoice",
+            "QualChoice (Arkansas) · All plans (one rate published for all)",
+        ),
+        ("QUALCHOICE ADV HMO", "QUALCHOICE ADV HMO", None),  # not plainly one kind of plan
+        ("Arkansas Total Care", "Medicaid", "Arkansas Total Care (PASSE) · Medicaid plan"),
+        ("Summitt", "Medicaid", "Summit Community Care (PASSE) · Medicaid plan"),
+        ("Summit", "All Plans", None),  # a short name: only with a Medicaid plan text
+        ("Empower", "Medicaid", "Empower Healthcare Solutions (PASSE) · Medicaid plan"),
+        ("Care Source", "Medicaid", "CareSource PASSE (Arkansas) · Medicaid plan"),
+        (
+            "MEDICAID-ARKANSAS",
+            "MEDICAID-ARKANSAS",
+            "Arkansas Medicaid (fee for service) · Medicaid",
+        ),
+        ("ARKIDS-MEDICAID", "ARKIDS-MEDICAID", "Arkansas Medicaid (fee for service) · Medicaid"),
+        ("Medicaid", "Medicaid", None),  # which state's? never guessed
+        (
+            "Blue Cross",
+            "All Plans",
+            "Arkansas Blue Cross and Blue Shield · All plans (one rate published for all)",
+        ),  # Arkansas's only Blue (D-062)
+        ("Ambetter of Arkansas", "Ambetter of Arkansas", "Ambetter · Marketplace (exchange) plan"),
+        ("ALLWELL", "ALLWELL", "Wellcare · Medicare Advantage"),
+        ("HUMANA GOLD MEDICARE", "HUMANA GOLD MEDICARE", "Humana · Medicare Advantage"),
+        ("HMO HUMANA GOLD", "HMO HUMANA GOLD", None),
+    ],
+    "AZ": [
+        (
+            "Blue Cross Blue Shield of Arizona",
+            "Commercial",
+            "Blue Cross Blue Shield of Arizona · All plans (one rate published for all)",
+        ),
+        (
+            "Blue Cross Blue Shield of Arizona",
+            "Medicare Advantage",
+            "Blue Cross Blue Shield of Arizona · Medicare Advantage",
+        ),
+        ("Blue Cross Blue Shield of Arizona", "BCBSAZ Workers Comp", None),
+        ("Blue Cross Blue Shield of Arizona", "Medicare Supplemental Senior Preferred", None),
+        (
+            "Blue Cross Blue Shield",
+            "Medicare Advantage",
+            "Blue Cross Blue Shield of Arizona · Medicare Advantage",
+        ),  # Arizona's only Blue
+        (
+            "Health Choice Arizona, Inc.",
+            "ACA Health Plan",
+            "Health Choice Arizona · Marketplace (exchange) plan",
+        ),
+        ("Health Choice Arizona, Inc.", "Medicaid", "Health Choice Arizona · Medicaid plan"),
+        ("Mercy Care", "Mercy Care Advantage", "Mercy Care (Arizona) · Medicare Advantage"),
+        ("Mercy Care", "Mercy Medicaid", "Mercy Care (Arizona) · Medicaid plan"),
+        (
+            "Banner University Health Plan",
+            "AZ Medicaid - AHCCCS",
+            "Banner University Health Plans · Medicaid plan",
+        ),
+        (
+            "Banner University Health Plan",
+            "University Care Advantage",
+            "Banner University Health Plans · Medicare Advantage",
+        ),
+        ("Banner University Health Plan", "University Family Plan", None),
+        (
+            "Arizona Complete",
+            "Arizona Health Care Cost Containment System (AHCCCS)",
+            "Arizona Complete Health · Medicaid plan",
+        ),
+        ("Arizona Physicians IPA", "Medicaid", "UnitedHealthcare · Medicaid plan"),
+        (
+            "United Healthcare Community Care",
+            "Arizona Health Care Cost Containment System (AHCCCS)",
+            "UnitedHealthcare · Medicaid plan",
+        ),
+        (
+            "Cigna Healthcare of Arizona, Inc.",
+            "HMO Medicare Advantage Plans",
+            "Cigna · Medicare Advantage",
+        ),
+        ("Devoted Health Services", "Medicare Advantage", "Devoted Health · Medicare Advantage"),
+        (
+            "Oscar Health Plan",
+            "Commercial",
+            "Oscar Health · All plans (one rate published for all)",
+        ),
+        (
+            "AHCCCS MOLINA COMPLETE CARE",
+            "AHCCCS MOLINA COMPLETE CARE",
+            "Molina Healthcare · Medicaid plan",
+        ),
+        ("AHCCCS IHS", "AHCCCS IHS", "Arizona Medicaid (AHCCCS fee for service) · Medicaid"),
+    ],
+    "CA": [
+        # California hospitals (2026-11-12 load report and live site)
+        (
+            "Blue Shield",
+            "COMM",
+            "Blue Shield of California · All plans (one rate published for all)",
+        ),
+        ("Blue Shield of California", "Blue Shield HMO", "Blue Shield of California · HMO"),
+        ("BLUE SHIELD [1014]", "BLUE SHIELD OF CA HMO", "Blue Shield of California · HMO"),
+        ("Blue Shield", "Managed Medi-Cal", "Blue Shield of California · Medicaid plan"),
+        (
+            "Blue Shield",
+            "Blue Shield Covered CA",
+            "Blue Shield of California · Marketplace (exchange) plan",
+        ),
+        (
+            "Blue Shield of California",
+            "Blue Shield Senior",
+            "Blue Shield of California · Medicare Advantage",
+        ),
+        (
+            "Blue Shield",
+            "EPN",
+            None,
+        ),  # Blue Shield's own network name: not plainly one kind of plan
+        (
+            "Blue Cross",
+            "Commercial",
+            "Anthem Blue Cross (California) · All plans (one rate published for all)",
+        ),
+        ("Blue Cross", "Medi-Cal", "Anthem Blue Cross (California) · Medicaid plan"),
+        (
+            "Anthem Blue Cross",
+            "Anthem BX Covered California Exchange",
+            "Anthem Blue Cross (California) · Marketplace (exchange) plan",
+        ),
+        (
+            "Anthem",
+            "COMM",
+            "Anthem Blue Cross (California) · All plans (one rate published for all)",
+        ),
+        ("Blue Cross HMO", "Blue Cross HMO", "Anthem Blue Cross (California) · HMO"),
+        ("BLUE CROSS [220]", "BLUE CROSS PPO NON-MCS", None),
+        (
+            "Blue Cross Government Federal Employee",
+            "Blue Cross Government Federal Employee/65",
+            None,
+        ),
+        ("Health Net", "COMM", "Health Net · All plans (one rate published for all)"),
+        ("HEALTH NET [1039]", "HEALTH NET MEDI-CAL", "Health Net · Medicaid plan"),
+        ("Health Net", "Commerical Exchange Product", "Health Net · Marketplace (exchange) plan"),
+        ("LA Care Health Plan", "Medi-Cal", "L.A. Care Health Plan · Medicaid plan"),
+        ("IEHP", "Medi-Cal", "Inland Empire Health Plan (IEHP) · Medicaid plan"),
+        ("CAL OPTIMA [1016]", "CalOptima Medi-Cal", "CalOptima Health · Medicaid plan"),
+        ("CalOptima", "CalOptima PACE", None),  # PACE: not regular coverage
+        ("Medi-Cal", "Medi-Cal", "California Medi-Cal (fee for service) · Medicaid"),
+        ("HEALTH PLAN OF SAN JOAQUIN [2032]", "UCSD HB NON-CONTRACTED MEDI-CAL MANAGED CARE", None),
+        ("Molina", "Medi-Cal Medicaid Managed Care Plan", "Molina Healthcare · Medicaid plan"),
+        ("Kaiser", "Kaiser Medi-Cal", "Kaiser Permanente · Medicaid plan"),
+        ("Kaiser Senior", "Kaiser Senior", "Kaiser Permanente · Medicare Advantage"),
+        ("AETNA SENIOR SUPP", "AETNA SENIOR SUPP", None),  # a Medicare supplement
+    ],
+}
+
+
+def _placed_by_state(
+    conn: Connection, by_state: dict[str, list[tuple[str, str, str | None]]]
+) -> list[tuple[str, str, str, str | None, str | None]]:
+    """Resolve each state's spellings at one place moved to that state; the
+    (state, payer, plan, expected, got) rows that differ."""
+    from procedurescout_core.matching import normalize_name
+    from procedurescout_ingest.plan_resolver import (
+        load_name_rules,
+        load_payer_states,
+        resolve_new_spellings,
+    )
+
+    root = Path(__file__).resolve().parent.parent
+    catalog.load_payers(conn, (root / "data/reference/payers.csv").read_text())
+    rules = load_name_rules((root / "data/reference/payer_name_rules.csv").read_text())
+    states = load_payer_states((root / "data/reference/payer_states.csv").read_text())
+    fid, dv = conn.execute(
+        text("SELECT facility_id, dataset_version_id FROM src.published_file LIMIT 1")
+    ).one()
+    wrong = []
+    for state, spellings in by_state.items():
+        conn.execute(
+            text("UPDATE ref.facility SET state_code = :s WHERE id = :f"), {"s": state, "f": fid}
+        )
+        conn.execute(
+            text("DELETE FROM price.file_payer_summary WHERE facility_id = :f"), {"f": fid}
+        )
+        for payer, plan, _ in spellings:
+            conn.execute(
+                text(
+                    "INSERT INTO price.file_payer_summary (dataset_version_id, facility_id, "
+                    "payer_name_raw, plan_name_raw, prices) VALUES (:d, :f, :p, :pl, 1) "
+                    "ON CONFLICT DO NOTHING"
+                ),
+                {"d": dv, "f": fid, "p": payer, "pl": plan},
+            )
+        resolve_new_spellings(conn, rules, states)
+        got: dict[tuple[str, str, str], str] = {
+            (str(r[0]), str(r[1]), str(r[4])): f"{r[2]} · {r[3]}"
+            for r in conn.execute(
+                text(
+                    "SELECT a.raw_payer_normalized, a.raw_plan_normalized, py.canonical_name, "
+                    "pl.canonical_name, a.state_code FROM ref.plan_alias a "
+                    "JOIN ref.plan pl ON pl.id = a.plan_id "
+                    "JOIN ref.payer py ON py.id = pl.payer_id WHERE a.review_state = 'approved'"
+                )
+            ).all()
+        }
+        for payer, plan, expected in spellings:
+            k = (normalize_name(payer), normalize_name(plan))
+            found = got.get((*k, state)) or got.get((*k, ""))
+            if found != expected:
+                wrong.append((state, payer, plan, expected, found))
+    return wrong
 
 
 def test_reviewed_insurer_names_place_real_hospital_spellings(
     conn: Connection, world: LocalStore
 ) -> None:
     """Cooper (2026-11-12): typing "Medicare" listed "Medicare A AL JJ",
-    "Traditional Medicare"... These are spellings from the Alabama, Rhode
-    Island, Delaware and Vermont files, placed by Claude's reviewed naming
-    rules (D-047) or left for research, never guessed."""
-    from procedurescout_ingest.plan_resolver import load_name_rules, resolve_new_spellings
+    "Traditional Medicare"... These are real spellings from each state's
+    hospital files, placed by Claude's reviewed naming rules (D-047) as they
+    are matched in that state, or left for research, never guessed."""
+    wrong = _placed_by_state(conn, REAL_SPELLINGS)
+    assert wrong == [], wrong
 
-    catalog.load_payers(
-        conn, (Path(__file__).resolve().parent.parent / "data/reference/payers.csv").read_text()
-    )
-    fid, dv = conn.execute(
-        text("SELECT facility_id, dataset_version_id FROM src.published_file LIMIT 1")
-    ).one()
-    for payer, plan, _ in REAL_SPELLINGS:
-        conn.execute(
-            text(
-                "INSERT INTO price.file_payer_summary (dataset_version_id, facility_id, "
-                "payer_name_raw, plan_name_raw, prices) VALUES (:d, :f, :p, :pl, 1)"
-            ),
-            {"d": dv, "f": fid, "p": payer, "pl": plan},
-        )
-    rules = load_name_rules(
-        (Path(__file__).resolve().parent.parent / "data/reference/payer_name_rules.csv").read_text()
-    )
-    resolve_new_spellings(conn, rules)
-    from procedurescout_core.matching import normalize_name
 
-    got = {
-        (str(r[0]), str(r[1])): f"{r[2]} · {r[3]}"
-        for r in conn.execute(
-            text(
-                "SELECT a.raw_payer_normalized, a.raw_plan_normalized, py.canonical_name, "
-                "pl.canonical_name FROM ref.plan_alias a JOIN ref.plan pl ON pl.id = a.plan_id "
-                "JOIN ref.payer py ON py.id = pl.payer_id WHERE a.review_state = 'approved'"
+def test_plain_blue_cross_is_the_states_own_blue_company(
+    conn: Connection, world: LocalStore
+) -> None:
+    """A hospital's plain "BCBS" means its state's Blue Cross Blue Shield
+    company where there is only one (D-062); where there are two (California,
+    Idaho, Virginia, Washington, New York, Pennsylvania) it stays unmatched."""
+    one = "All plans (one rate published for all)"
+    cases: dict[str, list[tuple[str, str, str | None]]] = {
+        "OH": [("BCBS", "Commercial", f"Anthem Blue Cross Blue Shield (Ohio) · {one}")],
+        "FL": [("Blue Cross Blue Shield", "PPO", "Florida Blue · PPO")],
+        "TX": [
+            (
+                "BCBS of Texas",
+                "Medicare Advantage",
+                "Blue Cross and Blue Shield of Texas · Medicare Advantage",
             )
-        ).all()
+        ],
+        "OR": [("Blue Cross", "Commercial", f"Regence BlueCross BlueShield · {one}")],
+        "AK": [("PremeraFirst", "COMM", f"Premera Blue Cross · {one}")],
+        "IA": [("Wellmark", "PPO", "Wellmark Blue Cross Blue Shield · PPO")],
+        "ID": [
+            ("Blue Cross", "Commercial", None),
+            ("Blue Cross of Idaho", "PPO", "Blue Cross of Idaho · PPO"),
+        ],
+        "VA": [
+            ("BCBS", "Commercial", None),
+            ("Anthem", "PPO", "Anthem Blue Cross Blue Shield (Virginia) · PPO"),
+        ],
+        "WA": [("Blue Cross", "Commercial", None)],
+        "PA": [
+            ("BCBS", "PPO", None),
+            ("Independence Blue Cross", "PPO", "Independence Blue Cross · PPO"),
+        ],
+        "MD": [("CareFirst", "PPO", "CareFirst BlueCross BlueShield · PPO")],
+        "NV": [
+            (
+                "BCBS FEDERAL",
+                "BCBS FEDERAL",
+                f"Blue Cross Blue Shield Federal Employee Program · {one}",
+            )
+        ],
     }
-    wrong = [
-        (payer, plan, expected, got.get((normalize_name(payer), normalize_name(plan))))
-        for payer, plan, expected in REAL_SPELLINGS
-        if got.get((normalize_name(payer), normalize_name(plan))) != expected
-    ]
+    wrong = _placed_by_state(conn, cases)
     assert wrong == [], wrong
 
 

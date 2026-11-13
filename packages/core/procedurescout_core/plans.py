@@ -10,6 +10,7 @@ the same insurer are never substituted.
 from __future__ import annotations
 
 import uuid
+from collections.abc import Sequence
 from dataclasses import dataclass
 from decimal import Decimal
 
@@ -21,6 +22,42 @@ from .price_store import PublishedPrice
 
 class PlanError(ValueError):
     """Unknown or unapproved plan."""
+
+
+@dataclass(frozen=True, slots=True)
+class Spellings:
+    """Approved hospital spellings of a plan (or of an insurer's plans), by
+    state (migration 0027): ('', ...) rows count in every state unless that
+    state has its own row for the same spelling ("Anthem | Commercial" is
+    Anthem Nevada in Nevada and Anthem Blue Cross in California)."""
+
+    own: frozenset[tuple[str, str, str]] = frozenset()
+    overridden: frozenset[tuple[str, str, str]] = frozenset()
+
+    def __bool__(self) -> bool:
+        return bool(self.own)
+
+    def has(self, payer: str, plan: str, state: str) -> bool:
+        if (payer, plan, state) in self.own:
+            return True
+        return (payer, plan, "") in self.own and (payer, plan, state) not in self.overridden
+
+
+def _state_rows(conn: Connection) -> frozenset[tuple[str, str, str]]:
+    """Every spelling that has its own approved row in some state."""
+    return frozenset(
+        (str(r[0]), str(r[1]), str(r[2]))
+        for r in conn.execute(
+            text(
+                "SELECT raw_payer_normalized, raw_plan_normalized, state_code FROM ref.plan_alias "
+                "WHERE review_state = 'approved' AND state_code <> ''"
+            )
+        ).all()
+    )
+
+
+def _spellings(conn: Connection, rows: Sequence[Sequence[object]]) -> Spellings:
+    return Spellings(frozenset((str(r[0]), str(r[1]), str(r[2])) for r in rows), _state_rows(conn))
 
 
 @dataclass(frozen=True, slots=True)
@@ -57,9 +94,7 @@ def list_plans(conn: Connection) -> list[Plan]:
 UNSURE_LEFT_OUT = ("medicare_advantage", "medicaid_managed_care")
 
 
-def insurer_spellings(
-    conn: Connection, payer_id: uuid.UUID | str
-) -> tuple[str, set[tuple[str, str]]]:
+def insurer_spellings(conn: Connection, payer_id: uuid.UUID | str) -> tuple[str, Spellings]:
     """(insurer name, approved spellings of all its work and individual plans)."""
     try:
         pid = str(uuid.UUID(str(payer_id)))
@@ -68,7 +103,8 @@ def insurer_spellings(
     rows = conn.execute(
         text(
             """
-            SELECT py.canonical_name, a.raw_payer_normalized, a.raw_plan_normalized
+            SELECT py.canonical_name, a.raw_payer_normalized, a.raw_plan_normalized,
+                   a.state_code
             FROM ref.payer py
             JOIN ref.plan pl ON pl.payer_id = py.id
             JOIN ref.plan_alias a ON a.plan_id = pl.id AND a.review_state = 'approved'
@@ -79,7 +115,7 @@ def insurer_spellings(
     ).all()
     if not rows:
         raise PlanError("unknown insurer, or none of its plans is approved yet")
-    return str(rows[0][0]), {(str(r[1]), str(r[2])) for r in rows}
+    return str(rows[0][0]), _spellings(conn, [(r[1], r[2], r[3]) for r in rows])
 
 
 def nearby_published(
@@ -101,58 +137,68 @@ def nearby_published(
     return [str(r[0]) for r in rows]
 
 
-def spellings_at(conn: Connection, facility_ids: list[str]) -> set[tuple[str, str]]:
-    """Normalized (insurer, plan) spellings published by these places."""
+def spellings_at(conn: Connection, facility_ids: list[str]) -> set[tuple[str, str, str]]:
+    """Normalized (insurer, plan, state) spellings published by these places."""
     if not facility_ids:
         return set()
     rows = conn.execute(
         text(
-            "SELECT DISTINCT payer_name_raw, plan_name_raw FROM price.published_payer "
-            "WHERE facility_id = ANY(CAST(:ids AS uuid[]))"
+            "SELECT DISTINCT pp.payer_name_raw, pp.plan_name_raw, f.state_code "
+            "FROM price.published_payer pp JOIN ref.facility f ON f.id = pp.facility_id "
+            "WHERE pp.facility_id = ANY(CAST(:ids AS uuid[]))"
         ),
         {"ids": facility_ids},
     ).all()
-    return {(normalize_name(str(r[0])), normalize_name(str(r[1] or ""))) for r in rows}
+    return {(normalize_name(str(r[0])), normalize_name(str(r[1] or "")), str(r[2])) for r in rows}
 
 
 def plans_near(conn: Connection, facility_ids: list[str]) -> list[Plan]:
-    """Plans with an approved spelling published by one of these places."""
+    """Plans with an approved spelling published by one of these places, as
+    that spelling is matched in the place's state."""
     found = spellings_at(conn, facility_ids)
     if not found:
         return []
     rows = conn.execute(
         text(
-            "SELECT plan_id, raw_payer_normalized, raw_plan_normalized FROM ref.plan_alias "
-            "WHERE review_state = 'approved'"
+            "SELECT plan_id, raw_payer_normalized, raw_plan_normalized, state_code "
+            "FROM ref.plan_alias WHERE review_state = 'approved'"
         )
     ).all()
-    ok = {str(r[0]) for r in rows if (str(r[1]), str(r[2])) in found}
+    by_plan: dict[str, set[tuple[str, str, str]]] = {}
+    for r in rows:
+        by_plan.setdefault(str(r[0]), set()).add((str(r[1]), str(r[2]), str(r[3])))
+    overridden = _state_rows(conn)
+    ok = {
+        pid
+        for pid, own in by_plan.items()
+        if any(Spellings(frozenset(own), overridden).has(p, pl, st) for p, pl, st in found)
+    }
     return [p for p in list_plans(conn) if p.plan_id in ok]
 
 
-def approved_spellings(conn: Connection, plan_id: uuid.UUID | str) -> set[tuple[str, str]]:
-    """(normalized payer, normalized plan) spellings approved for this plan."""
+def approved_spellings(conn: Connection, plan_id: uuid.UUID | str) -> Spellings:
+    """Spellings approved for this plan, by state."""
     try:
         pid = str(uuid.UUID(str(plan_id)))
     except ValueError as exc:
         raise PlanError("not a plan id") from exc
     rows = conn.execute(
         text(
-            "SELECT raw_payer_normalized, raw_plan_normalized FROM ref.plan_alias "
+            "SELECT raw_payer_normalized, raw_plan_normalized, state_code FROM ref.plan_alias "
             "WHERE plan_id = CAST(:p AS uuid) AND review_state = 'approved'"
         ),
         {"p": pid},
     ).all()
     if not rows:
         raise PlanError("unknown plan, or no hospital spelling of it is approved yet")
-    return {(str(r[0]), str(r[1])) for r in rows}
+    return _spellings(conn, [tuple(r) for r in rows])
 
 
 ALL_PLANS = "All plans (one rate published for all)"
 _FALLBACK_TYPES = ("hmo", "ppo", "epo", "pos", "hdhp")
 
 
-def all_plans_spellings(conn: Connection, plan_id: uuid.UUID | str) -> set[tuple[str, str]]:
+def all_plans_spellings(conn: Connection, plan_id: uuid.UUID | str) -> Spellings:
     """Approved spellings of the same insurer's "All plans" rate, used for a
     regular employer or individual plan (HMO/PPO/EPO/POS/HDHP, commercial) only
     when a hospital published one rate for all of that insurer's plans (Cooper,
@@ -162,7 +208,7 @@ def all_plans_spellings(conn: Connection, plan_id: uuid.UUID | str) -> set[tuple
     rows = conn.execute(
         text(
             """
-            SELECT a.raw_payer_normalized, a.raw_plan_normalized
+            SELECT a.raw_payer_normalized, a.raw_plan_normalized, a.state_code
             FROM ref.plan me
             JOIN ref.plan allp ON allp.payer_id = me.payer_id AND allp.canonical_name = :all
                               AND allp.id <> me.id
@@ -173,10 +219,26 @@ def all_plans_spellings(conn: Connection, plan_id: uuid.UUID | str) -> set[tuple
         ),
         {"p": pid, "all": ALL_PLANS, "types": list(_FALLBACK_TYPES)},
     ).all()
-    return {(str(r[0]), str(r[1])) for r in rows}
+    return _spellings(conn, [tuple(r) for r in rows]) if rows else Spellings()
 
 
-def matches(price: PublishedPrice, spellings: set[tuple[str, str]]) -> bool:
+def matches(price: PublishedPrice, spellings: Spellings, state: str) -> bool:
+    """Is this price published under one of the spellings, as matched in the
+    state of the place that published it?"""
     if price.payer_name_raw is None or price.plan_name_raw is None:
         return False
-    return (normalize_name(price.payer_name_raw), normalize_name(price.plan_name_raw)) in spellings
+    return spellings.has(
+        normalize_name(price.payer_name_raw), normalize_name(price.plan_name_raw), state
+    )
+
+
+def facility_states(conn: Connection, facility_ids: list[str]) -> dict[str, str]:
+    if not facility_ids:
+        return {}
+    return {
+        str(r[0]): str(r[1])
+        for r in conn.execute(
+            text("SELECT id, state_code FROM ref.facility WHERE id = ANY(CAST(:ids AS uuid[]))"),
+            {"ids": facility_ids},
+        ).all()
+    }
