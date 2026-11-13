@@ -894,6 +894,33 @@ REAL_SPELLINGS: dict[str, list[tuple[str, str, str | None]]] = {
         ("Anthem BCBS", "Commercial|Indemnity", None),
         ("Peak Health", "Commercial|All Plans", None),  # not known with evidence
     ],
+    "DC": [
+        # District of Columbia hospitals (2026-11-13 load report)
+        (
+            "CareFirst Blue Choice Inc",
+            "All Carefirst HMO Plans",
+            "CareFirst BlueCross BlueShield · HMO",
+        ),
+        (
+            "Medstar Family Choice Inc",
+            "Medstar Family Choice DC",
+            "MedStar Family Choice · Medicaid plan",
+        ),
+        (
+            "HSCSN",
+            "HSCSN",
+            "Health Services for Children with Special Needs (HSCSN) · Medicaid plan",
+        ),
+        ("Cigna HealthCare Mid Atlantic", "All Cigna HMO", "Cigna · HMO"),
+        (
+            "Private HealthCare Systems (PHCS)",
+            "Private HealthCare Systems (PHCS)",
+            "PHCS (MultiPlan) · Network on your card",
+        ),
+        ("ANTHEM_BLUE_CROSS_BLUE_SHIELD", "PPO", None),  # another state's Blue in DC
+        ("Kaiser Permanente", "Kaiser MD MCO", None),  # "MCO" alone isn't certain
+        ("UnitedHealthcare Insurance Company", "Optum VA Community Care", None),
+    ],
     "CT": [
         # Connecticut hospitals (2026-11-13 load report)
         (

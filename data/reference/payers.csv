@@ -807,3 +807,6 @@ Kaiser Permanente,PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-
 Health New England,All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-13
 Health New England,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-13
 HealthSpring (Medicare Advantage),Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-13
+MedStar Family Choice,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-13
+AmeriHealth Caritas District of Columbia,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-13
+Health Services for Children with Special Needs (HSCSN),Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-13
