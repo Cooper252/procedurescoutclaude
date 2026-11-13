@@ -666,6 +666,24 @@ REAL_SPELLINGS: dict[str, list[tuple[str, str, str | None]]] = {
             "Highmark Blue Cross Blue Shield Delaware · Medicare Advantage",
         ),  # Delaware's only Blue (D-062)
         ("DELAWARE FIRST HEALTH-MEDICARE", "DELAWARE FIRST HEALTH-MEDICARE", None),
+        # 2026-11-13 load report
+        (
+            "Health Options",
+            "Health Options",
+            "Highmark Health Options (Delaware Medicaid) · Medicaid plan",
+        ),
+        (
+            "Jefferson Health Plan",
+            "Health Partners Medicare Managed Care Plan",
+            "Jefferson Health Plans · Medicare Advantage",
+        ),
+        (
+            "Healthspring",
+            "Medicare Managed Care Plan",
+            "HealthSpring (Medicare Advantage) · Medicare Advantage",
+        ),
+        ("DELAWARE FIRST HEALTH", "DELAWARE FIRST HEALTH", None),  # Medicaid and Medicare plans
+        ("UNITED_HEALTHCARE", "UHC_CHOICE_PLUS_POS", None),
     ],
     "VT": [
         ("Devoted Health", "Medicare Advantage", "Devoted Health · Medicare Advantage"),
@@ -861,6 +879,40 @@ REAL_SPELLINGS: dict[str, list[tuple[str, str, str | None]]] = {
         ("Kaiser", "Kaiser Medi-Cal", "Kaiser Permanente · Medicaid plan"),
         ("Kaiser Senior", "Kaiser Senior", "Kaiser Permanente · Medicare Advantage"),
         ("AETNA SENIOR SUPP", "AETNA SENIOR SUPP", None),  # a Medicare supplement
+    ],
+    "CO": [
+        # Colorado hospitals (2026-11-13 load report)
+        (
+            "Denver Health",
+            "Commercial|All Plans",
+            "Denver Health Medical Plan · All plans (one rate published for all)",
+        ),
+        ("Kaiser", "Commercial|HMO", "Kaiser Permanente · HMO"),
+        ("Kaiser", "Commercial (PPO)", "Kaiser Permanente · PPO"),
+        ("Kaiser", "Commercial|Public Options", None),  # a Colorado Option product
+        ("United", "Commercial|Navigate", None),  # a named product, not a plain kind
+        ("Anthem BCBS", "Commercial|Indemnity", None),
+        ("Peak Health", "Commercial|All Plans", None),  # not known with evidence
+    ],
+    "CT": [
+        # Connecticut hospitals (2026-11-13 load report)
+        (
+            "MOLINA dba CONNECTICARE",
+            "MOLINA dba CONNECTICARE MEDICARE",
+            "Molina Healthcare · Medicare Advantage",
+        ),
+        (
+            "MOLINA dba CONNECTICARE",
+            "MOLINA EXCHANGE/MARKETPLACE",
+            "Molina Healthcare · Marketplace (exchange) plan",
+        ),
+        (
+            "HEALTH NEW ENGLAND",
+            "HEALTH NEW ENGLAND MEDICARE",
+            "Health New England · Medicare Advantage",
+        ),
+        ("United Behavioral Health", "Commercial", None),  # behavioral carve-out
+        ("Bcbs", "Anthem Tiered Hmo", None),  # a tiered network product
     ],
 }
 

@@ -748,6 +748,9 @@ def cmd_find_websites(args: argparse.Namespace, engine: Engine) -> None:
                 lambda c: website_verify.verify(
                     c, guessed, fetch, LoadStats(), head=_head_reader(client)
                 ),
+                # every load names its source (src.reference_load check); these
+                # candidates come from the hospitals' own names, not a list
+                source_file="guessed from hospital names (website_verify.guessed_candidates)",
                 parameters={"state": args.state, "guessed": guessed.count("\n") - 1},
             )
 

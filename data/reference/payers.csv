@@ -802,3 +802,8 @@ Wellpoint (Amerigroup),Medicaid plan,other,medicaid_managed_care,"Claude (delega
 Wellpoint (Amerigroup),Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
 Wellpoint (Amerigroup),Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
 Aetna,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Kaiser Permanente,HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-13
+Kaiser Permanente,PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-13
+Health New England,All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-13
+Health New England,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-13
+HealthSpring (Medicare Advantage),Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-13

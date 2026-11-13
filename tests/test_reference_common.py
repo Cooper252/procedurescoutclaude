@@ -282,3 +282,22 @@ def test_unzip_error_lists_archive_contents() -> None:
         zf.writestr("b.txt", b"yy")
     with pytest.raises(SourceError, match=r"archive holds \{'a.txt': 1, 'b.txt': 2\}"):
         maybe_unzip(SourceBlob(buf.getvalue(), "0" * 64), lambda n, _d: True)
+
+
+def test_every_reference_load_names_its_source() -> None:
+    """src.reference_load requires a source URL or file; a load step without one
+    fails in production (find_websites for guessed sites, 2026-11-13)."""
+    import ast
+    from pathlib import Path
+
+    import procedurescout_ingest.reference.cli as cli
+
+    tree = ast.parse(Path(cli.__file__).read_text(encoding="utf-8"))
+    missing = [
+        node.lineno
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call)
+        and getattr(node.func, "id", None) == "_run"
+        and not {k.arg for k in node.keywords} & {"blob", "source_url", "source_file"}
+    ]
+    assert missing == []

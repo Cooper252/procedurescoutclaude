@@ -79,7 +79,9 @@ _TYPES: list[tuple[re.Pattern[str], str]] = [
         re.compile(
             r"^(all|all plans|all products|commercial|comm|managed care|generic|default"
             r"|all commercial plans|all other plans|all payer|all payor|commercial all payer"
-            r"|all payor commercial|hmo ppo|hmo pos ppo|commercial hmo ppo)$"
+            r"|all payor commercial|hmo ppo|hmo pos ppo|commercial hmo ppo"
+            # Colorado files: "Commercial|All Plans" (2026-11-13)
+            r"|commercial all plans|all plans commercial)$"
         ),
         ALL_PLANS,
     ),

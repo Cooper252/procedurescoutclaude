@@ -185,7 +185,7 @@ av ?med( health plans?)?,AvMed,,,Florida health plan; https://www.avmed.org,"Cla
 capital health plan,Capital Health Plan,,,Tallahassee health plan; https://www.capitalhealth.com,"Claude (delegated by Cooper, D-047)",2026-11-12
 connecti ?care( insurance company| inc)?,ConnectiCare,,,Connecticut health plan; https://www.connecticare.com,"Claude (delegated by Cooper, D-047)",2026-11-12
 rocky mountain health ?plans?|rmhp,Rocky Mountain Health Plans,,,Colorado health plan (UnitedHealthcare); https://www.rmhp.org,"Claude (delegated by Cooper, D-047)",2026-11-12
-denver health medical plan|dhmp,Denver Health Medical Plan,,,Denver health plan; https://www.denverhealthmedicalplan.org,"Claude (delegated by Cooper, D-047)",2026-11-12
+denver health( medical plan)?|dhmp,Denver Health Medical Plan,,,Denver health plan; https://www.denverhealthmedicalplan.org,"Claude (delegated by Cooper, D-047)",2026-11-12
 colorado access,Colorado Access,,,Colorado Medicaid (Health First Colorado) regional organization; https://www.coaccess.com,"Claude (delegated by Cooper, D-047)",2026-11-12
 priority health( medicare| medicaid| choice)?,Priority Health,,,Michigan health plan; https://www.priorityhealth.com,"Claude (delegated by Cooper, D-047)",2026-11-12
 health alliance plan( of michigan)?,Health Alliance Plan (HAP),,,Michigan health plan (Henry Ford Health); https://www.hap.org,"Claude (delegated by Cooper, D-047)",2026-11-12
@@ -199,7 +199,7 @@ geisinger( health( plan)?)?( gold| family)?,Geisinger Health Plan,,,Pennsylvania
 upmc( health plan| health options)?,UPMC Health Plan,,,"UPMC for You is its Medicaid plan, UPMC for Life its Medicare plan; https://www.upmchealthplan.com","Claude (delegated by Cooper, D-047)",2026-11-12
 upmc for you,UPMC Health Plan,Medicaid plan,,"UPMC for You is its Medicaid plan, UPMC for Life its Medicare plan; https://www.upmchealthplan.com","Claude (delegated by Cooper, D-047)",2026-11-12
 upmc for life,UPMC Health Plan,Medicare Advantage,,"UPMC for You is its Medicaid plan, UPMC for Life its Medicare plan; https://www.upmchealthplan.com","Claude (delegated by Cooper, D-047)",2026-11-12
-health partners plans|jefferson health plans,Jefferson Health Plans,,,Philadelphia health plan (formerly Health Partners Plans); https://www.jeffersonhealthplans.com,"Claude (delegated by Cooper, D-047)",2026-11-12
+health partners plans|jefferson health plans?,Jefferson Health Plans,,,Philadelphia health plan (formerly Health Partners Plans); https://www.jeffersonhealthplans.com,"Claude (delegated by Cooper, D-047)",2026-11-12
 keystone first( community health choices)?,Keystone First,,,Pennsylvania Medicaid plan (AmeriHealth Caritas); https://www.keystonefirstpa.com,"Claude (delegated by Cooper, D-047)",2026-11-12
 (pa|pennsylvania) health (and|&) wellness,PA Health & Wellness,,,Pennsylvania Medicaid plan (Centene); https://www.pahealthwellness.com,"Claude (delegated by Cooper, D-047)",2026-11-12
 cdphp|capital district physicians( health plan)?,CDPHP,,,Albany-area New York health plan; https://www.cdphp.com,"Claude (delegated by Cooper, D-047)",2026-11-12
@@ -267,3 +267,7 @@ community health plan of washington|chpw,Community Health Plan of Washington,,,W
 wellpoint( fka amerigroup)?|amerigroup( [a-z]+( [a-z]+)?)?|amerigroup real solutions,Wellpoint (Amerigroup),,,"Elevance's Medicaid and Medicare plans (Amerigroup, now Wellpoint); https://www.wellpoint.com","Claude (delegated by Cooper, D-047)",2026-11-12
 aetna better health( of [a-z]+( [a-z]+)?)?,Aetna,Medicaid plan,,Aetna Better Health is Aetna's Medicaid plan; https://www.aetnabetterhealth.com,"Claude (delegated by Cooper, D-047)",2026-11-12
 united ?health ?care community plan( of [a-z]+( [a-z]+)?)?,UnitedHealthcare,,,UnitedHealthcare Community Plan is its Medicaid plan; https://www.uhccommunityplan.com,"Claude (delegated by Cooper, D-047)",2026-11-12
+health options,Highmark Health Options (Delaware Medicaid),,DE,"in Delaware hospitals a plain ""Health Options"" is Highmark Health Options, Delaware's Medicaid plan; https://www.highmarkhealthoptions.com","Claude (delegated by Cooper, D-047)",2026-11-13
+molina dba connecticare,Molina Healthcare,,CT,"Molina completed its acquisition of ConnectiCare on 2025-02-03 (Molina Form 10-K FY2025, https://www.sec.gov/Archives/edgar/data/1179929/000117992926000005/moh-20251231.htm); the hospital names Molina","Claude (delegated by Cooper, D-047)",2026-11-13
+health new england( inc)?,Health New England,,,Massachusetts health plan (Springfield); https://healthnewengland.org/about-us,"Claude (delegated by Cooper, D-047)",2026-11-13
+health ?spring,HealthSpring (Medicare Advantage),,,"Cigna's former Medicare Advantage brand, sold to Health Care Service Corporation in 2025 (https://www.hcsc.com/newsroom/news-releases/2025/completes-cigna-medicare-acquisition)","Claude (delegated by Cooper, D-047)",2026-11-13
