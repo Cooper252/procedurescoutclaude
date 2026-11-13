@@ -1,7 +1,7 @@
 // State laws that limit hospital bills or require free care, shown on Help
 // paying for the person's state. Each one is from the state's own statute,
 // regulation or agency page (linked as `source`), checked by Claude under D-056
-// on 2026-11-12. General information, not legal advice.
+// on 2026-11-12 (OH, TN, DE, NC added 2026-11-13). General information, not legal advice.
 
 export interface StateLaw {
   title: [string, string]; // English, Spanish
@@ -163,5 +163,53 @@ export const STATE_LAWS: Record<string, StateLaw> = {
     ],
     fine: ["Minnesota Statutes § 144.589. Enforced by the Department of Health and the Attorney General.", "Estatutos de Minnesota § 144.589. Lo hacen cumplir el Departamento de Salud y el Fiscal General."],
     source: "https://www.revisor.mn.gov/statutes/2024/cite/144.589",
+  },
+  OH: {
+    title: ["Ohio law: free basic hospital care below the poverty line", "Ley de Ohio: atención básica de hospital gratuita por debajo del nivel de pobreza"],
+    body: [
+      "If you live in Ohio, aren't on Medicaid, and your income is at or below the federal poverty level, Ohio hospitals must give you basic, medically necessary hospital care, inpatient and outpatient, at no charge. This is the Hospital Care Assurance Program (HCAP).",
+      "Si vive en Ohio, no tiene Medicaid y su ingreso es igual o menor al nivel federal de pobreza, los hospitales de Ohio deben darle atención hospitalaria básica y médicamente necesaria, con internación o ambulatoria, sin costo. Este es el Programa de Garantía de Atención Hospitalaria (HCAP).",
+    ],
+    fine: [
+      "Ohio Administrative Code 5160-2-17. Covers the services Ohio Medicaid covers, except transplants. Ask the hospital's financial counselor.",
+      "Código Administrativo de Ohio 5160-2-17. Cubre los servicios que cubre Medicaid de Ohio, excepto trasplantes. Pregunte al consejero financiero del hospital.",
+    ],
+    source: "https://codes.ohio.gov/ohio-administrative-code/rule-5160-2-17",
+  },
+  TN: {
+    title: ["Tennessee law: uninsured patients pay no more than 175% of cost", "Ley de Tennessee: pacientes sin seguro no pagan más del 175% del costo"],
+    body: [
+      "If you have no insurance or other way to pay (no Medicare, TennCare or employer plan), a Tennessee hospital, surgery center or outpatient imaging center can't make you pay more than 175% of what the care costs it to provide.",
+      "Si no tiene seguro ni otra forma de pago (sin Medicare, TennCare ni plan del empleador), un hospital, centro de cirugía o centro de diagnóstico ambulatorio de Tennessee no puede exigirle pagar más del 175% de lo que le cuesta dar la atención.",
+    ],
+    fine: [
+      "Tennessee Code § 68-11-262. Cost is set from the facility's own cost-to-charge ratio in its annual report to the state.",
+      "Código de Tennessee § 68-11-262. El costo se calcula con la proporción de costo a cargo del propio centro en su informe anual al estado.",
+    ],
+    source: "https://law.justia.com/codes/tennessee/2019/title-68/health/chapter-11/part-2/section-68-11-262/",
+  },
+  DE: {
+    title: ["Delaware law (from January 1, 2027): free hospital care up to 300% of poverty", "Ley de Delaware (desde el 1 de enero de 2027): atención de hospital gratuita hasta el 300% de la pobreza"],
+    body: [
+      "Starting January 1, 2027, Delaware hospitals must give Delaware residents free medically necessary hospital care at or below 300% of the federal poverty level, at least 75% off up to 350% and at least 50% off up to 400%, with or without insurance. If hospital bills reach 10% of household income, at least 50% off up to at least 500%.",
+      "A partir del 1 de enero de 2027, los hospitales de Delaware deben dar a los residentes de Delaware atención hospitalaria médicamente necesaria gratuita si su ingreso es igual o menor al 300% del nivel federal de pobreza, al menos 75% de descuento hasta el 350% y al menos 50% hasta el 400%, con o sin seguro. Si las facturas del hospital llegan al 10% del ingreso del hogar, al menos 50% de descuento hasta al menos el 500%.",
+    ],
+    fine: [
+      "Senate Substitute 1 for Senate Bill 13 (2026), 16 Del. C. §§ 9961–9966, signed July 20, 2026. Not psychiatric, rehabilitation or long-term acute care hospitals. Until 2027, each hospital's own policy applies.",
+      "Sustituto 1 del Senado para el Proyecto de Ley del Senado 13 (2026), 16 Del. C. §§ 9961–9966, firmado el 20 de julio de 2026. No aplica a hospitales psiquiátricos, de rehabilitación ni de cuidados agudos a largo plazo. Hasta 2027, se aplica la política de cada hospital.",
+    ],
+    source: "https://news.delaware.gov/2026/07/21/governor-meyer-signs-landmark-health-care-affordability-package-to-lower-costs-and-protect-patients/",
+  },
+  NC: {
+    title: ["North Carolina program: hospital discounts up to 300% of poverty", "Programa de Carolina del Norte: descuentos de hospital hasta el 300% de la pobreza"],
+    body: [
+      "Every eligible North Carolina acute care hospital joined the state's Medical Debt Relief program. If your income is at or below 300% of the federal poverty level, the hospital must cut your bill by 50% to 100% depending on income (free for lower incomes), apply it automatically, not sell your medical debt or report it to credit agencies, and charge at most 3% interest.",
+      "Todos los hospitales de cuidados agudos elegibles de Carolina del Norte se unieron al programa estatal de Alivio de Deudas Médicas. Si su ingreso es igual o menor al 300% del nivel federal de pobreza, el hospital debe reducir su factura entre un 50% y un 100% según su ingreso (gratis para ingresos más bajos), aplicarlo automáticamente, no vender su deuda médica ni reportarla a las agencias de crédito, y cobrar como máximo un 3% de interés.",
+    ],
+    fine: [
+      "NC Medicaid Medical Debt Relief Incentive Program (since January 1, 2025). You qualify automatically if someone in your household has Medicaid, you get SNAP or WIC, or you are experiencing homelessness. A state program, not a statute.",
+      "Programa de Incentivos para el Alivio de Deudas Médicas de NC Medicaid (desde el 1 de enero de 2025). Califica automáticamente si alguien en su hogar tiene Medicaid, recibe SNAP o WIC, o no tiene vivienda. Un programa estatal, no una ley.",
+    ],
+    source: "https://www.ncdhhs.gov/medicaldebt",
   },
 };

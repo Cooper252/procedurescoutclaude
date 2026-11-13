@@ -2,6 +2,12 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-13 — State hospital-bill laws for Ohio, Tennessee, Delaware and North Carolina
+
+Implemented (`apps/web/lib/stateLaws.ts`, D-056, each from the state's own source): Ohio's Hospital Care Assurance Program (free basic hospital care for Ohio residents not on Medicaid at or below the poverty line; Ohio Administrative Code 5160-2-17), Tennessee's cap for uninsured patients (no more than 175% of cost at hospitals, surgery centers and outpatient imaging centers; Tenn. Code § 68-11-262), and Delaware's new law (SS 1 for SB 13, signed July 20, 2026: free care for residents to 300% of poverty, 75% off to 350%, 50% to 400%, insured or not), shown as starting January 1, 2027, and North Carolina's Medical Debt Relief program, which every eligible acute care hospital joined (50-100% off to 300% of poverty, applied automatically, no debt sales or credit reporting; ncdhhs.gov/medicaldebt), labeled as a state program. Now 20 states. Virginia's law (§ 32.1-137.010) sets screening and payment-plan rules but no income levels, so it is not shown. GO_LIVE's assistance-policy line updated to the real coverage.
+
+Tested: `lib/stateLaws.test.mts` (official https source, both languages); `npm test` passed; `tsc --noEmit` clean.
+
 ## 2026-11-13 — Load fix (guessed websites) and insurers from the CO, CT, DE reports
 
 Found in the load reports (CA pass 2, CO, CT, DE, all marked "Failure"): every state's "find websites" step stopped at the database check because the second website pass (sites guessed from hospital names) recorded no source. The prices, insurers and other steps still ran. Fixed: that pass now records its source (`reference/cli.py`), and a test checks that every load step names one (`test_every_reference_load_names_its_source`). CA pass 2's "catalog" error came from a run that started before migration 0027's code was pushed; runs started after the push don't have it.
