@@ -582,3 +582,24 @@ Washington Medicaid,Medicaid,other,medicaid_managed_care,"Claude (delegated by C
 West Virginia Medicaid,Medicaid,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
 Wisconsin Medicaid,Medicaid,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
 Wyoming Medicaid,Medicaid,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Peach State Health Plan,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Sunshine Health,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Simply Healthcare Plans,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Simply Healthcare Plans,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+AvMed,All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+AvMed,HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+AvMed,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Capital Health Plan,All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Capital Health Plan,HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Capital Health Plan,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+ConnectiCare,All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+ConnectiCare,HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+ConnectiCare,PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+ConnectiCare,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+ConnectiCare,Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Rocky Mountain Health Plans,All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Rocky Mountain Health Plans,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Rocky Mountain Health Plans,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Denver Health Medical Plan,All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Denver Health Medical Plan,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Colorado Access,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12

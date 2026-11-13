@@ -990,6 +990,13 @@ def test_state_medicaid_programs_by_their_names(conn: Connection, world: LocalSt
         "MA": [("MassHealth", "MassHealth", "Massachusetts Medicaid · Medicaid")],
         "TX": [("Medicaid-Texas", "Medicaid", "Texas Medicaid · Medicaid")],
         "NY": [("TennCare", "TennCare", None)],  # another state's program
+        "GA": [
+            (
+                "Peach State Health Plan",
+                "Managed Medicaid",
+                "Peach State Health Plan · Medicaid plan",
+            )
+        ],
     }
     wrong = _placed_by_state(conn, cases)
     assert wrong == [], wrong

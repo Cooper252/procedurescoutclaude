@@ -2,6 +2,10 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-12 — Regional insurers for the next states (CO, CT, FL, GA)
+
+Ahead of those states' loads: Peach State Health Plan (its "Managed Medicaid" spelling is already in loaded files), Sunshine Health, Simply Healthcare, AvMed, Capital Health Plan, ConnectiCare, Rocky Mountain Health Plans, Denver Health Medical Plan and Colorado Access, each matched only by its own name and only in its state (sources in `payer_name_rules.csv`). Test case added to `test_state_medicaid_programs_by_their_names`. `make check`: `394 passed, 1 skipped`.
+
 ## 2026-11-12 — Nevada employer plans and Select Health limited to their states
 
 Seen live: Los Angeles listed Nevada's "Teachers Health Trust" and "Select Health (Intermountain)". 28 Las Vegas-area employer and union plans are now placed only in Nevada hospitals, and Select Health in Utah, Idaho, Nevada and Colorado (`payer_states.csv`; selecthealth.org). Applied on the next state load. `make check`: `394 passed, 1 skipped`.
