@@ -977,6 +977,24 @@ def test_plain_blue_cross_is_the_states_own_blue_company(
     assert wrong == [], wrong
 
 
+def test_state_medicaid_programs_by_their_names(conn: Connection, world: LocalStore) -> None:
+    """Each state's own Medicaid program by its name or program name
+    (TennCare, MassHealth, Apple Health...); a plain "Medicaid" stays as written."""
+    cases: dict[str, list[tuple[str, str, str | None]]] = {
+        "OH": [
+            ("Ohio Medicaid", "Medicaid", "Ohio Medicaid · Medicaid"),
+            ("Medicaid", "Medicaid", None),
+        ],
+        "TN": [("TennCare", "TennCare", "Tennessee Medicaid · Medicaid")],
+        "WA": [("Apple Health", "Medicaid", "Washington Medicaid · Medicaid")],
+        "MA": [("MassHealth", "MassHealth", "Massachusetts Medicaid · Medicaid")],
+        "TX": [("Medicaid-Texas", "Medicaid", "Texas Medicaid · Medicaid")],
+        "NY": [("TennCare", "TennCare", None)],  # another state's program
+    }
+    wrong = _placed_by_state(conn, cases)
+    assert wrong == [], wrong
+
+
 def test_one_state_insurers_are_matched_only_in_their_state(
     conn: Connection, world: LocalStore
 ) -> None:

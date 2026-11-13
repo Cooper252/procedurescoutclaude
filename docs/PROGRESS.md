@@ -2,6 +2,16 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-12 — Nevada employer plans and Select Health limited to their states
+
+Seen live: Los Angeles listed Nevada's "Teachers Health Trust" and "Select Health (Intermountain)". 28 Las Vegas-area employer and union plans are now placed only in Nevada hospitals, and Select Health in Utah, Idaho, Nevada and Colorado (`payer_states.csv`; selecthealth.org). Applied on the next state load. `make check`: `394 passed, 1 skipped`.
+
+## 2026-11-12 — Every state's own Medicaid program
+
+Implemented: 45 state Medicaid programs (`payers.csv`, `payer_states.csv`, `payer_name_rules.csv`), matched in their own state's hospitals by the state's name ("Ohio Medicaid", "Medicaid-Texas") or program name (TennCare, MassHealth, Apple Health, SoonerCare, MO HealthNet, BadgerCare, HUSKY, Health First Colorado, Denali Care and others; medicaid.gov state overviews). A plain "Medicaid" stays as the hospital wrote it.
+
+Tested: `test_state_medicaid_programs_by_their_names` (another state's program name is not matched). `make check`: `394 passed, 1 skipped`.
+
 ## 2026-11-12 — Every state's Blue Cross Blue Shield company (D-062)
 
 Implemented (`data/reference/payers.csv`, `payer_name_rules.csv`, `payer_states.csv`; `plan_resolver.NameRule.states`):
