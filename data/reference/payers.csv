@@ -215,3 +215,28 @@ UnitedHealthcare,Marketplace (exchange) plan,other,exchange,"Claude (delegated b
 Cigna,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
 Cigna,Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
 Humana,Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Arkansas Blue Cross and Blue Shield,All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Arkansas Blue Cross and Blue Shield,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Arkansas Blue Cross and Blue Shield,Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Health Advantage (Arkansas Blue Cross),HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+QualChoice (Arkansas),All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+QualChoice (Arkansas),Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Arkansas Total Care (PASSE),Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Summit Community Care (PASSE),Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Empower Healthcare Solutions (PASSE),Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+CareSource PASSE (Arkansas),Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Arkansas Medicaid (fee for service),Medicaid,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross Blue Shield of Arizona,All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross Blue Shield of Arizona,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Blue Cross Blue Shield of Arizona,Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Health Choice Arizona,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Health Choice Arizona,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Health Choice Arizona,Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Mercy Care (Arizona),Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Mercy Care (Arizona),Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Banner University Health Plans,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Banner University Health Plans,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Arizona Complete Health,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12
+Arizona Complete Health,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+Arizona Complete Health,Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-12
+Arizona Medicaid (AHCCCS fee for service),Medicaid,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-12

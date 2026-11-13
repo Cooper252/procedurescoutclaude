@@ -137,4 +137,31 @@ export const STATE_LAWS: Record<string, StateLaw> = {
     fine: ["22 M.R.S. § 1716-A. Maine residents (not visitors).", "22 M.R.S. § 1716-A. Residentes de Maine (no visitantes)."],
     source: "https://legislature.maine.gov/statutes/22/title22sec1716-A.html",
   },
+  NM: {
+    title: ["New Mexico law: no medical debt collection for low-income patients", "Ley de Nuevo México: no se cobran deudas médicas a pacientes de bajos ingresos"],
+    body: [
+      "If your household income is at or below 200% of the federal poverty level, hospitals and other providers in New Mexico can't take collection actions against you for medical bills, such as suing, selling the debt, garnishing wages or placing a lien.",
+      "Si el ingreso de su hogar es igual o menor al 200% del nivel federal de pobreza, los hospitales y otros proveedores de Nuevo México no pueden tomar acciones de cobro por facturas médicas, como demandarlo, vender la deuda, embargar su salario o poner un gravamen.",
+    ],
+    fine: ["Patients' Debt Collection Protection Act (2021, SB 71). You can show you qualify with the state's Attestation of Indigency form.", "Ley de Protección contra el Cobro de Deudas de Pacientes (2021, SB 71). Puede demostrar que califica con el formulario estatal de Declaración de Indigencia."],
+    source: "https://www.osi.state.nm.us/en/consumer-assistance/patients-debt-collection-protection-act/",
+  },
+  MA: {
+    title: ["Massachusetts: the Health Safety Net pays hospital bills", "Massachusetts: la Red de Seguridad de Salud paga facturas de hospital"],
+    body: [
+      "Massachusetts residents with income up to 150% of the federal poverty level can have hospital and community health center care paid in full by the Health Safety Net; from 150% to 300% it pays after a deductible. Doctors who bill separately are often not covered.",
+      "Los residentes de Massachusetts con ingreso de hasta el 150% del nivel federal de pobreza pueden tener la atención en hospitales y centros de salud comunitarios pagada por completo por la Red de Seguridad de Salud; entre el 150% y el 300% paga después de un deducible. Los médicos que cobran aparte a menudo no están cubiertos.",
+    ],
+    fine: ["Apply through the hospital's or health center's financial counselor (the MassHealth application).", "Solicítelo con el consejero financiero del hospital o centro de salud (la solicitud de MassHealth)."],
+    source: "https://www.mass.gov/info-details/health-safety-net-for-patients",
+  },
+  MN: {
+    title: ["Minnesota law: uninsured patients charged no more than insurers pay", "Ley de Minnesota: a pacientes sin seguro no se les cobra más de lo que pagan las aseguradoras"],
+    body: [
+      "If you're uninsured and your household income is under $125,000 a year, a Minnesota hospital can't charge you more than the lowest total it would get from a private insurer for the same care.",
+      "Si no tiene seguro y el ingreso de su hogar es menor a $125,000 al año, un hospital de Minnesota no puede cobrarle más que el total más bajo que recibiría de una aseguradora privada por la misma atención.",
+    ],
+    fine: ["Minnesota Statutes § 144.589. Enforced by the Department of Health and the Attorney General.", "Estatutos de Minnesota § 144.589. Lo hacen cumplir el Departamento de Salud y el Fiscal General."],
+    source: "https://www.revisor.mn.gov/statutes/2024/cite/144.589",
+  },
 };

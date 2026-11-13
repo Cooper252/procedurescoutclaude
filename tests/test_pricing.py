@@ -525,7 +525,11 @@ REAL_SPELLINGS = [
         "Blue Advantage (Medicare Advantage)",
         "Blue Cross Blue Shield of Alabama · Medicare Advantage",
     ),
-    ("BCBS_Alabama_Exchange", "BCALEXCHNG", None),  # plan code only: left for research
+    (
+        "BCBS_Alabama_Exchange",
+        "BCALEXCHNG",
+        "Blue Cross Blue Shield of Alabama · Marketplace (exchange) plan",
+    ),  # the kind of plan is in the insurer text
     (
         "BLUE CROSS OF AL",
         "BLUE CROSS AL COMMERCIAL",
@@ -601,6 +605,102 @@ REAL_SPELLINGS = [
     ("Viva Health", "HMO", "Viva Health · HMO"),
     ("Humana Military", "TRICARE", None),
     ("CorVel", "Workers' Compensation", None),
+    # Arkansas and Arizona hospitals (2026-11-12 load reports)
+    (
+        "BLUE CROSS OF ARKANSAS",
+        "BLUE CROSS OF ARKANSAS",
+        "Arkansas Blue Cross and Blue Shield · All plans (one rate published for all)",
+    ),
+    (
+        "BLUE CROSS BLUE SHIELD/AR",
+        "BLUE CROSS BLUE SHIELD/AR",
+        "Arkansas Blue Cross and Blue Shield · All plans (one rate published for all)",
+    ),
+    ("ARKANSAS_BLUE_MEDICARE", "344_1", "Arkansas Blue Cross and Blue Shield · Medicare Advantage"),
+    ("MEDIPAK", "Medicare Advantage", "Arkansas Blue Cross and Blue Shield · Medicare Advantage"),
+    ("MEDIPAK", "MEDIPAK", None),  # may be the Medicare supplement
+    (
+        "HMO MEDIPAK ADV PLAN",
+        "HMO MEDIPAK ADV PLAN",
+        "Arkansas Blue Cross and Blue Shield · Medicare Advantage",
+    ),
+    ("HEALTH ADVANTAGE", "HEALTH ADVANTAGE", "Health Advantage (Arkansas Blue Cross) · HMO"),
+    (
+        "QUALCHOICE EXCHANGE",
+        "QUALCHOICE EXCHANGE",
+        "QualChoice (Arkansas) · Marketplace (exchange) plan",
+    ),
+    ("Qualchoice", "Qualchoice", "QualChoice (Arkansas) · All plans (one rate published for all)"),
+    ("QUALCHOICE ADV HMO", "QUALCHOICE ADV HMO", None),  # not plainly one kind of plan
+    ("Arkansas Total Care", "Medicaid", "Arkansas Total Care (PASSE) · Medicaid plan"),
+    ("Summitt", "Medicaid", "Summit Community Care (PASSE) · Medicaid plan"),
+    ("Summit", "All Plans", None),  # a short name: only with a Medicaid plan text
+    ("Empower", "Medicaid", "Empower Healthcare Solutions (PASSE) · Medicaid plan"),
+    ("Care Source", "Medicaid", "CareSource PASSE (Arkansas) · Medicaid plan"),
+    ("MEDICAID-ARKANSAS", "MEDICAID-ARKANSAS", "Arkansas Medicaid (fee for service) · Medicaid"),
+    ("ARKIDS-MEDICAID", "ARKIDS-MEDICAID", "Arkansas Medicaid (fee for service) · Medicaid"),
+    ("Medicaid", "Medicaid", None),  # which state's? never guessed
+    ("Blue Cross", "All Plans", None),  # which Blue? never guessed
+    ("Ambetter of Arkansas", "Ambetter of Arkansas", "Ambetter · Marketplace (exchange) plan"),
+    ("ALLWELL", "ALLWELL", "Wellcare · Medicare Advantage"),
+    ("HUMANA GOLD MEDICARE", "HUMANA GOLD MEDICARE", "Humana · Medicare Advantage"),
+    ("HMO HUMANA GOLD", "HMO HUMANA GOLD", None),
+    (
+        "Blue Cross Blue Shield of Arizona",
+        "Commercial",
+        "Blue Cross Blue Shield of Arizona · All plans (one rate published for all)",
+    ),
+    (
+        "Blue Cross Blue Shield of Arizona",
+        "Medicare Advantage",
+        "Blue Cross Blue Shield of Arizona · Medicare Advantage",
+    ),
+    ("Blue Cross Blue Shield of Arizona", "BCBSAZ Workers Comp", None),
+    ("Blue Cross Blue Shield of Arizona", "Medicare Supplemental Senior Preferred", None),
+    ("Blue Cross Blue Shield", "Medicare Advantage", None),
+    (
+        "Health Choice Arizona, Inc.",
+        "ACA Health Plan",
+        "Health Choice Arizona · Marketplace (exchange) plan",
+    ),
+    ("Health Choice Arizona, Inc.", "Medicaid", "Health Choice Arizona · Medicaid plan"),
+    ("Mercy Care", "Mercy Care Advantage", "Mercy Care (Arizona) · Medicare Advantage"),
+    ("Mercy Care", "Mercy Medicaid", "Mercy Care (Arizona) · Medicaid plan"),
+    (
+        "Banner University Health Plan",
+        "AZ Medicaid - AHCCCS",
+        "Banner University Health Plans · Medicaid plan",
+    ),
+    (
+        "Banner University Health Plan",
+        "University Care Advantage",
+        "Banner University Health Plans · Medicare Advantage",
+    ),
+    ("Banner University Health Plan", "University Family Plan", None),
+    (
+        "Arizona Complete",
+        "Arizona Health Care Cost Containment System (AHCCCS)",
+        "Arizona Complete Health · Medicaid plan",
+    ),
+    ("Arizona Physicians IPA", "Medicaid", "UnitedHealthcare · Medicaid plan"),
+    (
+        "United Healthcare Community Care",
+        "Arizona Health Care Cost Containment System (AHCCCS)",
+        "UnitedHealthcare · Medicaid plan",
+    ),
+    (
+        "Cigna Healthcare of Arizona, Inc.",
+        "HMO Medicare Advantage Plans",
+        "Cigna · Medicare Advantage",
+    ),
+    ("Devoted Health Services", "Medicare Advantage", "Devoted Health · Medicare Advantage"),
+    ("Oscar Health Plan", "Commercial", "Oscar Health · All plans (one rate published for all)"),
+    (
+        "AHCCCS MOLINA COMPLETE CARE",
+        "AHCCCS MOLINA COMPLETE CARE",
+        "Molina Healthcare · Medicaid plan",
+    ),
+    ("AHCCCS IHS", "AHCCCS IHS", "Arizona Medicaid (AHCCCS fee for service) · Medicaid"),
 ]
 
 
@@ -648,7 +748,7 @@ def test_reviewed_insurer_names_place_real_hospital_spellings(
         for payer, plan, expected in REAL_SPELLINGS
         if got.get((normalize_name(payer), normalize_name(plan))) != expected
     ]
-    assert wrong == []
+    assert wrong == [], wrong
 
 
 def test_one_state_insurers_are_matched_only_in_their_state(
@@ -671,7 +771,11 @@ def test_one_state_insurers_are_matched_only_in_their_state(
     fid, dv = conn.execute(
         text("SELECT facility_id, dataset_version_id FROM src.published_file LIMIT 1")
     ).one()  # a Nevada hospital
-    for payer, plan in (("Viva Health", "HMO"), ("Medicare A AL JJ", "Default")):
+    for payer, plan in (
+        ("Viva Health", "HMO"),
+        ("Medicare A AL JJ", "Default"),
+        ("MEDICAID-ARKANSAS", "MEDICAID-ARKANSAS"),
+    ):
         conn.execute(
             text(
                 "INSERT INTO price.file_payer_summary (dataset_version_id, facility_id, "
@@ -708,3 +812,7 @@ def test_one_state_insurers_are_matched_only_in_their_state(
         )
     ).scalar()
     assert medicare == "Original Medicare"  # national: matched in any state
+    arkansas = conn.execute(
+        text("SELECT count(*) FROM ref.plan_alias WHERE raw_payer_normalized = 'medicaid-arkansas'")
+    ).scalar()
+    assert arkansas == 0  # Arkansas Medicaid by rule, but this hospital is in Nevada

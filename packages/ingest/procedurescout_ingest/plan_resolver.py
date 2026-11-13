@@ -50,11 +50,17 @@ _TYPES: list[tuple[re.Pattern[str], str]] = [
     (
         re.compile(
             r"medicare advantage|medicare managed care|managed medicare|\bmedicare\b|\bmcr\b"
-            r"|\bma\b|mapd|d snp|\bdual\b|medicarecomplete"
+            r"|\bma\b|mapd|d snp|\bdual\b|medicarecomplete|\bcare advantage\b|\bmcare\b"
         ),
         "Medicare Advantage",
     ),
-    (re.compile(r"medicaid|\bmcd\b|\bmcaid\b|rite ?care|\bchip\b"), "Medicaid plan"),
+    (
+        re.compile(
+            r"medicaid|\bmcd\b|\bmcaid\b|rite ?care|\bchip\b|\bahcccs\b"
+            r"|health care cost containment|community plan|\bpasse\b"
+        ),
+        "Medicaid plan",
+    ),
     (
         re.compile(r"marketplace|exchange|\bhix\b|\bqhp\b|\bifp\b|\biex\b|health connect|\baca\b"),
         "Marketplace (exchange) plan",
@@ -92,14 +98,24 @@ _NO_ADVANTAGE = re.compile(r"advantage|managed|hmo|ppo|replacement|mapd|complete
 class NameRule:
     pattern: re.Pattern[str]
     payer: str
+    # "" = the plan text decides; a plan name = always that plan (e.g. "AHCCCS
+    # Molina" is Molina's Medicaid plan); BY_PLAN_TEXT = only when the plan text
+    # names a kind of plan, never "all plans" ("MEDIPAK" alone may be a supplement;
+    # "Summit | Medicaid" is Arkansas's Summit PASSE, "Summit | All Plans" isn't known)
+    plan: str = ""
+
+
+BY_PLAN_TEXT = "(plan text only)"
 
 
 def loosen(payer_raw: str) -> str:
     """A payer spelling for the naming rules: lower case, '_' and punctuation as
     spaces, numbers and 'payer'/'inc'/'llc' dropped ('[payer_BCBS DELAWARE ]',
     'BCBS_Alabama', 'AETNA COMMERCIAL [85189]')."""
-    t = normalize_name(payer_raw).replace("_", " ")
-    words = [w for w in t.split() if not w.isdigit() and w not in ("payer", "inc", "llc", "the")]
+    t = re.sub(r"[_/-]", " ", normalize_name(payer_raw))
+    # "contracted" (Mercy's "AETNA CONTRACTED [320008]") means in network
+    drop = ("payer", "inc", "llc", "the", "contracted")
+    words = [w for w in t.split() if not w.isdigit() and w not in drop]
     return " ".join(words)
 
 
@@ -111,19 +127,29 @@ def load_name_rules(csv_text: str) -> list[NameRule]:
     out = []
     for row in csv.DictReader(io.StringIO(csv_text)):
         if (row.get("reviewed_by") or "").strip() and (row.get("pattern") or "").strip():
-            out.append(NameRule(re.compile(row["pattern"].strip()), row["payer"].strip()))
+            out.append(
+                NameRule(
+                    re.compile(row["pattern"].strip()),
+                    row["payer"].strip(),
+                    (row.get("plan") or "").strip(),
+                )
+            )
     return out
 
 
-def _rule_insurer(conn: Connection, rules: list[NameRule], payer_raw: str) -> str | None:
+def _rule_insurer(
+    conn: Connection, rules: list[NameRule], payer_raw: str
+) -> tuple[str, str] | None:
+    """(insurer id, the rule's plan setting) when exactly one rule fits."""
     key = loosen(payer_raw)
-    names = {r.payer for r in rules if r.pattern.fullmatch(key)}
-    if len(names) != 1:
+    hits = {(r.payer, r.plan) for r in rules if r.pattern.fullmatch(key)}
+    if len(hits) != 1:
         return None
+    name, plan = hits.pop()
     found = conn.execute(
-        text("SELECT id FROM ref.payer WHERE canonical_name = :n"), {"n": names.pop()}
+        text("SELECT id FROM ref.payer WHERE canonical_name = :n"), {"n": name}
     ).scalar()
-    return None if found is None else str(found)
+    return None if found is None else (str(found), plan)
 
 
 def _only_repeats_insurer(plan_raw: str, payer_raw: str, insurer_name: str) -> bool:
@@ -133,7 +159,7 @@ def _only_repeats_insurer(plan_raw: str, payer_raw: str, insurer_name: str) -> b
     own = set(loosen(payer_raw).split()) | set(loosen(insurer_name).split())
     rest = [
         w
-        for w in normalize_name(plan_raw).replace("_", " ").split()
+        for w in re.sub(r"[_/-]", " ", normalize_name(plan_raw)).split()
         if w not in own and w not in _FILLER and w not in _STATES
     ]
     return not rest
@@ -177,7 +203,7 @@ def _insurer_for(conn: Connection, payer_key: str) -> str | None:
 
 
 def _pick_plan(
-    conn: Connection, insurer: str, payer_raw: str, plan_raw: str
+    conn: Connection, insurer: str, payer_raw: str, plan_raw: str, rule_plan: str = ""
 ) -> tuple[str | None, str]:
     """(plan id, label) for one spelling of a known insurer, or (None, '')."""
     p = normalize_name(plan_raw).replace("_", " ")
@@ -198,7 +224,15 @@ def _pick_plan(
         if _NO_ADVANTAGE.search(p):
             return None, ""
         return plans.get("Original Medicare"), "Original Medicare"
+    if rule_plan and rule_plan != BY_PLAN_TEXT:
+        return plans.get(rule_plan), rule_plan
     label = plan_type(plan_raw)
+    if label is None:
+        # "ARKANSAS_BLUE_MEDICARE | 344_1", "AETNA MEDICARE | AETNA MEDICARE":
+        # the kind of plan is in the insurer text
+        label = plan_type(loosen(payer_raw))
+    if rule_plan == BY_PLAN_TEXT and label in (None, ALL_PLANS):
+        return None, ""
     if label is None and _only_repeats_insurer(plan_raw, payer_raw, name):
         label = ALL_PLANS
     if len(plans) == 1:  # an insurer with one kind of plan (Devoted, a state's Medicaid)
@@ -278,7 +312,9 @@ def resolve_new_spellings(
 
     def allowed(insurer_name: str, states: set[str]) -> bool:
         only = payer_states.get(insurer_name)
-        return only is None or bool(states & only)
+        # every hospital that writes this spelling is in the insurer's state:
+        # the match is shared by all hospitals, so one elsewhere would get it too
+        return only is None or states <= only
 
     out = Resolution()
     # automatic matches of a one-state insurer to spellings no hospital in that
@@ -320,14 +356,15 @@ def resolve_new_spellings(
         if insurer is not None and not allowed(_insurer_name(conn, insurer), states):
             insurer = None
         by_rule = False
+        rule_plan = ""
         if insurer is None and rules:
-            insurer = _rule_insurer(conn, rules, payer_raw)
-            if insurer is not None and not allowed(_insurer_name(conn, insurer), states):
-                insurer = None
+            hit = _rule_insurer(conn, rules, payer_raw)
+            if hit is not None and allowed(_insurer_name(conn, hit[0]), states):
+                insurer, rule_plan = hit
             by_rule = insurer is not None
         plan, label = (None, "")
         if insurer is not None:
-            plan, label = _pick_plan(conn, insurer, payer_raw, plan_raw)
+            plan, label = _pick_plan(conn, insurer, payer_raw, plan_raw, rule_plan)
         if plan is None:
             out.unresolved.append((payer_raw, plan_raw, n))
             continue

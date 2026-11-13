@@ -2,9 +2,25 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-12 — Insurer names for Arkansas and Arizona (D-047)
+
+From the real insurer and plan names published by Arkansas and Arizona hospitals on procedurescout.com (Cooper's load reports):
+
+Implemented (`data/reference/payers.csv`, `payer_name_rules.csv`, `payer_states.csv`, `packages/ingest/procedurescout_ingest/plan_resolver.py`):
+- 14 new insurers: Arkansas Blue Cross and Blue Shield, Health Advantage, QualChoice, the four Arkansas Medicaid PASSEs (Arkansas Total Care, Summit Community Care, Empower, CareSource), Arkansas Medicaid; Blue Cross Blue Shield of Arizona, Health Choice Arizona, Mercy Care, Banner University Health Plans, Arizona Complete Health, Arizona Medicaid (AHCCCS fee for service). All one-state (`payer_states.csv`). 28 new or widened naming rules, each with its source.
+- Naming rules can name a plan ("AHCCCS Molina" is Molina's Medicaid plan) or require the plan text to say the kind of plan (short names such as "Empower", "Summitt", "MEDIPAK").
+- The kind of plan is also read from the insurer text when the plan text is a code ("ARKANSAS_BLUE_MEDICARE | 344_1" is Medicare Advantage, never "all plans").
+- AHCCCS, "community plan" and PASSE mean a Medicaid plan; "care advantage" and "mcare" mean Medicare Advantage; "CONTRACTED" (Mercy's files) is ignored; "/" and "-" separate words.
+- Safer one-state rule: a one-state insurer's automatic match is kept only while every hospital that writes that spelling is in its state (matches are shared by all hospitals, so a Missouri hospital's "Care Source | Medicaid" can never get Arkansas's PASSE).
+- Generic names ("Blue Cross", "Medicaid", "Health Choice") stay unmatched: they name a different insurer in each state.
+
+Tested: 47 Arkansas/Arizona spellings added to `test_reviewed_insurer_names_place_real_hospital_spellings` (placed or deliberately left unmatched); `test_one_state_insurers_are_matched_only_in_their_state` (Arkansas Medicaid never matched from a Nevada hospital). `make check`: ruff, mypy clean, `391 passed, 1 skipped`.
+
+Not done: Alaska (only a few hospitals' names seen so far: Premera, Moda, Aetna); applies to live data on the next state load.
+
 ## 2026-11-12 — State laws on hospital bills (D-056)
 
-Implemented: Help paying shows the person's state's law on hospital bills for 13 states: Nevada (30% off for some uninsured stays), California (Hospital Fair Pricing Act, 400% FPL, Medicare/Medi-Cal cap), New York (PHL 2807-k(9-a)), New Jersey (115% of Medicare under 500% FPL), Illinois (Uninsured Patient Discount Act, 20% of income cap), Colorado (Hospital Discounted Care, 250% FPL), Maryland (HG 19-214.1), Washington (RCW 70.170.060), Oregon (ORS 442.614), Connecticut (CGS 19a-673), Vermont (18 V.S.A. 9482), Rhode Island (216-RICR-40-10-23.14), Maine (22 M.R.S. 1716-A). Each is from the state's statute, regulation or agency page, linked on the page, in English and Spanish (`apps/web/lib/stateLaws.ts`, `app/help-paying/page.tsx`).
+Implemented: Help paying shows the person's state's law on hospital bills for 16 states: Nevada (30% off for some uninsured stays), California (Hospital Fair Pricing Act, 400% FPL, Medicare/Medi-Cal cap), New York (PHL 2807-k(9-a)), New Jersey (115% of Medicare under 500% FPL), Illinois (Uninsured Patient Discount Act, 20% of income cap), Colorado (Hospital Discounted Care, 250% FPL), Maryland (HG 19-214.1), Washington (RCW 70.170.060), Oregon (ORS 442.614), Connecticut (CGS 19a-673), Vermont (18 V.S.A. 9482), Rhode Island (216-RICR-40-10-23.14), Maine (22 M.R.S. 1716-A), New Mexico (Patients' Debt Collection Protection Act, 200% FPL), Massachusetts (Health Safety Net, 150%/300% FPL), Minnesota (Minn. Stat. 144.589, under $125,000). Each is from the state's statute, regulation or agency page, linked on the page, in English and Spanish (`apps/web/lib/stateLaws.ts`, `app/help-paying/page.tsx`).
 
 Tested: `lib/stateLaws.test.mts` (every entry has an official https source and both languages); `npm test`, `tsc` clean; browser check: the Nevada box shows for a Las Vegas ZIP.
 

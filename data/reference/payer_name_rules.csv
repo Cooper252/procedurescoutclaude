@@ -1,26 +1,54 @@
-pattern,payer,notes,reviewed_by,reviewed_at
-(bcbs|blue ?cross( (and|&)? ?blue ?shield)?|bc)( of)? (al|alabama)( all| part b| commercial| exchange| state employees| regionalcare hospital)?|alabama blue cross blue shield|blue cross alabama,Blue Cross Blue Shield of Alabama,names Alabama's Blue Cross plan (Blue Advantage is its Medicare Advantage brand),"Claude (delegated by Cooper, D-047)",2026-11-12
-(bcbs|blue ?cross( (and|&)? ?blue ?shield)?)( of)? (ri|rhode island),Blue Cross & Blue Shield of Rhode Island,names Rhode Island's Blue Cross plan,"Claude (delegated by Cooper, D-047)",2026-11-12
-(bcbs|blue ?cross( blue ?shield)?)( of)? (de|delaware)|highmark (bc|bcbs|blue cross)( delaware)?|highmark delaware bcbs|bcbs delaware,Highmark Blue Cross Blue Shield Delaware,Highmark is Delaware's Blue Cross plan,"Claude (delegated by Cooper, D-047)",2026-11-12
-(bcbs|blue ?cross ?blue ?shield)( of)? (vt|vermont)( health connect| managed care| tvhp)?,Blue Cross and Blue Shield of Vermont,names Vermont's Blue Cross plan,"Claude (delegated by Cooper, D-047)",2026-11-12
-neighborhood health plan( of rhode island| ri)?|nhp,Neighborhood Health Plan of Rhode Island,Rhode Island plan; only loaded for RI hospitals so far,"Claude (delegated by Cooper, D-047)",2026-11-12
-tufts( health plan| associated health maintenance organization| health public plans)?,Tufts Health Plan,Tufts Health Plan and its public (Medicaid) plans,"Claude (delegated by Cooper, D-047)",2026-11-12
-harvard pilgrim( health ?care)?,Harvard Pilgrim Health Care,,"Claude (delegated by Cooper, D-047)",2026-11-12
-mvp( health ?care| vt commercial| vt health connect| gold medicare advantage| uvm medicare advantage)?,MVP Health Care,,"Claude (delegated by Cooper, D-047)",2026-11-12
-viva( health( plan)?| healthcare)?( mcr adv)?,Viva Health,Alabama's Viva Health,"Claude (delegated by Cooper, D-047)",2026-11-12
-amerihealth caritas( delaware| de)?( mco)?,AmeriHealth Caritas Delaware,Delaware Medicaid plan,"Claude (delegated by Cooper, D-047)",2026-11-12
-delaware first health|de first health,Delaware First Health,Delaware Medicaid plan (Centene),"Claude (delegated by Cooper, D-047)",2026-11-12
-health options highmark|de bcbsd health options,Highmark Health Options (Delaware Medicaid),Highmark's Delaware Medicaid plan,"Claude (delegated by Cooper, D-047)",2026-11-12
-devoted( health( care)?)?( medicare advantage)?,Devoted Health,Medicare Advantage only,"Claude (delegated by Cooper, D-047)",2026-11-12
-clover( health)?,Clover Health,Medicare Advantage only,"Claude (delegated by Cooper, D-047)",2026-11-12
-wellcare( health plans)?,Wellcare,Medicare Advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
-ambetter( health| exchange)?,Ambetter,marketplace plans,"Claude (delegated by Cooper, D-047)",2026-11-12
-common ?wealth care alliance|common wellthcare alliance,Commonwealth Care Alliance,,"Claude (delegated by Cooper, D-047)",2026-11-12
-aetna( health management| commercial| medicare advantage| medicare| all plans| health| insurance| us healthcare non hmo)?,Aetna,,"Claude (delegated by Cooper, D-047)",2026-11-12
-cigna( health and life insurance( company)?| commercial| healthcare)?|connecticut general life insurance( company)?,Cigna,Connecticut General Life is Cigna's insurer,"Claude (delegated by Cooper, D-047)",2026-11-12
-(united ?health ?care|uhc)( insurance company.*| of alabama| commercial| medicare advantage| all payer)?,UnitedHealthcare,,"Claude (delegated by Cooper, D-047)",2026-11-12
-humana( inc| choice ?care| choicecare gold)?,Humana,ChoiceCare is Humana's network,"Claude (delegated by Cooper, D-047)",2026-11-12
-tricare( east)?|humana military,TRICARE,,"Claude (delegated by Cooper, D-047)",2026-11-12
-(traditional )?medicare( traditional| fee for service| part a| part b| [ab] al jj)?|node medicare traditional|medicare [ab] [a-z]{2} jj,Original Medicare,the government's own Medicare (not a Medicare Advantage plan),"Claude (delegated by Cooper, D-047)",2026-11-12
-(al|alabama) medicaid|medicaid alabama|traditional medicaid alabama,Alabama Medicaid (fee for service),,"Claude (delegated by Cooper, D-047)",2026-11-12
-(de|delaware) medicaid,Delaware Medicaid (fee for service),,"Claude (delegated by Cooper, D-047)",2026-11-12
+pattern,payer,plan,notes,reviewed_by,reviewed_at
+(bcbs|blue ?cross( (and|&)? ?blue ?shield)?|bc)( of)? (al|alabama)( all| part b| commercial| exchange| state employees| regionalcare hospital)?|alabama blue cross blue shield|blue cross alabama,Blue Cross Blue Shield of Alabama,,names Alabama's Blue Cross plan (Blue Advantage is its Medicare Advantage brand),"Claude (delegated by Cooper, D-047)",2026-11-12
+(bcbs|blue ?cross( (and|&)? ?blue ?shield)?)( of)? (ri|rhode island),Blue Cross & Blue Shield of Rhode Island,,names Rhode Island's Blue Cross plan,"Claude (delegated by Cooper, D-047)",2026-11-12
+(bcbs|blue ?cross( blue ?shield)?)( of)? (de|delaware)|highmark (bc|bcbs|blue cross)( delaware)?|highmark delaware bcbs|bcbs delaware,Highmark Blue Cross Blue Shield Delaware,,Highmark is Delaware's Blue Cross plan,"Claude (delegated by Cooper, D-047)",2026-11-12
+(bcbs|blue ?cross ?blue ?shield)( of)? (vt|vermont)( health connect| managed care| tvhp)?,Blue Cross and Blue Shield of Vermont,,names Vermont's Blue Cross plan,"Claude (delegated by Cooper, D-047)",2026-11-12
+neighborhood health plan( of rhode island| ri)?|nhp,Neighborhood Health Plan of Rhode Island,,Rhode Island plan; only loaded for RI hospitals so far,"Claude (delegated by Cooper, D-047)",2026-11-12
+tufts( health plan| associated health maintenance organization| health public plans)?,Tufts Health Plan,,Tufts Health Plan and its public (Medicaid) plans,"Claude (delegated by Cooper, D-047)",2026-11-12
+harvard pilgrim( health ?care)?,Harvard Pilgrim Health Care,,,"Claude (delegated by Cooper, D-047)",2026-11-12
+mvp( health ?care| vt commercial| vt health connect| gold medicare advantage| uvm medicare advantage)?,MVP Health Care,,,"Claude (delegated by Cooper, D-047)",2026-11-12
+viva( health( plan)?| healthcare)?( mcr adv)?,Viva Health,,Alabama's Viva Health,"Claude (delegated by Cooper, D-047)",2026-11-12
+amerihealth caritas( delaware| de)?( mco)?,AmeriHealth Caritas Delaware,,Delaware Medicaid plan,"Claude (delegated by Cooper, D-047)",2026-11-12
+delaware first health|de first health,Delaware First Health,,Delaware Medicaid plan (Centene),"Claude (delegated by Cooper, D-047)",2026-11-12
+health options highmark|de bcbsd health options,Highmark Health Options (Delaware Medicaid),,Highmark's Delaware Medicaid plan,"Claude (delegated by Cooper, D-047)",2026-11-12
+devoted( health( care| services| plan)?)?( medicare advantage| medicare)?,Devoted Health,,Medicare Advantage only,"Claude (delegated by Cooper, D-047)",2026-11-12
+clover( health)?,Clover Health,,Medicare Advantage only,"Claude (delegated by Cooper, D-047)",2026-11-12
+wellcare( health plans)?,Wellcare,,Medicare Advantage,"Claude (delegated by Cooper, D-047)",2026-11-12
+ambetter( health| exchange)?,Ambetter,,marketplace plans,"Claude (delegated by Cooper, D-047)",2026-11-12
+common ?wealth care alliance|common wellthcare alliance,Commonwealth Care Alliance,,,"Claude (delegated by Cooper, D-047)",2026-11-12
+aetna( health management| commercial| medicare advantage| medicare| all plans| health| insurance| us healthcare non hmo)?,Aetna,,,"Claude (delegated by Cooper, D-047)",2026-11-12
+cigna( health and life insurance( company)?| commercial| healthcare)?|connecticut general life insurance( company)?,Cigna,,Connecticut General Life is Cigna's insurer,"Claude (delegated by Cooper, D-047)",2026-11-12
+(united ?health ?care|uhc)( insurance company.*| of alabama| commercial| medicare advantage| all payer)?,UnitedHealthcare,,,"Claude (delegated by Cooper, D-047)",2026-11-12
+humana( inc| choice ?care| choicecare gold)?,Humana,,ChoiceCare is Humana's network,"Claude (delegated by Cooper, D-047)",2026-11-12
+tricare( east)?|humana military,TRICARE,,,"Claude (delegated by Cooper, D-047)",2026-11-12
+(traditional )?medicare( traditional| fee for service| part a| part b| [ab] al jj)?|node medicare traditional|medicare [ab] [a-z]{2} jj,Original Medicare,,the government's own Medicare (not a Medicare Advantage plan),"Claude (delegated by Cooper, D-047)",2026-11-12
+(al|alabama) medicaid|medicaid alabama|traditional medicaid alabama,Alabama Medicaid (fee for service),,,"Claude (delegated by Cooper, D-047)",2026-11-12
+(de|delaware) medicaid,Delaware Medicaid (fee for service),,,"Claude (delegated by Cooper, D-047)",2026-11-12
+(bcbs|blue ?cross( (and|&)? ?blue ?shield)?)( of)? (ar|arkansas)|arkansas (bcbs|blue ?cross( (and|&)? ?blue ?shield)?),Arkansas Blue Cross and Blue Shield,,names Arkansas; https://www.arkansasbluecross.com/company/family-of-companies,"Claude (delegated by Cooper, D-047)",2026-11-12
+arkansas blue medicare,Arkansas Blue Cross and Blue Shield,Medicare Advantage,Arkansas Blue Medicare is Arkansas Blue Cross's Medicare Advantage brand; https://arkansasbluecross.com/looking-for-insurance/medicare-plans/medicare-plans-disclaimers,"Claude (delegated by Cooper, D-047)",2026-11-12
+(hmo )?medi ?pak (advantage|adv)( plan)?,Arkansas Blue Cross and Blue Shield,Medicare Advantage,Medi-Pak Advantage is Arkansas Blue Cross's Medicare Advantage plan; https://www.arkansasbluecross.com/providers/medical-providers/medicare/medi-pak-advantage-terms-conditions,"Claude (delegated by Cooper, D-047)",2026-11-12
+medi ?pak,Arkansas Blue Cross and Blue Shield,(plan text only),"Medi-Pak alone is also Arkansas Blue Cross's Medicare supplement: placed only when the plan text says the kind of plan (e.g. ""MEDIPAK | Medicare Advantage"")","Claude (delegated by Cooper, D-047)",2026-11-12
+health advantage,Health Advantage (Arkansas Blue Cross),,Health Advantage is the HMO of the Arkansas Blue Cross family of companies; Arkansas hospitals only; https://www.arkansasbluecross.com/company/family-of-companies,"Claude (delegated by Cooper, D-047)",2026-11-12
+qual ?choice( health ins(urance)?| exchange)?,QualChoice (Arkansas),,"QualChoice Health Insurance, Little Rock; Arkansas hospitals only; https://www.qualchoice.com","Claude (delegated by Cooper, D-047)",2026-11-12
+(arkansas|ar) total care( passe)?,Arkansas Total Care (PASSE),,Arkansas Medicaid PASSE; https://humanservices.arkansas.gov/divisions-shared-services/medical-services/healthcare-programs/passe/help-choosing-medical-plan/,"Claude (delegated by Cooper, D-047)",2026-11-12
+summit community care( passe)?|summit care passe,Summit Community Care (PASSE),,Arkansas Medicaid PASSE; https://humanservices.arkansas.gov/divisions-shared-services/medical-services/healthcare-programs/passe/help-choosing-medical-plan/,"Claude (delegated by Cooper, D-047)",2026-11-12
+summitt?,Summit Community Care (PASSE),(plan text only),"short name in Arkansas files (""Summitt | Medicaid""); only with a Medicaid plan text, Arkansas hospitals only; https://humanservices.arkansas.gov/divisions-shared-services/medical-services/healthcare-programs/passe/help-choosing-medical-plan/","Claude (delegated by Cooper, D-047)",2026-11-12
+empower healthcare solutions( medicaid| passe)?|empower passe,Empower Healthcare Solutions (PASSE),,Arkansas Medicaid PASSE; https://humanservices.arkansas.gov/divisions-shared-services/medical-services/healthcare-programs/passe/help-choosing-medical-plan/,"Claude (delegated by Cooper, D-047)",2026-11-12
+empower,Empower Healthcare Solutions (PASSE),(plan text only),"short name in Arkansas files (""Empower | Medicaid""); only with a Medicaid plan text, Arkansas hospitals only; https://humanservices.arkansas.gov/divisions-shared-services/medical-services/healthcare-programs/passe/help-choosing-medical-plan/","Claude (delegated by Cooper, D-047)",2026-11-12
+care ?source( passe| medicaid)?,CareSource PASSE (Arkansas),(plan text only),CareSource runs Medicaid plans in several states: placed only from Arkansas hospitals and only with a Medicaid plan text; https://caresource.com/ar,"Claude (delegated by Cooper, D-047)",2026-11-12
+(ar|arkansas) medicaid|medica(id|de) (ar|arkansas)|arkids( first)?( medicaid)?,Arkansas Medicaid (fee for service),,ARKids First is Arkansas Medicaid's children's coverage; https://humanservices.arkansas.gov,"Claude (delegated by Cooper, D-047)",2026-11-12
+am ?better of (ark|arkansas),Ambetter,,Ambetter of Arkansas (marketplace),"Claude (delegated by Cooper, D-047)",2026-11-12
+allwell( mdcr adv| medicare advantage)?|wellcare( and wellcare)? by allwell|wellcare medicare advantage,Wellcare,,Centene renamed Allwell to Wellcare by Allwell; https://fiercehealthcare.com/payer/centene-to-consolidate-its-medicare-advantage-plan-branding-under-wellcare,"Claude (delegated by Cooper, D-047)",2026-11-12
+humana (gold |choice |hmo )?medicare( hmo| advantage)?|hmo humana gold medicare|humana (ma|mngd mcare|mgd medicare|managed medicare),Humana,,Humana Medicare plans; the kind of plan is in the name,"Claude (delegated by Cooper, D-047)",2026-11-12
+(uhc|united ?health ?care) (ma|managed medicare|dual complete|health exchange),UnitedHealthcare,,,"Claude (delegated by Cooper, D-047)",2026-11-12
+united ?health ?care community (care|plan)( az| of arizona)?|uhc community plan( az)?|ahcccs uhc community( plan)?|arizona physicians ipa,UnitedHealthcare,,Arizona Physicians IPA is UnitedHealthcare Community Plan in Arizona; https://www.businesswire.com/news/home/20110215005231/en/Arizona-Physicians-IPA-Public-Sector-Health-Plan-is-Now-UnitedHealthcare-Arizona-Physicians-IPA,"Claude (delegated by Cooper, D-047)",2026-11-12
+aetna (managed medicare|medicare adv|ma|health exchange),Aetna,,,"Claude (delegated by Cooper, D-047)",2026-11-12
+cigna healthcare of arizona|cigna (managed medicare|mged medicare),Cigna,,,"Claude (delegated by Cooper, D-047)",2026-11-12
+(bcbs|blue ?cross( (and|&)? ?blue ?shield)?)( of)? (az|arizona)|az ?blue( medicare advantage)?|bcbsaz,Blue Cross Blue Shield of Arizona,,names Arizona; https://www.azblue.com,"Claude (delegated by Cooper, D-047)",2026-11-12
+health ?choice (arizona|az)|ahcccs (bcbs )?health ?choice az( bcbs)?|health choice (mngd|managed) (mcr|medicare),Health Choice Arizona,,Arizona AHCCCS plan (Blue Cross Blue Shield of Arizona Health Choice); Arizona hospitals only; https://www.azahcccs.gov/Members/Downloads/Resources/ENGLISH_HealthPlanList.pdf,"Claude (delegated by Cooper, D-047)",2026-11-12
+mercy care( plan| acc| advantage| adv mngd mcare)?|ahcccs mercy care plan( mmic)?|medicaid mercy care ltc,Mercy Care (Arizona),,Arizona AHCCCS plan; Arizona hospitals only; https://www.azahcccs.gov/Members/Downloads/Resources/ENGLISH_HealthPlanList.pdf,"Claude (delegated by Cooper, D-047)",2026-11-12
+banner university (health plans?|family( care)?|care advantage)|ahcccs banner( univer(sity)? fam(ily)? care)?|banner medicare advantage,Banner University Health Plans,,"Banner University Family Care is an AHCCCS plan, University Care Advantage its Medicare Advantage plan; https://www.azahcccs.gov/Members/Downloads/Resources/ENGLISH_HealthPlanList.pdf","Claude (delegated by Cooper, D-047)",2026-11-12
+arizona complete( health)?|ahcccs (az|arizona) complete( health ?care| health| cenpatico)?|az complete health,Arizona Complete Health,,Arizona AHCCCS plan (Centene); https://www.azahcccs.gov/Members/Downloads/Resources/ENGLISH_HealthPlanList.pdf,"Claude (delegated by Cooper, D-047)",2026-11-12
+molina complete care|ahcccs molina( complete care)?,Molina Healthcare,Medicaid plan,Molina Complete Care is Molina's AHCCCS plan; https://www.azahcccs.gov/Members/Downloads/Resources/ENGLISH_HealthPlanList.pdf,"Claude (delegated by Cooper, D-047)",2026-11-12
+ahcccs( ffs| ihs| fed emerg)?|federal emergency service,"Arizona Medicaid (AHCCCS fee for service)",Medicaid,AHCCCS is Arizona Medicaid; fee for service incl. the American Indian Health Program and emergency services; https://www.azahcccs.gov,"Claude (delegated by Cooper, D-047)",2026-11-12
+oscar( health( plan)?)?,Oscar Health,,,"Claude (delegated by Cooper, D-047)",2026-11-12
