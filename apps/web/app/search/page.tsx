@@ -14,7 +14,7 @@ import { api } from "@/lib/api";
 import { fill, SERVICE_ES } from "@/lib/i18n";
 import { EMPTY_PLAN, type PlanDetails } from "@/lib/estimate";
 import { compareDecimal, money, unitLabel } from "@/lib/money";
-import { listHref } from "@/lib/priceList";
+import { isAnesthesiaCode, listHref } from "@/lib/priceList";
 import type { Bundle, Mode, Plan, ProviderType, SearchResult, Service } from "@/lib/types";
 
 const RADII = ["5", "10", "25", "50", "100"];
@@ -244,6 +244,12 @@ function Results() {
           >
             {t.listMakeFromHere}
           </Link>
+          {/* anesthesia is billed by time: say so (2026-11-14, live check: Sunrise
+              publishes $72 for CPT 01967, the doctor's part) */}
+          {(result?.codes ?? []).some((c) => {
+            const [sys = "", num = ""] = c.split(" ");
+            return isAnesthesiaCode(sys, num);
+          }) && <p className="code-wording">{t.anesthesiaNote}</p>}
           <p className="results-where">
             {online ? (
               t.onlineWhere

@@ -2,6 +2,14 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-14 — Live checks after commit 53; anesthesia prices labeled as time-billed
+
+Verified in production (commit 53, migration 0028): first-time all-options lists: knee 1.45 s (was 19.2 s), hernia 0.79 s (was 3.3 s), colonoscopy 1.08 s; search box: knee 0.54 s, birth 0.90 s. The price list page with real data near 89123 (vaginal birth stay, labor epidural, doctor's care, newborn stay) lists Sunrise, North Vista and UMC with each item's price or "Insurance rates only" / "Not published", and no total where an item is missing.
+
+Found there: Sunrise publishes a $72-$119 cash price for CPT 01967 (labor epidural anesthesia, professional part). Anesthesia is billed by time, so such a price may be a starting or per-unit charge, not the whole bill. The price is still shown as published, now with a note: on a search result page for any CPT anesthesia code (00100-01999, also written without zeros or labeled HCPCS) and on price-list lines for those codes and the "Epidural for labor" service (`lib/priceList.ts` `isAnesthesiaCode`/`anesthesiaKey`, `app/search/page.tsx`, `app/price-list/page.tsx`, `lib/i18n.ts`).
+
+Tested: `lib/priceList.test.mts` (`price list tests passed`); `npx tsc --noEmit` clean; `npx next build` compiled.
+
 ## 2026-11-14 — Word searches fast (migration 0028); insurance list under the box; doctor's care optional; copay up front
 
 Checked on the live site after commit 52 (the range fix): "knee" still took 19.2 s, "hernia" 3.3 s, a made-up word 1.2 s. Cause: the word index on `ref.code_index` covers every code, and most rows are hospitals' own item codes, so a common word matched tens of thousands of rows that were all sorted. New migration `db/migrations/versions/0028_code_search_indexes.py` (built CONCURRENTLY): a word index over codes that mean the same thing everywhere only, and one over the official MS-DRG/HCPCS titles. `code_search.py` searches procedure codes through it and looks up hospitals' item codes apart (all matches, then 100: a plain LIMIT made PostgreSQL walk the whole table, 6 s here); the title lookup now uses the code index. `search_routes.py` keeps search-box and all-options answers for 15 minutes (`OPTIONS_CACHE_SECONDS`; 0 in tests, `tests/conftest.py`). Timed here on a 1.6-million-row index (1.5 million item codes all containing "knee"): procedure-code query 472 ms → 5 ms; knee 0.16 s, birth 0.05 s, anesthesia 0.08 s, heart 0.04 s.

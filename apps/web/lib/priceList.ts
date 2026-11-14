@@ -71,3 +71,19 @@ export function placeTotal(lines: Line[]): { low: string; high: string } | null 
   const high = addDecimals(lines.map((l) => (l.high ?? l.low) as string));
   return low && high ? { low, high } : null;
 }
+
+/** CPT anesthesia codes (00100-01999; also written without leading zeros or
+ *  labeled HCPCS). Anesthesia is usually billed by time, so a published price
+ *  may be a base or per-unit charge, not the whole bill. */
+export function isAnesthesiaCode(system: string, code: string): boolean {
+  if ((system !== "CPT" && system !== "HCPCS") || !/^\d{3,5}$/.test(code)) return false;
+  const n = Number.parseInt(code, 10);
+  return n >= 100 && n <= 1999;
+}
+
+export function anesthesiaKey(key: string): boolean {
+  const it = parseItem(key);
+  if (!it) return false;
+  if (it.kind === "service") return it.slug === "labor-epidural";
+  return isAnesthesiaCode(it.system, it.code);
+}

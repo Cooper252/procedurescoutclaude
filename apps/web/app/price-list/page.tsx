@@ -16,7 +16,7 @@ import { OptionPicker, optionNames } from "@/components/OptionPicker";
 import { api } from "@/lib/api";
 import { fill } from "@/lib/i18n";
 import { compareDecimal, money } from "@/lib/money";
-import { itemHref, listHref, parseItem, placeTotal, type Line } from "@/lib/priceList";
+import { anesthesiaKey, itemHref, listHref, parseItem, placeTotal, type Line } from "@/lib/priceList";
 import type { Mode, Options, Plan, SearchResult } from "@/lib/types";
 
 const MAX_ITEMS = 8;
@@ -249,6 +249,7 @@ function PriceList() {
               <span className="list-line-name">
                 {nameOf(l.key)}
                 {l.pricedAs && <span className="list-line-as">{fill(t.listPricedAs, { codes: l.pricedAs.join(", ") })}</span>}
+                {l.low && anesthesiaKey(l.key) && <span className="list-line-as">{t.anesthesiaShort}</span>}
               </span>
               <span className="list-line-price">
                 {l.low
