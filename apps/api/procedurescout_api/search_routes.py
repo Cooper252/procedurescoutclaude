@@ -137,6 +137,8 @@ class FacilityOut(BaseModel):
     no_plan_rate: bool = False
     # cash/list search: no cash or list price, but insurance rates are published here
     plan_rates_only: bool = False
+    # priced under another coding system's code for the same stay (D-066)
+    priced_as: list[str] = []
     # the doctor's part, when the hospital published it apart from its own part
     doctor_fee: str | None = None
     doctor_fee_highest: str | None = None
@@ -605,6 +607,7 @@ def search_endpoint(
                 plan_rate_is_all_plans=f.all_plans_rate,
                 no_plan_rate=f.no_plan_rate,
                 plan_rates_only=f.plan_rates_only,
+                priced_as=list(f.priced_as),
                 doctor_fee=_s(f.doctor_fee.amount) if f.doctor_fee else None,
                 doctor_fee_highest=_s(f.doctor_fee.highest) if f.doctor_fee else None,
                 rating_average=ratings.get(f.facility_id, (None, 0))[0],

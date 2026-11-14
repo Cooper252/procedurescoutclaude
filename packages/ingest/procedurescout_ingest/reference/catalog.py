@@ -131,15 +131,19 @@ def load_services(conn: Connection, csv_text: str) -> LoadStats:
         if row["source"] not in SOURCES:
             stats.reject(ref, "source", f"unknown source {row['source']!r}")
             continue
-        codes: list[tuple[str, str, str]] = []
+        codes: list[tuple[str, str, str, str]] = []
         bad = False
         for part in filter(None, (p.strip() for p in row["codes"].split("|"))):
-            m = _CODE_REF.match(part)
+            # "~SYSTEM:code@version": the same stay in another coding system or an
+            # older version, used only where a place published none of the
+            # service's own codes, and labeled (role 'variant', D-066)
+            role = "variant" if part.startswith("~") else "primary"
+            m = _CODE_REF.match(part.lstrip("~"))
             if not m or m.group(1) not in {c.value for c in CodeSystem}:
                 stats.reject(ref, "code", f"not SYSTEM:code@version: {part!r}")
                 bad = True
                 break
-            codes.append((m.group(1), m.group(2), m.group(3)))
+            codes.append((m.group(1), m.group(2), m.group(3), role))
         if bad:
             continue
         state, who, when = _review(row, ref, stats)
@@ -188,7 +192,7 @@ def load_services(conn: Connection, csv_text: str) -> LoadStats:
                     ),
                     {"p": pid, "t": ptype.strip()},
                 )
-            for system, code, version in codes:
+            for system, code, version, role in codes:
                 conn.execute(
                     text(
                         "INSERT INTO ref.code (system, code, version) "
@@ -201,10 +205,11 @@ def load_services(conn: Connection, csv_text: str) -> LoadStats:
                         """
                         INSERT INTO ref.procedure_code (procedure_id, code_system, code,
                             code_version, role, review_state, reviewed_by, reviewed_at)
-                        VALUES (:p, CAST(:s AS ref.code_system), :c, :v, 'primary',
+                        VALUES (:p, CAST(:s AS ref.code_system), :c, :v,
+                                CAST(:role AS ref.code_role),
                                 CAST(:st AS ref.review_state), :rb, CAST(:ra AS timestamptz))
                         ON CONFLICT (procedure_id, code_system, code, code_version)
-                        DO UPDATE SET review_state = EXCLUDED.review_state,
+                        DO UPDATE SET review_state = EXCLUDED.review_state, role = EXCLUDED.role,
                             reviewed_by = EXCLUDED.reviewed_by, reviewed_at = EXCLUDED.reviewed_at
                         """
                     ),
@@ -213,6 +218,7 @@ def load_services(conn: Connection, csv_text: str) -> LoadStats:
                         "s": system,
                         "c": code,
                         "v": version,
+                        "role": role,
                         "st": state,
                         "rb": who,
                         "ra": when,

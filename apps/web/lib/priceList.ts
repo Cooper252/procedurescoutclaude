@@ -62,7 +62,7 @@ export function addDecimals(values: string[]): string | null {
   return neg ? `-${out}` : out;
 }
 
-export type Line = { key: string; low: string | null; high: string | null; ratesOnly?: boolean };
+export type Line = { key: string; low: string | null; high: string | null; ratesOnly?: boolean; pricedAs?: string[] };
 
 /** a place's total for the items, or null when any item has no price there */
 export function placeTotal(lines: Line[]): { low: string; high: string } | null {

@@ -109,6 +109,7 @@ export interface Facility {
   plan_rate_is_all_plans?: boolean;
   no_plan_rate?: boolean; // insurance search: no rate for that insurance here; cash price shown
   plan_rates_only?: boolean; // cash/list search: no cash or list price, but insurance rates published here
+  priced_as?: string[]; // priced under another coding system's code for the same stay (D-066)
   delivery?: "in_person" | "online" | "both" | null;
   special?: {
     price: string;

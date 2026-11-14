@@ -46,8 +46,15 @@ export function estimate(rate: string, plan: PlanDetails): Estimate | null {
     return capped(copay < price ? copay : price, "copay");
   }
   const ded = toCents(plan.deductibleLeft || "0");
-  const pct = /^\d{1,3}$/.test(plan.coinsurance.trim() || "0") ? BigInt(plan.coinsurance.trim() || "0") : null;
-  if (ded === null || pct === null || pct > 100n) return null;
+  if (ded === null) return null;
+  // nothing typed: no estimate (it used to show "$0.00 with your coinsurance
+  // share" because blank boxes counted as 0%, Cooper 2026-11-14)
+  if (!plan.coinsurance.trim()) {
+    if (plan.deductibleLeft.trim() && price <= ded) return capped(price, "deductible");
+    return null;
+  }
+  const pct = /^\d{1,3}$/.test(plan.coinsurance.trim()) ? BigInt(plan.coinsurance.trim()) : null;
+  if (pct === null || pct > 100n) return null;
   if (price <= ded) return capped(price, "deductible");
   const after = price - ded;
   const share = (after * pct + 50n) / 100n;

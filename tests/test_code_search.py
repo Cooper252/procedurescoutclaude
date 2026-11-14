@@ -184,3 +184,102 @@ def test_a_code_search_finds_every_spelling_of_the_same_number(conn: Connection)
     assert set(same_code_spellings(conn, [("CPT", "01967")])) == {("CPT", "01967"), ("CPT", "1967")}
     assert ("HCPCS", "59409") in same_code_spellings(conn, [("CPT", "59409")])
     assert same_code_spellings(conn, [("MS-DRG", "807")]) == [("MS-DRG", "807")]
+
+
+def test_every_common_procedure_lists_its_own_codes_first(conn: Connection) -> None:
+    from procedurescout_core.code_ranges import in_range
+
+    _index(conn)
+    for sys_, code, wording, places in [
+        ("MS-DRG", "470", "MAJOR HIP AND KNEE JOINT REPLACEMENT W/O MCC", 50),
+        ("CPT", "27447", "TOTAL KNEE ARTHROPLASTY", 45),
+        ("CPT", "29881", "ARTHROSCOPY KNEE MENISCECTOMY", 44),
+        ("CPT", "73721", "MRI LWR EXTREMITY JOINT W/O DYE", 48),
+        ("HCPCS", "L1832", "KNEE ORTHOSIS ADJ JOINTS", 90),
+        ("HCPCS", "G0105", "COLORECTAL SCRN; HI RISK IND", 40),
+        ("CPT", "45378", "DIAGNOSTIC COLONOSCOPY", 60),
+        ("CDT", "D1110", "PROPHYLAXIS - ADULT", 8),
+    ]:
+        conn.execute(
+            text(
+                "INSERT INTO ref.code_index "
+                "(system, code, hospital_description, facilities, prices) "
+                "VALUES (CAST(:s AS ref.code_system), :c, :w, :f, :f)"
+            ),
+            {"s": sys_, "c": code, "w": wording, "f": places},
+        )
+    knee = find_options(conn, "knee")
+    keys = [(o.code_system, o.code) for o in knee]
+    # the knee's own codes (stay, surgery, scope, MRI) are found even when the
+    # wording doesn't say "knee"
+    assert {("MS-DRG", "470"), ("CPT", "27447"), ("CPT", "73721")} <= set(keys)
+    brace = next(o for o in knee if o.code == "L1832")
+    assert not brace.core  # found by wording only: after the knee's own codes
+    assert all(o.core for o in knee if o.code in ("27447", "29881", "73721"))
+    colon = {(o.code_system, o.code): o for o in find_options(conn, "colonoscopy")}
+    assert colon[("HCPCS", "G0105")].core  # letter codes have ranges too
+    assert ("CDT", "D1110") in {
+        (o.code_system, o.code) for o in find_options(conn, "teeth cleaning")
+    }
+    assert in_range("HCPCS", "1967", ("CPT", "01958", "01969"))
+    assert not in_range("CPT", "G0105", ("CPT", "00100", "01999"))
+
+
+def test_other_system_codes_price_a_place_only_when_it_lacks_the_own_code() -> None:
+    from decimal import Decimal
+
+    from procedurescout_core.price_store import PublishedPrice
+    from procedurescout_core.search import prefer_own_codes
+
+    def p(fid: str, sys_: str, code: str, amount: str) -> PublishedPrice:
+        return PublishedPrice(
+            facility_id=fid,
+            price_source="hospital_file",
+            code_system=sys_,
+            code=code,
+            description_raw=None,
+            setting="inpatient",
+            price_type="negotiated",
+            payer_name_raw="X",
+            plan_name_raw=None,
+            amount=Decimal(amount),
+            percentage=None,
+            algorithm=None,
+            methodology="case rate",
+            dataset_version_id="d",
+        )
+
+    variants = {("APR-DRG", "5601"), ("MS-DRG", "775")}
+    rows = {
+        # publishes both: only its MS-DRG 807 price counts
+        "a": [p("a", "MS-DRG", "807", "9000"), p("a", "APR-DRG", "5601", "4000")],
+        # publishes only APR-DRG: priced by it, and labeled
+        "b": [p("b", "APR-DRG", "5601", "8000")],
+    }
+    out, priced_as = prefer_own_codes(rows, variants)
+    assert [x.code for x in out["a"]] == ["807"]
+    assert [x.code for x in out["b"]] == ["5601"]
+    assert priced_as == {"b": ("APR-DRG 5601",)}
+
+
+def test_same_stay_codes_load_as_variants_and_apr_spellings_match(conn: Connection) -> None:
+    from pathlib import Path
+
+    from procedurescout_core.search import _variant_codes, same_code_spellings
+    from procedurescout_ingest.reference import catalog
+
+    ref_dir = Path(__file__).resolve().parent.parent / "data/reference"
+    catalog.load_provider_types(conn, (ref_dir / "provider_types.csv").read_text())
+    loaded = catalog.load_services(conn, (ref_dir / "service_catalog.csv").read_text())
+    assert not loaded.rejects
+    assert _variant_codes(conn, "vaginal-birth-hospital-stay") == {
+        ("MS-DRG", "775"),
+        ("APR-DRG", "5601"),
+    }
+    conn.execute(
+        text(
+            "INSERT INTO ref.code (system, code, version) "
+            "VALUES ('APR-DRG', '560-1', 'published') ON CONFLICT DO NOTHING"
+        )
+    )
+    assert ("APR-DRG", "560-1") in same_code_spellings(conn, [("APR-DRG", "5601")])

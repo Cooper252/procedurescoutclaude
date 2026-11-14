@@ -184,6 +184,10 @@ export function ResultCard({
       )}
 
       {mode === "plan" && f.no_plan_rate && <p className="no-plan-rate">{t.noPlanRate}</p>}
+      {/* priced under another coding system's code for the same stay (D-066) */}
+      {f.status === "prices" && f.priced_as && f.priced_as.length > 0 && (
+        <p className="no-plan-rate priced-as">{fill(t.pricedAs, { codes: f.priced_as.join(", ") })}</p>
+      )}
       {(f.lowest_near_you || f.below_typical || f.cash_cheaper_than_plan || f.headline_possible_error || change) && (
         <ul className="badges">
           {f.lowest_near_you && <li className="badge good">{t.badgeLowest}</li>}

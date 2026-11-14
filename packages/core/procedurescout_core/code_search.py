@@ -31,6 +31,8 @@ from dataclasses import dataclass, replace
 
 from sqlalchemy import Connection, text
 
+from .code_ranges import in_range, ranges_for, split_code
+
 # group keys, in the order the site shows them
 GROUPS = (
     "stay",
@@ -123,37 +125,6 @@ WIDEN: dict[str, tuple[str, ...]] = {
     "dialysis": ("dialysis", "hemodialysis"),
     "chemo": ("chemotherap*", "chemo"),
     "chemotherapy": ("chemotherap*", "chemo"),
-}
-
-# Code ranges that ARE the thing, whatever a hospital wrote for them
-# (CMS MS-DRG v42 MDC 14 "Pregnancy, Childbirth" 768, 783-798, 805-807 and
-# MDC 15 "Newborns" 789-795; APR-DRG 540-566 obstetrics and 580-640 newborns,
-# published with a severity digit, e.g. 5601; CPT Maternity Care and Delivery
-# 59000-59899 and obstetric anesthesia 01958-01969). (D-061)
-_BIRTH_RANGES: tuple[tuple[str, int, int], ...] = (
-    ("MS-DRG", 768, 768),
-    ("MS-DRG", 783, 798),
-    ("MS-DRG", 805, 807),
-    ("APR-DRG", 540, 566),
-    ("APR-DRG", 580, 640),
-    ("APR-DRG", 5400, 5664),
-    ("APR-DRG", 5800, 6404),
-    ("CPT", 59000, 59899),
-    ("CPT", 1958, 1969),
-)
-CODE_RANGES: dict[str, tuple[tuple[str, int, int], ...]] = {
-    "birth": _BIRTH_RANGES,
-    "childbirth": _BIRTH_RANGES,
-    "baby": _BIRTH_RANGES,
-    "having a baby": _BIRTH_RANGES,
-    "labor": _BIRTH_RANGES,
-    "c section": (("MS-DRG", 783, 788), ("CPT", 59510, 59622), ("CPT", 1961, 1963)),
-    "c-section": (("MS-DRG", 783, 788), ("CPT", 59510, 59622), ("CPT", 1961, 1963)),
-    "cesarean": (("MS-DRG", 783, 788), ("CPT", 59510, 59622), ("CPT", 1961, 1963)),
-    "newborn": (("MS-DRG", 789, 795), ("APR-DRG", 580, 640), ("APR-DRG", 5800, 6404)),
-    "anesthesia": (("CPT", 100, 1999),),
-    "anesthetic": (("CPT", 100, 1999),),
-    "anaesthesia": (("CPT", 100, 1999),),
 }
 
 # CPT sections by code number (the published section ranges of the code set)
@@ -343,7 +314,7 @@ class CodeOption:
     group: str
     service_slug: str | None = None  # the approved service this code belongs to
     service_unit: str | None = None
-    core: bool = False  # one of the codes that ARE the thing searched (CODE_RANGES)
+    core: bool = False  # one of the codes that ARE the thing searched (code_ranges.py)
 
 
 def _alternatives(normalized: str) -> list[list[str]]:
@@ -398,15 +369,6 @@ def _merge_spellings(
         places = max(found[k][1] for k in spellings)
         prices = max(found[k][2] for k in spellings)
         out[best] = (wording, places, prices)
-    return out
-
-
-def _ranges_for(normalized: str) -> list[tuple[str, int, int]]:
-    padded = f" {normalized.replace('-', ' ')} "
-    out: list[tuple[str, int, int]] = []
-    for key, ranges in CODE_RANGES.items():
-        if f" {key.replace('-', ' ')} " in padded:
-            out.extend(r for r in ranges if r not in out)
     return out
 
 
@@ -483,21 +445,34 @@ def find_options(conn: Connection, query: str, limit: int = 400) -> list[CodeOpt
         ).all():
             found.setdefault((str(sys_), str(code)), (wording, int(places), int(prices)))
     anesthesia = any(a[0].startswith(("anesth", "anaesth")) for a in alts)
-    for sys_, lo, hi in _ranges_for(q):
-        # codes published without leading zeros ("1967") count too
+    for rs, first, last in ranges_for(q):
+        lo, hi = split_code(first), split_code(last)
+        if lo is None or hi is None:
+            continue
+        letter = lo[0]
+        # CPT numbers are also published labeled HCPCS, and without leading zeros
+        systems = ["CPT", "HCPCS"] if rs == "CPT" else [rs]
         for rsys, code, wording, places, prices in conn.execute(
             text(
                 """
                 SELECT system::text, code, hospital_description, facilities, prices
                 FROM ref.code_index
-                WHERE system = CAST(:sys AS ref.code_system)
-                  AND (CASE WHEN code ~ '^[0-9]{3,5}$' THEN code::int END)
+                WHERE system::text = ANY(:systems)
+                  AND (CASE WHEN upper(code) ~ :pat
+                            THEN substring(upper(code) from :off)::int END)
                       BETWEEN :lo AND :hi
                 ORDER BY facilities DESC, prices DESC, code
                 LIMIT :n
                 """
             ),
-            {"sys": sys_, "lo": lo, "hi": hi, "n": n},
+            {
+                "systems": systems,
+                "pat": f"^{letter}[0-9]{{1,5}}$",
+                "off": 1 + len(letter),
+                "lo": lo[1],
+                "hi": hi[1],
+                "n": n,
+            },
         ).all():
             found.setdefault((str(rsys), str(code)), (wording, int(places), int(prices)))
     if not found:
@@ -568,18 +543,19 @@ def find_options(conn: Connection, query: str, limit: int = 400) -> list[CodeOpt
             CodeOption(sys_, code, name, shown, places, prices, group_for(sys_, code), slug, unit)
         )
     order = {g: i for i, g in enumerate(GROUPS)}
-    ranges = _ranges_for(q)
+    ranges = ranges_for(q)
+    typed = [w.rstrip("*") for w in typed_words]
 
     def core(o: CodeOption) -> int:
-        """0 when the code is one of the codes that ARE the thing (e.g. a
-        birth's own stays), so those come first in their group."""
-        c = o.code.strip()
-        system = "CPT" if o.code_system == "HCPCS" and c.isdigit() else o.code_system
-        if c.isdigit():
-            n_ = int(c)
-            if any(system == rs and lo <= n_ <= hi for rs, lo, hi in ranges):
-                return 0
-        return 1
+        """0: one of the codes that ARE the thing searched (code_ranges.py);
+        1: its name or wording has every word typed; 2: found by a wider word.
+        Each group lists them in that order, then by places."""
+        if any(in_range(o.code_system, o.code, r) for r in ranges):
+            return 0
+        text_ = f"{o.name} {o.wording or ''}".lower()
+        if typed and all(re.search(rf"\b{re.escape(w)}", text_) for w in typed):
+            return 1
+        return 2
 
     out = [replace(o, core=core(o) == 0) for o in out]
     out.sort(key=lambda o: (order[o.group], core(o), -o.places, -o.prices, o.code_system, o.code))

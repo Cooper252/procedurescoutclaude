@@ -204,6 +204,7 @@ function PriceList() {
           low: priced ? f!.headline : null,
           high: priced ? f!.headline_highest ?? null : null,
           ratesOnly: Boolean(f?.plan_rates_only),
+          pricedAs: priced && f?.priced_as?.length ? f.priced_as : undefined,
         };
       });
     }
@@ -245,7 +246,10 @@ function PriceList() {
         <ul className="list-lines">
           {r.lines.map((l) => (
             <li key={l.key} className={l.low ? "" : "missing"}>
-              <span className="list-line-name">{nameOf(l.key)}</span>
+              <span className="list-line-name">
+                {nameOf(l.key)}
+                {l.pricedAs && <span className="list-line-as">{fill(t.listPricedAs, { codes: l.pricedAs.join(", ") })}</span>}
+              </span>
               <span className="list-line-price">
                 {l.low
                   ? l.high && l.high !== l.low

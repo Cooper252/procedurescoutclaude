@@ -99,6 +99,8 @@ class FacilityResult:
     doctor_fee: Headline | None = None  # the doctor's part, published separately
     special: Special | None = None  # provider special on its own regular price (D-042)
     delivery: str | None = None  # provider price: 'in_person', 'online' or 'both'
+    # priced under another coding system's code for the same stay (D-066)
+    priced_as: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -132,12 +134,48 @@ def _codes_for_service(
         raise SearchError(f"unknown service: {slug!r}")
     codes = conn.execute(
         text(
-            "SELECT DISTINCT code_system::text, code FROM ref.procedure_code "
-            "WHERE procedure_id = :p AND review_state = 'approved' ORDER BY 1, 2"
+            "SELECT code_system::text, code FROM ref.procedure_code "
+            "WHERE procedure_id = :p AND review_state = 'approved' "
+            "GROUP BY 1, 2 ORDER BY bool_or(role = 'primary') DESC, 1, 2"
         ),
         {"p": row[0]},
     ).all()
     return str(row[1]), str(row[2]), [(str(c[0]), str(c[1])) for c in codes]
+
+
+def prefer_own_codes(
+    by_facility: dict[str, list[PublishedPrice]], variants: set[tuple[str, str]]
+) -> tuple[dict[str, list[PublishedPrice]], dict[str, tuple[str, ...]]]:
+    """At each place: the service's own codes if it published any; otherwise
+    its prices under another system's code for the same stay, with those codes
+    returned so they are labeled (D-066). Never both mixed."""
+    out: dict[str, list[PublishedPrice]] = {}
+    priced_as: dict[str, tuple[str, ...]] = {}
+    for fid, rows in by_facility.items():
+        own = [p for p in rows if (p.code_system, p.code) not in variants]
+        out[fid] = own or rows
+        if rows and not own:
+            priced_as[fid] = tuple(sorted({f"{p.code_system} {p.code}" for p in rows}))
+    return out, priced_as
+
+
+def _variant_codes(conn: Connection, slug: str) -> set[tuple[str, str]]:
+    """A service's codes for the same stay in another coding system or an older
+    version (role 'variant', D-066), e.g. APR-DRG 5601 or MS-DRG 775 for a
+    vaginal birth (MS-DRG 807). Used at a place only when it published none
+    of the service's own codes, and labeled."""
+    rows = conn.execute(
+        text(
+            """
+            SELECT pc.code_system::text, pc.code FROM ref.procedure_code pc
+            JOIN ref.procedure p ON p.id = pc.procedure_id
+            WHERE p.slug = :s AND pc.review_state = 'approved'
+            GROUP BY 1, 2 HAVING NOT bool_or(pc.role = 'primary')
+            """
+        ),
+        {"s": slug},
+    ).all()
+    return {(str(a), str(b)) for a, b in rows}
 
 
 def _check_code(conn: Connection, code_system: str, code: str) -> tuple[str, str]:
@@ -157,20 +195,37 @@ def _check_code(conn: Connection, code_system: str, code: str) -> tuple[str, str
 
 
 def same_code_spellings(conn: Connection, codes: list[tuple[str, str]]) -> list[tuple[str, str]]:
-    """The same CPT number as hospitals write it (D-065): with or without its
-    leading zeros ("01967" and "1967"), and labeled CPT or HCPCS (CPT is HCPCS
-    Level I; many files label CPT numbers "HCPCS"). Only spellings that are in
-    published prices (ref.code) are added. A different number is never added."""
+    """The same code as hospitals write it (D-065): a CPT number with or
+    without its leading zeros ("01967" and "1967") and labeled CPT or HCPCS
+    (CPT is HCPCS Level I); an MS-DRG number written "64" or "064";
+    an APR-DRG group and severity written "5601", "560-1" or "560.1". Only
+    spellings in published prices (ref.code) are added. A different number is
+    never added."""
     out = list(codes)
     wanted: list[tuple[str, str]] = []
+
+    def want(sys2: str, spelled: str) -> None:
+        if (sys2, spelled) not in out and (sys2, spelled) not in wanted:
+            wanted.append((sys2, spelled))
+
     for system, code in codes:
-        if system not in ("CPT", "HCPCS") or not code.isdigit() or len(code) > 5:
-            continue
-        bare = code.lstrip("0") or "0"
-        for spelled in {bare, bare.zfill(5)}:
-            for sys2 in ("CPT", "HCPCS"):
-                if (sys2, spelled) not in out and (sys2, spelled) not in wanted:
-                    wanted.append((sys2, spelled))
+        if system in ("CPT", "HCPCS") and code.isdigit() and len(code) <= 5:
+            bare = code.lstrip("0") or "0"
+            for spelled in {bare, bare.zfill(5)}:
+                for sys2 in ("CPT", "HCPCS"):
+                    want(sys2, spelled)
+        elif system == "MS-DRG" and code.isdigit() and len(code) <= 3:
+            # "64" and "064" (the plain "DRG" label is not assumed to be MS-DRG:
+            # it can be another grouper's number)
+            bare = code.lstrip("0") or "0"
+            for spelled in {bare, bare.zfill(3)}:
+                want("MS-DRG", spelled)
+        elif system == "APR-DRG":
+            # group 560, severity 1: "5601", "560-1" or "560.1"
+            m = re.fullmatch(r"(\d{3})[-.]?([1-4])", code)
+            if m:
+                for spelled in (f"{m[1]}{m[2]}", f"{m[1]}-{m[2]}", f"{m[1]}.{m[2]}"):
+                    want("APR-DRG", spelled)
     if wanted:
         found = conn.execute(
             text(
@@ -257,6 +312,9 @@ def search(
     else:
         codes = [_check_code(conn, code_system or "", code or "")]
     # the same number written another way ("1967" for 01967) is the same code
+    variants: set[tuple[str, str]] = set()
+    if service_slug is not None:
+        variants = set(same_code_spellings(conn, sorted(_variant_codes(conn, service_slug))))
     codes = same_code_spellings(conn, codes)
     code_description = None
     if service_slug is None:
@@ -454,6 +512,10 @@ def search(
             ]
             for fid, rows in by_facility.items()
         }
+    # a place that published the service's own code is priced by it; a place
+    # that published only another system's code for the same stay is priced
+    # by that, and labeled (D-066)
+    by_facility, priced_as = prefer_own_codes(by_facility, variants)
     heads = {fid: headline(rows, mode) for fid, rows in by_facility.items()}
     cash_heads = {fid: headline(rows, "cash") for fid, rows in by_facility.items()}
     present = [h for h in heads.values() if h is not None]
@@ -536,6 +598,7 @@ def search(
             all_plans_rate=str(f[0]) in uses_all_plans,
             special=specials.get(str(f[0])),
             delivery=delivery.get(str(f[0])),
+            priced_as=priced_as.get(str(f[0]), ()),
         )
         for f in facilities
         if not online_only or str(f[0]) in delivery

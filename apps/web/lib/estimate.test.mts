@@ -16,4 +16,11 @@ assert.deepEqual(estimate("180", { ...EMPTY_PLAN, copay: "40" }), { cents: 4000n
 assert.deepEqual(estimate("25", { ...EMPTY_PLAN, copay: "40" }), { cents: 2500n, how: "copay" });
 assert.equal(estimate("100", { ...EMPTY_PLAN, coinsurance: "120" }), null);
 assert.equal(centsToDollars(123456n), "$1,234.56");
+// nothing typed: no estimate (not "$0.00")
+assert.equal(estimate("6983", EMPTY_PLAN), null);
+// deductible only: an estimate only when the price is within it
+assert.deepEqual(estimate("500", { ...EMPTY_PLAN, deductibleLeft: "1000" }), { cents: 50000n, how: "deductible" });
+assert.equal(estimate("1500", { ...EMPTY_PLAN, deductibleLeft: "1000" }), null);
+// 0% typed on purpose: $0 is right
+assert.deepEqual(estimate("1500", { ...EMPTY_PLAN, deductibleLeft: "0", coinsurance: "0" }), { cents: 0n, how: "coinsurance" });
 console.log("estimate tests passed");
