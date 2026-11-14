@@ -2,6 +2,14 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-14 — Indiana pass 3; loads survive brief database outages
+
+Indiana pass 3: 14 more price files loaded (116.0 million prices), 27 skipped as already loaded and unchanged, 7 in an unknown format, 1 failed to load, 2 downloads failed; it stopped itself at its time limit ("run again to continue"). The 27 unchanged files show passes 1 and 2 did load prices; their reports held only one line, most likely because GitHub ended those runs at its 6-hour limit before the report was written. Then the live database dropped the connection ("SSL connection has been closed unexpectedly", then "service temporarily unavailable") during insurance matching, and the whole run crashed (the same outage as Idaho pass 1), so this report has no price-file problem list.
+
+`reference/cli.py`: a step that hits a lost or refused database connection now waits for the database (30 s, 60 s, 2, 4 and 5 minutes; about 12 minutes in all) and runs again, up to twice; counting loads also waits instead of crashing. Bad files and bad queries are not repeated. Steps are safe to repeat (price-file loads skip unchanged files).
+
+Tested: `test_a_step_waits_for_the_database_and_runs_again`, `test_db_down_only_for_lost_connections`. `make check`: `402 passed, 1 skipped`.
+
 ## 2026-11-14 — "Claude outputs" kept out of the project
 
 The Claude app saved copies of files sent in chat into a "Claude outputs" folder inside the repository, and 9 of them were pushed (commits "Bold teal look…", "40", "41"). `.gitignore` now lists `Claude outputs/`; files are now saved straight into place without being sent as chat attachments. The 9 copies already on GitHub are duplicates and can be deleted.
@@ -13,6 +21,8 @@ Cooper searched "Vaginal birth (hospital stay)" near 89123, within 10 miles, cas
 Insurance picker (`components/InsurancePicker.tsx`, `app/globals.css`): Cooper found the insurance company too small ("it's easy to miss that the HMO is BCBS HMO"). Each company is now a large shaded header with its number of plans, and every plan row starts with the company's name ("Anthem Blue Cross Blue Shield (Nevada) · HMO") unless the plan name already includes it.
 
 D-063 (Cooper, 2026-11-14): Claude approves replacement price-file links found on a hospital's own website. The four Southern Illinois Healthcare links are now approved in `price_file_sources_reviewed.csv`; they load on Illinois's next run.
+
+Verified in production (commit "43"): the same search near 89123, 10 miles, cash, shows "None of these places published a cash price for this. 7 published what insurance plans pay." with the button, and each card says "No cash price published"; typing "Blue" near Las Vegas shows "Anthem Blue Cross Blue Shield (Nevada) (7 plans)" with rows like "Anthem Blue Cross Blue Shield (Nevada) · HMO".
 
 Tested: `test_cash_search_says_when_only_insurance_rates_are_published`, `test_cash_search_with_a_cash_price_is_not_flagged`. `make check`: `400 passed, 1 skipped`. Website: `tsc --noEmit`, `npm test`, `npm run build` passed; the insurance list checked at phone width (390px).
 

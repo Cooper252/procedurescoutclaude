@@ -339,3 +339,55 @@ def test_report_lists_which_price_files_failed(engine: Engine) -> None:
             c.execute(
                 text("DELETE FROM src.reference_load WHERE parameters->>'test' = 'synthetic_pf'")
             )
+
+
+def test_a_step_waits_for_the_database_and_runs_again(
+    engine: Engine, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """ID pass 1 and IN pass 3 (2026-11-13/14): the live database was briefly
+    unreachable and the whole run crashed. A step that hits a lost connection now
+    waits for the database and runs again; other errors are not repeated."""
+    from sqlalchemy.exc import OperationalError
+
+    calls: dict[str, int] = {}
+    waits: list[int] = []
+    monkeypatch.setattr(cli, "_sleep", lambda s: waits.append(s))
+
+    def fake(name: str, fail_times: int = 0, exc: Exception | None = None) -> object:
+        def _f(*_a: object, **_k: object) -> None:
+            calls[name] = calls.get(name, 0) + 1
+            if calls[name] <= fail_times:
+                raise exc or OperationalError(
+                    "SELECT 1", {}, Exception("FATAL:  service temporarily unavailable")
+                )
+
+        return _f
+
+    monkeypatch.setattr(cli, "cmd_pdc", lambda a, e, kind: fake(kind)())
+    monkeypatch.setattr(cli, "cmd_census", fake("census", fail_times=1))
+    monkeypatch.setattr(cli, "cmd_nppes", fake("nppes", fail_times=1, exc=SourceError("bad file")))
+    for name in ("geocode", "relationships", "hcpcs", "msdrg", "report"):
+        monkeypatch.setattr(cli, f"cmd_{name}", fake(name))
+    for name in OFFLINE_STEPS:
+        monkeypatch.setattr(cli, f"cmd_{name}", fake(name))
+    args = cli.build_parser().parse_args(["nv-all"])
+    try:
+        with pytest.raises(SystemExit, match="1 step\\(s\\) failed: nppes"):
+            cli.cmd_nv_all(args, engine)
+    finally:
+        with engine.begin() as c:
+            c.execute(text("DELETE FROM src.reference_load WHERE source_file LIKE 'nv-all:%'"))
+    assert calls["census"] == 2  # waited for the database, then ran again
+    assert waits == [cli.DB_WAITS[0]]
+    assert calls["nppes"] == 1  # a bad file is not a lost connection: not repeated
+
+
+def test_db_down_only_for_lost_connections() -> None:
+    from sqlalchemy.exc import IntegrityError, OperationalError
+
+    assert cli.db_down(
+        OperationalError("x", {}, Exception("SSL connection has been closed unexpectedly"))
+    )
+    assert not cli.db_down(OperationalError("x", {}, Exception('relation "x" does not exist')))
+    assert not cli.db_down(IntegrityError("x", {}, Exception("duplicate key")))
+    assert not cli.db_down(ValueError("service temporarily unavailable"))

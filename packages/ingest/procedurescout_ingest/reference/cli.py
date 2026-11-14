@@ -1059,6 +1059,49 @@ def price_file_problems(conn: Connection, state: str, limit: int = 60) -> list[s
     return [f"{rule}: {message}"[:400] for rule, message in rows]
 
 
+# The live database was briefly unreachable during loads ("service temporarily
+# unavailable", "SSL connection has been closed unexpectedly": ID pass 1 and IN
+# pass 3, 2026-11-13/14), which crashed whole runs. Such a step now waits for the
+# database and runs again; steps are safe to repeat (loads skip unchanged files).
+_DB_DOWN = (
+    "service temporarily unavailable",
+    "ssl connection has been closed",
+    "server closed the connection",
+    "connection failed",
+    "terminating connection",
+    "could not receive data",
+    "connection refused",
+)
+DB_WAITS = (30, 60, 120, 240, 300)  # seconds; about 12 minutes in all
+_sleep = time.sleep
+
+
+def db_down(exc: BaseException) -> bool:
+    """A lost or refused database connection (not a bad query or bad data)."""
+    from sqlalchemy.exc import DBAPIError
+
+    if not isinstance(exc, DBAPIError):
+        return False
+    text_ = str(exc).lower()
+    return bool(exc.connection_invalidated) or any(m in text_ for m in _DB_DOWN)
+
+
+def wait_for_db(engine: Engine) -> bool:
+    """Wait (DB_WAITS) until the database answers again; False if it never does."""
+    for seconds in DB_WAITS:
+        print(f"database unreachable; waiting {seconds}s", file=sys.stderr)
+        _sleep(seconds)
+        try:
+            engine.dispose()  # drop dead pooled connections
+            with engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+            return True
+        except Exception as exc:  # still down: keep waiting
+            if not db_down(exc):
+                raise
+    return False
+
+
 def cmd_nv_all(args: argparse.Namespace, engine: Engine) -> None:
     """Run every step even if one fails, so one run shows every problem;
     exit non-zero at the end if any step failed."""
@@ -1067,13 +1110,34 @@ def cmd_nv_all(args: argparse.Namespace, engine: Engine) -> None:
     failures: list[str] = []
 
     def load_count() -> int:
+        for _ in range(2):
+            try:
+                with engine.connect() as conn:
+                    return int(
+                        conn.execute(text("SELECT count(*) FROM src.reference_load")).scalar_one()
+                    )
+            except Exception as exc:
+                if not (db_down(exc) and wait_for_db(engine)):
+                    raise
         with engine.connect() as conn:
             return int(conn.execute(text("SELECT count(*) FROM src.reference_load")).scalar_one())
+
+    def run_step(fn: Callable[[], None]) -> None:
+        """Run a step; if the database dropped, wait for it and run the step again
+        (twice at most)."""
+        for attempt in range(3):
+            try:
+                fn()
+                return
+            except Exception as exc:
+                if attempt == 2 or not db_down(exc) or not wait_for_db(engine):
+                    raise
+                print("database is back; running the step again", file=sys.stderr)
 
     def step(name: str, fn: Callable[[], None]) -> None:
         before = load_count()
         try:
-            fn()
+            run_step(fn)
         except Exception as exc:
             failures.append(name)
             message = f"{type(exc).__name__}: {exc}"
