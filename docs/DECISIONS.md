@@ -2,6 +2,9 @@
 
 Newest first. Each entry: decision, reason, consequences.
 
+## 2026-11-14 — D-064: Search lists every published option, grouped
+Cooper (2026-11-14): "I don't want 2 options, I want 20 options if that's what there is." Typing words now lists every published code that matches (`packages/core/procedurescout_core/code_search.py`): the hospitals' wording and the official public MS-DRG and HCPCS titles are searched, everyday words are widened to the words those use ("birth" also finds delivery, cesarean, labor, newborn; "anesthesia" also lists the CPT anesthesia section 00100-01999), and results are grouped (hospital stays, anesthesia, surgery, imaging, lab, visits, drugs, supplies, dental, other, one hospital's own item codes last) and ranked by how many places publish a price. The widened words come from the official code-set wording (D-061). Each option keeps its own code; nothing is merged or substituted (rule 8).
+
 ## 2026-11-14 — D-063: Claude approves replacement price-file links from a hospital's own website
 When a hospital's cms-hpt.txt link is dead or missing, Claude may approve a replacement link in `data/reference/price_file_sources_reviewed.csv`, only when the link is on that hospital's (or its health system's) own website, with the page and what was seen written in `evidence`, as `reviewed_by = "Claude (delegated by Cooper, D-063)"`. Links from third-party sites are never used. Cooper approved this on 2026-11-14 for the Southern Illinois Healthcare hospitals and going forward; never ask Cooper to review these links.
 

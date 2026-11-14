@@ -142,10 +142,43 @@ export function SearchForm({
     );
   }
 
+  // the "where / how paying" part of a search, for the all-options list
+  function restParams(): URLSearchParams {
+    const p = new URLSearchParams();
+    if (kinds.length) p.set("type", kinds.join(","));
+    if (radius !== "25") p.set("r", radius);
+    if (online) p.set("online", "1");
+    if (paying === "plan" && insurance) {
+      p.set("mode", "plan");
+      if ("plan" in insurance) p.set("plan", insurance.plan);
+      else if ("insurer" in insurance) p.set("insurer", insurance.insurer);
+      else p.set("payer", insurance.payer);
+    }
+    if (coords.current && !zip) {
+      p.set("lat", coords.current.lat);
+      p.set("lng", coords.current.lng);
+    } else if (/^\d{5}$/.test(zip)) p.set("zip", zip);
+    return p;
+  }
+
+  // every published option for the words typed (Cooper, 2026-11-14: "give all the options")
+  function seeAll() {
+    const p = restParams();
+    p.set("q", text.trim());
+    setOpen(false);
+    router.push(`/options?${p.toString()}`);
+    onSearch?.();
+  }
+
   async function submit(e: FormEvent) {
     e.preventDefault();
     let service = picked && text === picked.name ? picked : null;
     if (!service && options.length === 1) service = { ...options[0]! };
+    if (!service && text.trim().length >= 3) {
+      // typed words without picking one: show every option for them
+      seeAll();
+      return;
+    }
     if (!service) {
       setError(t.pickService);
       return;
@@ -254,6 +287,19 @@ export function SearchForm({
                 )}
               </li>,
             ])}
+            {text.trim().length >= 3 && (
+              <li
+                className="suggest-all"
+                role="option"
+                aria-selected={false}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  seeAll();
+                }}
+              >
+                {fill(t.seeAllOptionsShort, { q: text.trim() })} →
+              </li>
+            )}
           </ul>
         )}
       </div>

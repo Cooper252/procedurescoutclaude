@@ -611,7 +611,7 @@ class Suggestion:
     about: str | None = None
 
 
-def suggest(conn: Connection, query: str, limit: int = 8) -> list[Suggestion]:
+def suggest(conn: Connection, query: str, limit: int = 10) -> list[Suggestion]:
     """Services for the search box as the person types: approved services whose
     name, or an approved everyday word for them, contains what was typed. The
     person picks one; nothing is substituted behind their back."""
@@ -683,17 +683,38 @@ def _code_suggestions(conn: Connection, raw: str, normalized: str, n: int) -> li
             {"p": raw.upper().replace("%", "").replace("_", "") + "%", "n": n},
         ).all()
     elif len(normalized) >= 3:
-        rows = conn.execute(
-            text(
-                """
-                SELECT system::text, code, hospital_description FROM ref.code_index
-                WHERE to_tsvector('english', coalesce(hospital_description, ''))
-                      @@ plainto_tsquery('english', :q)
-                ORDER BY facilities DESC, prices DESC, code LIMIT :n
-                """
-            ),
-            {"q": normalized, "n": n},
-        ).all()
+        # by words: the same finder as the "all options" list, widened words
+        # included ("birth" finds deliveries, C-sections, newborn care), each
+        # hospital's own item codes left to that list
+        from .code_search import find_options
+
+        found = [o for o in find_options(conn, raw, limit=200) if o.group != "hospital_item"]
+        found.sort(key=lambda o: (-o.places, -o.prices))  # most widely published first
+        picks: list[Suggestion] = []
+        for o in found[:n]:
+            if o.service_slug:
+                picks.append(
+                    Suggestion(
+                        o.service_slug,
+                        o.name,
+                        o.service_unit or "per_service",
+                        f"{o.code_system} {o.code}",
+                    )
+                )
+                continue
+            picks.append(
+                Suggestion(
+                    slug=f"code:{o.code_system}:{o.code}",
+                    name=o.name,
+                    unit="per_service",
+                    matched=f"{o.code_system} {o.code}",
+                    kind="code",
+                    code_system=o.code_system,
+                    code=o.code,
+                    about=o.wording,
+                )
+            )
+        return picks
     else:
         return []
     if not rows:

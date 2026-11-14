@@ -12,6 +12,7 @@ import type {
   AssistanceMessage,
   Mode,
   NearbyFacility,
+  Options,
   Place,
   Plan,
   ProviderType,
@@ -70,6 +71,10 @@ export const api = {
       : get("/v1/services", providerTypes?.length ? { provider_types: providerTypes.join(",") } : undefined),
   suggest: (q: string): Promise<Suggestion[]> =>
     DEMO ? later(demo.demoSuggest(q)) : get("/v1/services/suggest", { q }),
+  options: (q: string): Promise<Options> =>
+    DEMO
+      ? later({ query: q, total: 0, services: demo.demoSuggest(q).filter((x) => x.kind !== "code"), groups: [] })
+      : get("/v1/services/options", { q }),
   providerTypes: (): Promise<ProviderType[]> =>
     DEMO ? later(demo.DEMO_PROVIDER_TYPES) : get("/v1/provider-types"),
   // near: only plans that places near the person published (Cooper, 2026-11-12)

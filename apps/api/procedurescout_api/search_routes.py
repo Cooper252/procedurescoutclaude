@@ -211,6 +211,67 @@ def services_suggest(
     ]
 
 
+class OptionOut(BaseModel):
+    code_system: str
+    code: str
+    name: str
+    wording: str | None  # the hospitals' own wording (or the official title) when name differs
+    places: int
+    prices: int
+    service: str | None = None  # an approved service this code belongs to (its slug)
+
+
+class OptionGroupOut(BaseModel):
+    group: str  # stay, anesthesia, surgery, imaging, lab, visit, drug, supply, dental, ...
+    options: list[OptionOut]
+
+
+class OptionsOut(BaseModel):
+    query: str
+    total: int
+    services: list[SuggestionOut]
+    groups: list[OptionGroupOut]
+
+
+@router.get("/services/options", response_model=OptionsOut)
+def services_options(
+    conn: Conn, q: Annotated[str, Query(min_length=2, max_length=60)]
+) -> OptionsOut:
+    """Every published price option for what was typed, grouped by kind and
+    ranked by how many places publish it (Cooper, 2026-11-14: "give all the
+    options")."""
+    from procedurescout_core.code_search import GROUPS, find_options
+
+    found = find_options(conn, q, limit=400)
+    groups = []
+    for g in GROUPS:
+        items = [o for o in found if o.group == g]
+        if items:
+            groups.append(
+                OptionGroupOut(
+                    group=g,
+                    options=[
+                        OptionOut(
+                            code_system=o.code_system,
+                            code=o.code,
+                            name=o.name,
+                            wording=o.wording,
+                            places=o.places,
+                            prices=o.prices,
+                            service=o.service_slug,
+                        )
+                        for o in items
+                    ],
+                )
+            )
+    services = [
+        SuggestionOut(slug=s.slug, name=s.name, unit=s.unit, matched=s.matched, about=s.about)
+        for s in suggest(conn, q, limit=20)
+        if s.kind == "service"
+    ]
+    return OptionsOut(query=q, total=len(found), services=services, groups=groups)
+
+
 class PlaceOut(BaseModel):
     zip: str
     state: str

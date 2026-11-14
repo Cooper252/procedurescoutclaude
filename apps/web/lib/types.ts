@@ -22,6 +22,29 @@ export interface Suggestion {
   about?: string | null; // what the service is; for a code, the hospitals' wording
 }
 
+// every published option for what was typed, grouped (Cooper, 2026-11-14)
+export interface CodeOption {
+  code_system: string;
+  code: string;
+  name: string;
+  wording: string | null;
+  places: number;
+  prices: number;
+  service: string | null;
+}
+
+export interface OptionGroup {
+  group: string;
+  options: CodeOption[];
+}
+
+export interface Options {
+  query: string;
+  total: number;
+  services: Suggestion[];
+  groups: OptionGroup[];
+}
+
 export interface ProviderType {
   code: string;
   name: string;

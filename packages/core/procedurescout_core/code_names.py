@@ -16,14 +16,22 @@ import re
 
 # longest first, so "W/O CC/MCC" is replaced before "W/O"
 _DRG_WORDS: tuple[tuple[str, str], ...] = (
-    (r"\bW/O CC/MCC\b", "without complications"),
+    (r"\bW/?O (CC/MCC|MCC/CC)\b", "without complications"),
+    (r"\bW/? ?(CC/MCC|MCC/CC)\b", "with complications"),
     (r"\bW CC/MCC\b", "with complications"),
     (r"\bW/O MCC\b", "without major complications"),
     (r"\bW/O CC\b", "without complications"),
     (r"\bW MCC\b", "with major complications"),
     (r"\bW CC\b", "with complications"),
+    (r"\bW/ ?MCC\b", "with major complications"),
+    (r"\bW/ ?CC\b", "with complications"),
     (r"\bW/O\b", "without"),
+    (r"\bWO\b", "without"),
+    (r"\bW/", "with "),
     (r"\bW\b", "with"),
+    (r"\bVAG\b", "vaginal"),
+    (r"\bDELIV\b", "delivery"),
+    (r"\bSTERIL\b", "STERILIZATION"),
     (r"\bO\.R\.", "operating room"),
     (r"\bD&C\b", "D&C (a procedure to clear the uterus)"),
     (r"\bPROC\b", "procedure"),
