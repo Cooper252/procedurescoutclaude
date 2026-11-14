@@ -91,6 +91,11 @@ class FacilityResult:
     # insurance search: this place lists no rate for that insurance, so its cash
     # price is shown instead, labeled (Cooper, 2026-11-12)
     no_plan_rate: bool = False
+    # cash or list search: no cash or list price here, but the place publishes
+    # insurance rates for this service (shown as such, never as a cash price;
+    # Cooper, 2026-11-14: births showed "no published prices" at hospitals that
+    # publish hundreds of insurer rates)
+    plan_rates_only: bool = False
     doctor_fee: Headline | None = None  # the doctor's part, published separately
     special: Special | None = None  # provider special on its own regular price (D-042)
     delivery: str | None = None  # provider price: 'in_person', 'online' or 'both'
@@ -340,6 +345,10 @@ def search(
         wanted_types.append("negotiated")
     # online visits: only providers who price this service online (hospital
     # files don't say whether a price is for a video visit)
+    # cash and list searches also read insurer rates, only to say that a place
+    # publishes them; they are dropped before anything is shown or compared
+    read_types = wanted_types if mode == "plan" else [*wanted_types, "negotiated"]
+    has_plan_rates: set[str] = set()
     if with_files and not online_only:
         for system, value in codes:
             for p in find_prices(
@@ -348,8 +357,11 @@ def search(
                 [uuid.UUID(i) for i in with_files],
                 system,
                 value,
-                price_types=wanted_types,
+                price_types=read_types,
             ):
+                if mode != "plan" and p.price_type == "negotiated":
+                    has_plan_rates.add(p.facility_id)
+                    continue
                 by_facility.setdefault(p.facility_id, []).append(p)
     # provider-entered regular prices (reviewed, published), labeled by price_source;
     # their specials are kept apart and never used in comparisons (D-042)
@@ -483,6 +495,9 @@ def search(
             ),
             badges=badges(heads.get(str(f[0])), present, typ, cash_heads.get(str(f[0]))),
             no_plan_rate=str(f[0]) in cash_instead,
+            plan_rates_only=(
+                mode != "plan" and not by_facility.get(str(f[0])) and str(f[0]) in has_plan_rates
+            ),
             doctor_fee=doctor_fee(
                 by_facility.get(str(f[0]), ()),
                 "cash" if str(f[0]) in cash_instead else mode,

@@ -85,6 +85,7 @@ export interface Facility {
   change_percent_since_last_file: string | null;
   plan_rate_is_all_plans?: boolean;
   no_plan_rate?: boolean; // insurance search: no rate for that insurance here; cash price shown
+  plan_rates_only?: boolean; // cash/list search: no cash or list price, but insurance rates published here
   delivery?: "in_person" | "online" | "both" | null;
   special?: {
     price: string;

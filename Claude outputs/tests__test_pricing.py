@@ -922,6 +922,11 @@ REAL_SPELLINGS: dict[str, list[tuple[str, str, str | None]]] = {
         ("UnitedHealthcare Insurance Company", "Optum VA Community Care", None),
     ],
     "FL": [
+        ("AvMed", "HIX", "AvMed · Marketplace (exchange) plan"),
+        ("Simply Healthcare", "HIX", "Simply Healthcare Plans · Marketplace (exchange) plan"),
+        ("AmeriHealth Caritas", "HIX", "AmeriHealth Caritas Florida · Marketplace (exchange) plan"),
+        ("BCBS", "MGMCRHMO", "Florida Blue · Medicare Advantage"),
+        ("Cigna", "ManagedCareHMO", "Cigna · HMO"),
         # Florida hospitals (2026-11-13 load reports): plan codes
         ("Oscar", "HIX", "Oscar Health · Marketplace (exchange) plan"),
         ("Freedom Health", "MGMCR", "Freedom Health (Florida) · Medicare Advantage"),
@@ -932,6 +937,7 @@ REAL_SPELLINGS: dict[str, list[tuple[str, str, str | None]]] = {
         ("CorVel Corporation", "WORKERSCOMP", None),  # workers' compensation
     ],
     "GA": [
+        ("Friday Health", "HIX", None),  # not a reviewed insurer
         # Georgia hospitals (2026-11-13 load report)
         ("Care Source", "Medicare Advantage", "CareSource · Medicare Advantage"),
         ("Aetna", "POS", "Aetna · POS"),
@@ -941,6 +947,11 @@ REAL_SPELLINGS: dict[str, list[tuple[str, str, str | None]]] = {
         ("Ohana", "Medicaid", None),  # Hawaii-only plan; not placed in Georgia
     ],
     "HI": [
+        (
+            "HMSA",
+            "HMO/POS/PPO/EPO",
+            "HMSA (Blue Cross Blue Shield of Hawaii) · All plans (one rate published for all)",
+        ),
         # Hawaii Medicaid (QUEST Integration) plans, ready before Hawaii loads (Med-QUEST list)
         ("AlohaCare", "QUEST Integration Medicaid", "AlohaCare · Medicaid plan"),
         ("'Ohana Health Plan", "Medicaid", "'Ohana Health Plan · Medicaid plan"),
@@ -1038,6 +1049,39 @@ REAL_SPELLINGS: dict[str, list[tuple[str, str, str | None]]] = {
         ("Humana Healthy Horizons in Kentucky", "Medicaid", "Humana · Medicaid plan"),
     ],
     "IL": [
+        # Northwestern Medicine Lake Forest Hospital file (Illinois load report 2026-11-14)
+        (
+            "BLUE CROSS BLUE SHIELD [1401]",
+            "NLFH BCBS PPO",
+            "Blue Cross and Blue Shield of Illinois · PPO",
+        ),
+        (
+            "ALTERNATE BLUE CROSS [1402]",
+            "NLFH BCBS HMO",
+            "Blue Cross and Blue Shield of Illinois · HMO",
+        ),
+        (
+            "ALTERNATE BLUE CROSS MEDICARE ADV [2304]",
+            "NLFH BLUE CROSS MEDICARE ADVT",
+            "Blue Cross and Blue Shield of Illinois · Medicare Advantage",
+        ),
+        (
+            "ALTERNATE HUMANA MEDICARE ADV [2409]",
+            "NLFH HUMANA MEDICARE ADVT",
+            "Humana · Medicare Advantage",
+        ),
+        ("MULTIPLAN/PHCS [142]", "NLFH PHCS", "PHCS (MultiPlan) · Network on your card"),
+        (
+            "FIRST HEALTH PLAN [6034]",
+            "NLFH FIRST HEALTH",
+            "First Health (Aetna) · Network on your card",
+        ),
+        (
+            "BLUE CROSS BLUE SHIELD [1401]",
+            "NLFH ADVOCATE IPA",
+            None,
+        ),  # a doctors' group, not a plan
+        ("UNITED HEALTHCARE [158]", "NLFH UHC NON-CONTRACTED OON - ED ONLY", None),
         # HealthChoice Illinois plans, ready before Illinois loads (HFS list)
         ("CountyCare", "Medicaid", "CountyCare Health Plan · Medicaid plan"),
         (

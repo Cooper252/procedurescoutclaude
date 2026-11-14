@@ -196,7 +196,13 @@ export function InsurancePicker({
             const rangePlans = c.plans.filter((p) => !LEFT_OUT_OF_RANGE.includes(p.segment));
             return (
               <li key={c.payerId || c.payer} className="ins-company" role="presentation">
-                <span className="ins-company-name">{c.payer}</span>
+                <span className="ins-company-name">
+                  {c.payer}
+                  <span className="ins-company-count">
+                    {" "}
+                    {(c.plans.length === 1 ? t.insPlanCount1 : t.insPlansCount).replace("{n}", String(c.plans.length))}
+                  </span>
+                </span>
                 <ul role="group" aria-label={c.payer}>
                   {c.payerId && rangePlans.length > 1 && (
                     <li
@@ -224,7 +230,17 @@ export function InsurancePicker({
                         pick({ plan: p.plan_id, label: `${p.payer} · ${p.plan}` });
                       }}
                     >
-                      {p.plan}
+                      {/* the company on every row, so "HMO" never stands alone
+                          (Cooper, 2026-11-14: it was easy to miss that the HMO was BCBS's) */}
+                      {!p.plan.toLowerCase().startsWith(c.payer.toLowerCase()) && (
+                        <>
+                          <span className="ins-plan-payer">{c.payer}</span>
+                          <span className="ins-plan-sep" aria-hidden="true">
+                            {" · "}
+                          </span>
+                        </>
+                      )}
+                      <strong className="ins-plan-name">{p.plan}</strong>
                     </li>
                   ))}
                 </ul>

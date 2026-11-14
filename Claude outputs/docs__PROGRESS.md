@@ -2,6 +2,30 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-14 — Illinois load (pass 1); Indiana runs stopped
+
+Illinois pass 1: 83 of 96 price files loaded (91.0 million prices). The new failed-file list (first real use) names the 13 failures: 8 hospitals whose files are on apps.para-hcfs.com fail certificate checks ("self-signed certificate in certificate chain"; certificate checks are never switched off); 4 Southern Illinois Healthcare hospitals whose cms-hpt.txt links return 404; Northwestern Memorial's file is over the 4 GiB per-file limit (`PRICE_FILE_MAX_BYTES`, part of Cooper's download approval, D-025; raising it is Cooper's call). 5 files loaded with notes (ragged rows at Lurie, non-UTF-8 bytes at three hospitals, Evanston's file dated 2025-01-01).
+
+Southern Illinois Healthcare's own price page has new 2026 files with the same tax ID and NPI numbers as the dead links: added to `data/reference/price_file_sources_reviewed.csv` (CCNs 140164, 141334, 140011, 140210) without a reviewer, so they stay off until Cooper approves hand-checked price-file links.
+
+Indiana passes 1 and 2: each report has only its first line ("AHRQ step skipped"), so both runs stopped right after starting; the reason is in the GitHub Actions log, not the report.
+
+Insurers (D-047): Illinois's most-used unmatched spellings were Northwestern Lake Forest's ("NLFH BCBS PPO"). `plan_resolver.py`: the "NLFH" billing-location prefix is ignored like St. Luke's "HB" prefixes; an insurer's initials without its state count as its name ("BCBS" for Blue Cross and Blue Shield of Illinois); "ALTERNATE" in the insurer slot is a second record for the same insurer. Rules from the file: Humana and (in Illinois) Blue Cross "MEDICARE ADV", "MULTIPLAN/PHCS", "FIRST HEALTH PLAN". Re-running every report's spellings: only the intended spellings changed. Left unmatched: doctors' groups (IPA), Health's Finest Network, BlueChoice products, employee plans, non-contracted rates.
+
+Hospital policies (D-060), checked against the live Illinois names: Northwestern now includes Lake Forest; Cook County's Provident is "PROVIDENT HOSPITAL OF CHICAGO"; Ascension's Illinois row now names its hospitals as CMS lists them (Alexian Brothers, St Alexius, Presence Saint Joseph Chicago); UnityPoint's Illinois row includes Trinity Rock Island. OSF, Advocate, Carle, Rush, Lurie and Endeavor matched as written; no hospital matched two rows.
+
+Tested: `test_reviewed_insurer_names_place_real_hospital_spellings` (Illinois cases). `make check`: `398 passed, 1 skipped`.
+
+## 2026-11-14 — Handoff for full testing
+
+`docs/TESTING_HANDOFF.md`: where testing stands (suite counts, the out-of-date `TEST_PLAN.md`, untested feature-matrix rows), what full back-end and front-end testing covers, and the limits (no direct access to the live site from the cloud workspace; nothing written to the live site without Cooper's OK). No code changed.
+
+## 2026-11-14 — Facility page: the searched price first on a phone
+
+`app/facility/[id]/page.tsx`: when someone opens a facility from a search (a service is chosen), "Prices here" now comes right after the name, call and directions buttons, before the provider's own page, hours and photos; on a phone it was about four screens down and now starts on the first screen (price table at 811px of an 844px-tall iPhone screen). Opening a facility without a service keeps the old order. `app/globals.css`: smaller facility name on phones.
+
+Tested: `tsc --noEmit`, `npm test`, `npm run build` passed; checked at phone width (page width 390px, no sideways scrolling).
+
 ## 2026-11-14 — ChristianaCare policy; more retries
 
 D-060: ChristianaCare (Delaware) added: its policy revised 01/01/2025 and its 2024 scale agree that service-area residents up to 400% of the poverty guidelines get full (100%) assistance; uninsured patients above that get 15% off (earlier skipped because an older summary disagreed). Checked against the live Delaware name (Christiana and Wilmington share one CMS number). 239 health-system rows. Not added: Hartford HealthCare (its sliding scale is only in an appendix that would not open), Renown and Sarasota Memorial (no income tiers readable), Lee Health (only a 2021 revision, review overdue). Yale New Haven Health was already covered.

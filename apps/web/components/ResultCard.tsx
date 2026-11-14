@@ -146,7 +146,9 @@ export function ResultCard({
           ) : (
             <span className="price-none">
               {f.status !== "prices"
-                ? t.noPrices
+                ? f.plan_rates_only
+                  ? t.planRatesOnly
+                  : t.noPrices
                 : mode === "cash"
                   ? t.noCashPrice
                   : `${label}: —`}
@@ -217,7 +219,7 @@ export function ResultCard({
           {!provider && <> · {t.facilityOnly}</>}
         </p>
       ) : (
-        <p className="source">{t.noPricesHint}</p>
+        <p className="source">{f.plan_rates_only ? t.planRatesOnlyHint : t.noPricesHint}</p>
       )}
 
       {isHospital && (

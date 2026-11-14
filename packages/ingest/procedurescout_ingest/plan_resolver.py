@@ -135,7 +135,9 @@ def loosen(payer_raw: str) -> str:
     'BCBS_Alabama', 'AETNA COMMERCIAL [85189]')."""
     t = re.sub(r"[_/-]", " ", normalize_name(payer_raw))
     # "contracted" (Mercy's "AETNA CONTRACTED [320008]") means in network
-    drop = ("payer", "inc", "llc", "the", "contracted")
+    # "alternate" (Northwestern's "ALTERNATE BLUE CROSS [1402]" is a second
+    # record for the same insurer, with the same plans; Illinois, 2026-11-14)
+    drop = ("payer", "inc", "llc", "the", "contracted", "alternate")
     words = [w for w in t.split() if not w.isdigit() and w not in drop]
     return " ".join(words)
 
@@ -191,6 +193,8 @@ def _rule_insurer(
 _LOCATION_PREFIX = re.compile(
     r"^hb (nampa|wr|wood river|mccall|boise|meridian|elmore|jerome|mv|magic valley"
     r"|twin falls|fruitland) "
+    # Northwestern Medicine Lake Forest Hospital: "NLFH BCBS PPO" (Illinois, 2026-11-14)
+    r"|^nlfh "
 )
 
 
@@ -217,10 +221,17 @@ def _insurer_text_in_plan(payer_raw: str, plan_raw: str) -> str | None:
     return rest or None
 
 
-def _initials(name: str) -> str:
-    """'Blue Cross of Idaho' -> 'bci' (files write the insurer's initials)."""
+def _initials(name: str) -> set[str]:
+    """'Blue Cross of Idaho' -> {'bci'}; 'Blue Cross and Blue Shield of Illinois'
+    -> {'bcbsi', 'bcbs'} (files write the insurer's initials, often without the
+    state)."""
     words = [w for w in loosen(name).split() if w not in ("of", "the", "and")]
-    return "".join(w[0] for w in words) if len(words) >= 2 else ""
+    out = set()
+    if len(words) >= 2:
+        out.add("".join(w[0] for w in words))
+    if len(words) >= 3 and words[-1] in _STATES:
+        out.add("".join(w[0] for w in words[:-1]))
+    return out
 
 
 def _only_repeats_insurer(plan_raw: str, payer_raw: str, insurer_name: str) -> bool:
@@ -229,8 +240,7 @@ def _only_repeats_insurer(plan_raw: str, payer_raw: str, insurer_name: str) -> b
     of that insurer's plans."""
     own = set(loosen(payer_raw).split()) | set(loosen(insurer_name).split())
     own.discard("")
-    if _initials(insurer_name):
-        own.add(_initials(insurer_name))
+    own |= _initials(insurer_name)
     plan = _LOCATION_PREFIX.sub("", re.sub(r"[_/-]", " ", normalize_name(plan_raw)) + " ")
     rest = [w for w in plan.split() if w not in own and w not in _FILLER and w not in _STATES]
     return not rest
@@ -239,7 +249,7 @@ def _only_repeats_insurer(plan_raw: str, payer_raw: str, insurer_name: str) -> b
 def _beyond_name(raw: str, insurer_name: str) -> str:
     """The words of a spelling that aren't the insurer's name ("BLUE SHIELD OF
     CA HMO" -> "hmo" for Blue Shield of California)."""
-    own = set(loosen(insurer_name).split())
+    own = set(loosen(insurer_name).split()) | _initials(insurer_name)
     words = [
         w for w in loosen(raw).split() if w not in own and w not in _FILLER and w not in _STATES
     ]
@@ -310,7 +320,8 @@ def _pick_plan(
         return plans.get("Original Medicare"), "Original Medicare"
     if rule_plan and rule_plan != BY_PLAN_TEXT:
         return plans.get(rule_plan), rule_plan
-    label = plan_type(plan_raw) or plan_type(_beyond_name(plan_raw, name))
+    # p: the plan text without a billing-location prefix ("NLFH BCBS HMO" -> "bcbs hmo")
+    label = plan_type(p) or plan_type(_beyond_name(p, name))
     if label is None:
         # "ARKANSAS_BLUE_MEDICARE | 344_1", "Blue Cross HMO | Blue Cross HMO":
         # the kind of plan is in the insurer text

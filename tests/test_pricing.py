@@ -219,6 +219,31 @@ def test_price_history_between_published_files(
     assert near.change_percent == Decimal(25)  # 80 -> 100
 
 
+def test_cash_search_says_when_only_insurance_rates_are_published(
+    conn: Connection, world: LocalStore, tmp_path: Path
+) -> None:
+    """Cooper (2026-11-14): a birth search near 89123 showed "no published
+    prices" at hospitals that publish hundreds of insurer rates for it but no
+    cash price. A cash search now says insurance rates are published there, and
+    still never shows one as a cash price."""
+    doc = json.loads(JSON_FILE.read_text())
+    charge = doc["standard_charge_information"][0]["standard_charges"][0]
+    del charge["discounted_cash"]
+    del charge["gross_charge"]
+    stage(conn, tmp_path, json.dumps(doc).encode())
+    publish.approve(conn, uuid.UUID(syn501(conn)[0].dataset_version_id), "Tester", world)
+    cash = run(conn, world).facilities[0]  # type: ignore[attr-defined]
+    assert cash.status == "no_published_prices" and cash.headline is None
+    assert cash.plan_rates_only and cash.prices == ()  # no insurer rate shown as cash
+    plan = run(conn, world, mode="plan", plan_id=_plan_id(conn, "Gold PPO")).facilities[0]  # type: ignore[attr-defined]
+    assert plan.headline.amount == Decimal("75.25") and not plan.plan_rates_only
+
+
+def test_cash_search_with_a_cash_price_is_not_flagged(conn: Connection, world: LocalStore) -> None:
+    near = run(conn, world).facilities[0]  # type: ignore[attr-defined]
+    assert near.status == "prices" and not near.plan_rates_only
+
+
 def test_unmapped_spellings_go_to_the_review_queue(conn: Connection, world: LocalStore) -> None:
     added = catalog.collect_unmapped_plans(conn)
     assert added >= 0
@@ -1049,6 +1074,39 @@ REAL_SPELLINGS: dict[str, list[tuple[str, str, str | None]]] = {
         ("Humana Healthy Horizons in Kentucky", "Medicaid", "Humana · Medicaid plan"),
     ],
     "IL": [
+        # Northwestern Medicine Lake Forest Hospital file (Illinois load report 2026-11-14)
+        (
+            "BLUE CROSS BLUE SHIELD [1401]",
+            "NLFH BCBS PPO",
+            "Blue Cross and Blue Shield of Illinois · PPO",
+        ),
+        (
+            "ALTERNATE BLUE CROSS [1402]",
+            "NLFH BCBS HMO",
+            "Blue Cross and Blue Shield of Illinois · HMO",
+        ),
+        (
+            "ALTERNATE BLUE CROSS MEDICARE ADV [2304]",
+            "NLFH BLUE CROSS MEDICARE ADVT",
+            "Blue Cross and Blue Shield of Illinois · Medicare Advantage",
+        ),
+        (
+            "ALTERNATE HUMANA MEDICARE ADV [2409]",
+            "NLFH HUMANA MEDICARE ADVT",
+            "Humana · Medicare Advantage",
+        ),
+        ("MULTIPLAN/PHCS [142]", "NLFH PHCS", "PHCS (MultiPlan) · Network on your card"),
+        (
+            "FIRST HEALTH PLAN [6034]",
+            "NLFH FIRST HEALTH",
+            "First Health (Aetna) · Network on your card",
+        ),
+        (
+            "BLUE CROSS BLUE SHIELD [1401]",
+            "NLFH ADVOCATE IPA",
+            None,
+        ),  # a doctors' group, not a plan
+        ("UNITED HEALTHCARE [158]", "NLFH UHC NON-CONTRACTED OON - ED ONLY", None),
         # HealthChoice Illinois plans, ready before Illinois loads (HFS list)
         ("CountyCare", "Medicaid", "CountyCare Health Plan · Medicaid plan"),
         (

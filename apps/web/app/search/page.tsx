@@ -374,6 +374,18 @@ function Results() {
             <p className="count">
               {fill(t.facilityCount, { n: result.facilities.length, r: radius })} · {sort === "near" ? t.sortNear : t.sortedBy}
             </p>
+            {mode !== "plan" &&
+              !result.facilities.some((x) => x.status === "prices") &&
+              result.facilities.some((x) => x.plan_rates_only) && (
+                <div className="notice plan-only-note">
+                  <p>
+                    {fill(t.planOnlyNote, { n: result.facilities.filter((x) => x.plan_rates_only).length })}
+                  </p>
+                  <button type="button" className="btn primary sm" onClick={() => setParam({ mode: "plan" })}>
+                    {t.planOnlyBtn}
+                  </button>
+                </div>
+              )}
             {result.facilities.length === 0 && (
               <div className="notice">
                 <p>{fill(t.nothingNear, { r: radius })}</p>

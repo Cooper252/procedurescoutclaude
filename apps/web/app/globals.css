@@ -3145,3 +3145,37 @@ h3 {
     padding-top: 16px;
   }
 }
+
+/* Insurance picker: the insurance company is easy to see (Cooper, 2026-11-14) */
+.ins-company-name {
+  margin: 0 6px 4px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--brand-50);
+  color: var(--brand-600);
+  font-size: 15.5px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.ins-company-count {
+  font-weight: 500;
+  color: var(--muted);
+  font-size: 13.5px;
+}
+.ins-plan-payer {
+  color: var(--ink-2);
+}
+.ins-plan-sep {
+  color: var(--muted);
+}
+.ins-plan-name {
+  color: var(--ink);
+}
+.suggest li.ins-unsure {
+  padding-left: 12px;
+}
+.ins-list .ins-company li[role="option"] {
+  display: block;
+  line-height: 1.35;
+}
