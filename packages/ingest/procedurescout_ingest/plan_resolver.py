@@ -56,6 +56,10 @@ _TYPES: list[tuple[re.Pattern[str], str]] = [
             # Florida files' plan codes (2026-11-13): managed Medicare, Medicare
             # HMO/PPO, private fee-for-service (a Medicare Advantage plan type)
             r"|\bmgmcr\b|\bmcr ?hmo\b|\bmcr ?ppo\b|\bpffs\b"
+            # St. Luke's (Idaho) files: "HB WR AETNA MED ADV" (2026-11-14)
+            r"|\bmed adv\b|\bmedicare adv\b"
+            # Florida: "MGMCRHMO" (managed Medicare HMO), like MGMCR
+            r"|\bmgmcr ?(hmo|ppo)\b"
         ),
         "Medicare Advantage",
     ),
@@ -74,7 +78,8 @@ _TYPES: list[tuple[re.Pattern[str], str]] = [
         ),
         "Marketplace (exchange) plan",
     ),
-    (re.compile(r"^(commercial )?hmo$"), "HMO"),
+    # Florida: "ManagedCareHMO" (2026-11-14)
+    (re.compile(r"^(commercial |managed ?care ?)?hmo$"), "HMO"),
     (re.compile(r"^(commercial )?ppo$"), "PPO"),
     (re.compile(r"^(commercial )?epo$"), "EPO"),
     (re.compile(r"^(commercial )?pos$"), "POS"),
@@ -83,6 +88,8 @@ _TYPES: list[tuple[re.Pattern[str], str]] = [
             r"^(all|all plans|all products|commercial|comm|managed care|generic|default"
             r"|all commercial plans|all other plans|all payer|all payor|commercial all payer"
             r"|all payor commercial|hmo ppo|hmo pos ppo|commercial hmo ppo"
+            # California: "HMO/POS/PPO/EPO", every kind of commercial plan
+            r"|hmo pos ppo epo|hmo ppo pos epo|hmo ppo epo pos"
             # Colorado files: "Commercial|All Plans" (2026-11-13)
             r"|commercial all plans|all plans commercial)$"
         ),
@@ -179,16 +186,53 @@ def _rule_insurer(
     return None if found is None else (str(found), plan)
 
 
+# St. Luke's (Idaho) plan names start with its billing location: "HB NAMPA
+# CIGNA", "HB WR UNITED HEALTHCARE", "HB MCCALL BCI" (load report 2026-11-14)
+_LOCATION_PREFIX = re.compile(
+    r"^hb (nampa|wr|wood river|mccall|boise|meridian|elmore|jerome|mv|magic valley"
+    r"|twin falls|fruitland) "
+)
+
+
+# insurer slots that name no insurer: "COMMERCIAL [1028] | HB NAMPA CIGNA",
+# "MEDICARE ADVANTAGE GENERIC [1019] | HB WR MOLINA MED ADV" (Idaho, 2026-11-14)
+_GENERIC_PAYER = re.compile(
+    r"^(commercial|generic|commercial generic|managed care|medicare advantage"
+    r"|medicare advantage generic|medicaid managed care|medicaid generic)$"
+)
+_PLAN_KIND_WORDS = re.compile(
+    r"\b(med adv|medicare advantage|medicare|mcr|commercial|comm|hmo|ppo|pos|epo|ma"
+    r"|medicaid|plan|plans)\b"
+)
+
+
+def _insurer_text_in_plan(payer_raw: str, plan_raw: str) -> str | None:
+    """When the insurer slot is only a kind of coverage, the plan text with its
+    billing location and kind-of-plan words removed ("HB NAMPA CIGNA" -> "cigna");
+    a reviewed naming rule must still match it exactly."""
+    if not _GENERIC_PAYER.match(loosen(payer_raw)):
+        return None
+    plan = _LOCATION_PREFIX.sub("", re.sub(r"[_/-]", " ", normalize_name(plan_raw)) + " ")
+    rest = " ".join(_PLAN_KIND_WORDS.sub(" ", plan).split())
+    return rest or None
+
+
+def _initials(name: str) -> str:
+    """'Blue Cross of Idaho' -> 'bci' (files write the insurer's initials)."""
+    words = [w for w in loosen(name).split() if w not in ("of", "the", "and")]
+    return "".join(w[0] for w in words) if len(words) >= 2 else ""
+
+
 def _only_repeats_insurer(plan_raw: str, payer_raw: str, insurer_name: str) -> bool:
     """'AETNA | AETNA', 'Aetna | Aetna Commercial', 'BCBS | BCBS AL Commercial':
     the plan text adds nothing but the insurer's name, so it is one rate for all
     of that insurer's plans."""
     own = set(loosen(payer_raw).split()) | set(loosen(insurer_name).split())
-    rest = [
-        w
-        for w in re.sub(r"[_/-]", " ", normalize_name(plan_raw)).split()
-        if w not in own and w not in _FILLER and w not in _STATES
-    ]
+    own.discard("")
+    if _initials(insurer_name):
+        own.add(_initials(insurer_name))
+    plan = _LOCATION_PREFIX.sub("", re.sub(r"[_/-]", " ", normalize_name(plan_raw)) + " ")
+    rest = [w for w in plan.split() if w not in own and w not in _FILLER and w not in _STATES]
     return not rest
 
 
@@ -246,7 +290,7 @@ def _pick_plan(
     conn: Connection, insurer: str, payer_raw: str, plan_raw: str, rule_plan: str = ""
 ) -> tuple[str | None, str]:
     """(plan id, label) for one spelling of a known insurer, or (None, '')."""
-    p = normalize_name(plan_raw).replace("_", " ")
+    p = _LOCATION_PREFIX.sub("", normalize_name(plan_raw).replace("_", " ") + " ").strip()
     if _SKIP.search(p) or _SKIP.search(normalize_name(payer_raw).replace("_", " ")):
         return None, ""
     plans = {
@@ -400,12 +444,19 @@ def resolve_new_spellings(
             states = only(insurer_name)
             return states is None or state in states
 
-        insurer = _insurer_for(conn, pk, state)
+        # a generic insurer slot ("COMMERCIAL") names no insurer: earlier matches
+        # of the same slot with other plan texts say nothing about this one
+        generic = bool(_GENERIC_PAYER.match(loosen(payer_raw)))
+        insurer = None if generic else _insurer_for(conn, pk, state)
         if insurer is not None and not allowed(_insurer_name(conn, insurer)):
             insurer = None
         by_rule = False
         rule_plan = ""
         hit = _rule_insurer(conn, rules, payer_raw, allowed, state) if rules else None
+        if insurer is None and hit is None and rules:
+            in_plan = _insurer_text_in_plan(payer_raw, plan_raw)
+            if in_plan:
+                hit = _rule_insurer(conn, rules, in_plan, allowed, state)
         if insurer is None and hit is not None:
             insurer, rule_plan = hit
             by_rule = True

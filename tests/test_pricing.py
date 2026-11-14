@@ -922,6 +922,11 @@ REAL_SPELLINGS: dict[str, list[tuple[str, str, str | None]]] = {
         ("UnitedHealthcare Insurance Company", "Optum VA Community Care", None),
     ],
     "FL": [
+        ("AvMed", "HIX", "AvMed · Marketplace (exchange) plan"),
+        ("Simply Healthcare", "HIX", "Simply Healthcare Plans · Marketplace (exchange) plan"),
+        ("AmeriHealth Caritas", "HIX", "AmeriHealth Caritas Florida · Marketplace (exchange) plan"),
+        ("BCBS", "MGMCRHMO", "Florida Blue · Medicare Advantage"),
+        ("Cigna", "ManagedCareHMO", "Cigna · HMO"),
         # Florida hospitals (2026-11-13 load reports): plan codes
         ("Oscar", "HIX", "Oscar Health · Marketplace (exchange) plan"),
         ("Freedom Health", "MGMCR", "Freedom Health (Florida) · Medicare Advantage"),
@@ -932,6 +937,7 @@ REAL_SPELLINGS: dict[str, list[tuple[str, str, str | None]]] = {
         ("CorVel Corporation", "WORKERSCOMP", None),  # workers' compensation
     ],
     "GA": [
+        ("Friday Health", "HIX", None),  # not a reviewed insurer
         # Georgia hospitals (2026-11-13 load report)
         ("Care Source", "Medicare Advantage", "CareSource · Medicare Advantage"),
         ("Aetna", "POS", "Aetna · POS"),
@@ -941,10 +947,94 @@ REAL_SPELLINGS: dict[str, list[tuple[str, str, str | None]]] = {
         ("Ohana", "Medicaid", None),  # Hawaii-only plan; not placed in Georgia
     ],
     "HI": [
+        (
+            "HMSA",
+            "HMO/POS/PPO/EPO",
+            "HMSA (Blue Cross Blue Shield of Hawaii) · All plans (one rate published for all)",
+        ),
         # Hawaii Medicaid (QUEST Integration) plans, ready before Hawaii loads (Med-QUEST list)
         ("AlohaCare", "QUEST Integration Medicaid", "AlohaCare · Medicaid plan"),
         ("'Ohana Health Plan", "Medicaid", "'Ohana Health Plan · Medicaid plan"),
         ("WellCare Ohana", "Medicaid", "'Ohana Health Plan · Medicaid plan"),
+    ],
+    "ID": [
+        # St. Luke's files (Idaho load report 2026-11-14): billing location first
+        ("CIGNA [1062]", "HB NAMPA CIGNA", "Cigna · All plans (one rate published for all)"),
+        (
+            "BLUE CROSS IDAHO [1007]",
+            "HB MCCALL BCI",
+            "Blue Cross of Idaho · All plans (one rate published for all)",
+        ),
+        ("MEDICARE ADVANTAGE AETNA [1017]", "HB WR AETNA MED ADV", "Aetna · Medicare Advantage"),
+        (
+            "BLUE CROSS/MEDICARE ADVANTAGE [1009]",
+            "HB MCCALL BCI TRUE & SECURE MED ADV",
+            "Blue Cross of Idaho · Medicare Advantage",
+        ),
+        (
+            "MEDICARE ADVANTAGE PACIFICSOURCE [1039]",
+            "HB MCCALL SLHP PACIFICSOURCE MED ADV",
+            "PacificSource · Medicare Advantage",
+        ),
+        ("AETNA [1021]", "HB WR BP AETNA", None),  # "BP" not explained
+        # insurer slot only says the kind of coverage; the insurer is in the plan text
+        ("COMMERCIAL [1028]", "HB NAMPA CIGNA", "Cigna · All plans (one rate published for all)"),
+        (
+            "MEDICARE ADVANTAGE GENERIC [1019]",
+            "HB WR MOLINA MED ADV",
+            "Molina Healthcare · Medicare Advantage",
+        ),
+        (
+            "COMMERCIAL [1028]",
+            "HB NAMPA MODA COMMERCIAL",
+            "Moda Health · All plans (one rate published for all)",
+        ),
+        ("COMMERCIAL [1028]", "HB NAMPA ST LUKES EMPLOYEE", None),  # not an insurer name
+    ],
+    "MD": [
+        # Medicaid plans of the remaining states, from each state's own list (2026-11-14)
+        ("Maryland Physicians Care", "Medicaid", "Maryland Physicians Care · Medicaid plan"),
+        ("Wellpoint Maryland", "Medicaid", "Wellpoint (Amerigroup) · Medicaid plan"),
+    ],
+    "MI": [
+        ("Blue Cross Complete", "Medicaid", "Blue Cross Blue Shield of Michigan · Medicaid plan")
+    ],
+    "MN": [("PrimeWest Health", "Medicaid", "PrimeWest Health · Medicaid plan")],
+    "MO": [("Healthy Blue", "Medicaid", "Healthy Blue (Missouri) · Medicaid plan")],
+    "NC": [
+        ("Trillium", "Medicaid", "Trillium Health Resources · Medicaid plan"),  # not Oregon's
+        ("AmeriHealth Caritas", "Medicaid", "AmeriHealth Caritas North Carolina · Medicaid plan"),
+    ],
+    "OR": [("Trillium", "Medicaid", "Trillium Community Health Plan · Medicaid plan")],
+    "PA": [("Highmark Wholecare", "Medicaid", "Highmark Wholecare · Medicaid plan")],
+    "SC": [
+        (
+            "Healthy Blue by Blue Choice of SC",
+            "Medicaid",
+            "Healthy Blue (South Carolina) · Medicaid plan",
+        )
+    ],
+    "TX": [("Cook Children's Health Plan", "STAR", "Cook Children's Health Plan · Medicaid plan")],
+    "VA": [
+        (
+            "Anthem HealthKeepers Plus",
+            "Medicaid",
+            "Anthem Blue Cross Blue Shield (Virginia) · Medicaid plan",
+        )
+    ],
+    "WV": [
+        (
+            "The Health Plan of West Virginia",
+            "Medicaid",
+            "The Health Plan (West Virginia) · Medicaid plan",
+        )
+    ],
+    "WI": [
+        (
+            "Children's Community Health Plan",
+            "BadgerCare",
+            "Chorus Community Health Plans · Medicaid plan",
+        )
     ],
     "LA": [
         # Healthy Louisiana plans, ready before Louisiana loads (LDH notice, Sept 2026)

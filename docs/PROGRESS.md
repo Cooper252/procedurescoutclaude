@@ -2,6 +2,38 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-14 — Earlier states' unmatched spellings re-checked
+
+Re-ran the 443 most-used unmatched spellings from every load report so far (16 states) through the current rules: 69 now match. From what remains, placed with evidence: AvMed's, Simply Healthcare's and AmeriHealth Caritas Florida's marketplace plans (Florida's 2026 ACA individual carrier list; AmeriHealth Caritas Florida also its Medicaid plan); Florida's "MGMCRHMO" code (managed Medicare HMO, like MGMCR) and "ManagedCareHMO"; California's "HMO/POS/PPO/EPO" (every kind of commercial plan, like the existing "HMO/POS/PPO"). Still left as written on purpose: network and product names without a public definition (Aetna "Rental Network", United "Navigate", Cigna "Local Plus", Florida Blue "MBN"/"SBN"/"PHS", Colorado public-option product names), two-kind rates ("HMO/POS"), unknown local plans and workers' compensation.
+
+Tested: `test_reviewed_insurer_names_place_real_hospital_spellings` (FL, HI, GA cases). `make check`: `398 passed, 1 skipped`.
+
+## 2026-11-14 — Idaho load (pass 2): St. Luke's insurance spellings
+
+Idaho pass 2 loaded 15 of 17 price files (24.1 million prices; 1 download failed, 1 file in an unknown format); this run started before the report change, so it doesn't list which files failed. The "nppes_offices failed" and "service_catalog failed" counts in the report are database-wide (about 20 states are loading at the same time), not Idaho's steps.
+
+Idaho's most-used unmatched spellings were all St. Luke's: plan names start with its billing location ("HB NAMPA CIGNA", "HB WR AETNA MED ADV"; WR is Wood River) and Medicare Advantage insurers are written backwards ("MEDICARE ADVANTAGE AETNA"). `plan_resolver.py`: "MED ADV" is read as Medicare Advantage; the "HB <location>" prefix is ignored when deciding whether the plan text only repeats the insurer; an insurer's initials count as its name ("BCI" for Blue Cross of Idaho). Rules (D-047, evidence from the file): "MEDICARE ADVANTAGE" followed by Aetna, UHC, Regence, PacificSource, Molina or Humana; "BLUE CROSS/MEDICARE ADVANTAGE" and "BCI" are Blue Cross of Idaho in Idaho; "Blue Cross Idaho" without "of". When the insurer slot only names a kind of coverage ("COMMERCIAL", "MEDICARE ADVANTAGE GENERIC"), the insurer is taken from the plan text, but only when what is left after the billing location and kind-of-plan words exactly matches one reviewed naming rule ("COMMERCIAL | HB NAMPA CIGNA" is Cigna; "HB NAMPA ST LUKES EMPLOYEE" stays unmatched). Earlier matches of a generic slot are never reused for another plan text (found while testing: one "COMMERCIAL" match would otherwise have made every "COMMERCIAL" spelling that insurer; no reviewed alias or earlier rule used a generic slot, so live data was not affected). Left unmatched: "BP AETNA", "BCI PPO FEP".
+
+Tested: `test_reviewed_insurer_names_place_real_hospital_spellings` (Idaho cases). `make check`: `398 passed, 1 skipped`.
+
+## 2026-11-14 — More health-system assistance policies (large systems retried)
+
+D-060, each from the system's own document: Johns Hopkins (free to 200%; 75%, 50%, 35% off to 250%, 300%, 400%; effective 06/01/2025) for its Maryland hospitals, Sibley Memorial (DC) and Johns Hopkins All Children's (Florida); Orlando Health (60% off for uninsured patients up to 300% and insured up to 225%; revised 1/26); Sharp HealthCare (free to 200%, Medicare rates to 400%; effective 2/22/2022); Memorial Hermann (free to 200% for uninsured patients; insured to 400% at amounts generally billed; published 10/04/2022). 238 health-system rows. Florida, DC and California rows checked against live hospital names with no overlaps; the Maryland and Texas patterns will be checked when those states load. Not added: Northwell (uses New York's statewide form, which the New York law box already covers), UNC Health (its brochure and 2024 sheet disagree), Vanderbilt (no tiers on its summary), OhioHealth (policy file would not open).
+
+Tested: `make check`: `398 passed, 1 skipped`.
+
+## 2026-11-14 — Medicaid plans for the remaining states; possessive spellings fixed
+
+So the remaining states place their Medicaid plans on the first load (D-047; each from the state's own list, sources in `payer_name_rules.csv`): Maryland (Maryland Physicians Care, Priority Partners, Jai Medical Systems, CareFirst Community Health Plan, Wellpoint Maryland), Michigan (Blue Cross Complete, HAP CareSource, Upper Peninsula Health Plan), Minnesota's county plans (PrimeWest, South Country, IM Care), Mississippi (TrueCare), Missouri, North Carolina and South Carolina's Healthy Blue (each state's own plan), New Hampshire (NH Healthy Families, AmeriHealth Caritas New Hampshire), North Carolina (AmeriHealth Caritas North Carolina and the Tailored Plans Alliance, Partners, Trillium Health Resources and Vaya; Oregon's Trillium stays Oregon's), Pennsylvania (Highmark Wholecare, AmeriHealth Caritas Pennsylvania/Northeast, Jefferson Health Plans EverWell), South Carolina (Medical Home Network), Texas (Community First, FirstCare), Utah (Health Choice Utah, SelectHealth Community Care), Virginia (Anthem HealthKeepers Plus, Sentara Community Plan), West Virginia (Highmark Health Options of West Virginia, The Health Plan of West Virginia, Wellpoint of West Virginia) and Wisconsin's BadgerCare HMOs (Chorus Community Health Plans, formerly Children's Community Health Plan; both Group Health Cooperatives; iCare; MercyCare; MHS Health Wisconsin). Humana Healthy Horizons "of" a state and Wellpoint with a state name are now recognized.
+
+Fixed: "Cook Children's Health Plan", "Texas Children's Health Plan" and "Driscoll Children's Health Plan" never matched their rules (the apostrophe becomes a space when names are compared), and "EmblemHealth" written as one word didn't match. Not placed (no official list found yet): Tufts Health Together, Mass General Brigham Health Plan, Hennepin Health.
+
+Tested: `test_reviewed_insurer_names_place_real_hospital_spellings` (13 more states). `make check`: `398 passed, 1 skipped`.
+
+## 2026-11-14 — Verified in production: new look, phone layout, report details
+
+After Cooper's push (GitHub commit "39", every changed file matched) and deploy, checked procedurescout.com in the browser: the home page top section is teal with the white Bricolage Grotesque headline and Plus Jakarta Sans text; Got a bill? has the teal page top; a real search (MRI of the brain near 89502) showed 50 places with the Filters button ("25 mi · All types · Lowest price") and in-person/online inside it, first result Saint Mary's Regional Medical Center at a $259 cash price. The Medicaid plans and hospital policies take effect at each state's next load (catalog and resolve steps); the price-file problem list appears in the next state reports.
+
 ## 2026-11-14 — Louisiana and Kentucky Medicaid plans ready
 
 Insurers (D-047), from each state's own lists, ready before these states load: AmeriHealth Caritas Louisiana and Healthy Blue (Louisiana; formerly Amerigroup Louisiana, contract ends Dec 31 2026, so only placed in Louisiana), Humana Healthy Horizons (Humana's Medicaid plan), WellCare of Kentucky (Wellcare's Kentucky Medicaid plan) and "PHP by Molina" (Passport Health Plan). Sources in `payer_name_rules.csv` (Louisiana Department of Health notice, Kentucky's 2025 plan guide). A bare "AmeriHealth Caritas" stays the Delaware plan in Delaware and becomes the Louisiana plan in Louisiana. Because Wellcare now has a Medicaid plan, "Allwell" (always Wellcare's Medicare Advantage brand) is pinned to Medicare Advantage.
