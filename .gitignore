@@ -10,3 +10,5 @@ data/raw/
 legacy/
 .duckdb_extensions/
 apps/web/public/ocr/
+# copies the Claude app saves when files are sent in chat (not part of the project)
+Claude outputs/

@@ -2,6 +2,10 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-14 — "Claude outputs" kept out of the project
+
+The Claude app saved copies of files sent in chat into a "Claude outputs" folder inside the repository, and 9 of them were pushed (commits "Bold teal look…", "40", "41"). `.gitignore` now lists `Claude outputs/`; files are now saved straight into place without being sent as chat attachments. The 9 copies already on GitHub are duplicates and can be deleted.
+
 ## 2026-11-14 — Births searched with cash: "insurance rates only"; insurance companies easier to see; D-063
 
 Cooper searched "Vaginal birth (hospital stay)" near 89123, within 10 miles, cash: every hospital said "No published price". Checked on the live site: University Medical Center, Sunrise, MountainView, Southern Hills, St. Rose and West Henderson publish hundreds of insurer rates for MS-DRG 807 (per stay, per day, percent of charges, plus min/max), but no cash price and no full price for a birth stay, so the cash search found nothing to show. Within 25 miles only North Vista publishes a cash price ($6,983). Fix (`packages/core/procedurescout_core/search.py`, `apps/api/procedurescout_api/search_routes.py`, `apps/web/components/ResultCard.tsx`, `app/search/page.tsx`, `lib/i18n.ts`, `lib/types.ts`): cash and list searches also read insurer rates only to note that a place publishes them (`plan_rates_only`); the card says "No cash price published" and that the place published what insurance plans pay; when no place nearby has a cash price, a note says how many publish insurance rates, with a "See prices with my insurance" button. An insurer rate is never shown or compared as a cash price.
