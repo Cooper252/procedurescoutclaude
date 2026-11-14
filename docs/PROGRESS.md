@@ -2,6 +2,18 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-14 — Facility page: the searched price first on a phone
+
+`app/facility/[id]/page.tsx`: when someone opens a facility from a search (a service is chosen), "Prices here" now comes right after the name, call and directions buttons, before the provider's own page, hours and photos; on a phone it was about four screens down and now starts on the first screen (price table at 811px of an 844px-tall iPhone screen). Opening a facility without a service keeps the old order. `app/globals.css`: smaller facility name on phones.
+
+Tested: `tsc --noEmit`, `npm test`, `npm run build` passed; checked at phone width (page width 390px, no sideways scrolling).
+
+## 2026-11-14 — ChristianaCare policy; more retries
+
+D-060: ChristianaCare (Delaware) added: its policy revised 01/01/2025 and its 2024 scale agree that service-area residents up to 400% of the poverty guidelines get full (100%) assistance; uninsured patients above that get 15% off (earlier skipped because an older summary disagreed). Checked against the live Delaware name (Christiana and Wilmington share one CMS number). 239 health-system rows. Not added: Hartford HealthCare (its sliding scale is only in an appendix that would not open), Renown and Sarasota Memorial (no income tiers readable), Lee Health (only a 2021 revision, review overdue). Yale New Haven Health was already covered.
+
+Tested: `make check`: `398 passed, 1 skipped`.
+
 ## 2026-11-14 — Earlier states' unmatched spellings re-checked
 
 Re-ran the 443 most-used unmatched spellings from every load report so far (16 states) through the current rules: 69 now match. From what remains, placed with evidence: AvMed's, Simply Healthcare's and AmeriHealth Caritas Florida's marketplace plans (Florida's 2026 ACA individual carrier list; AmeriHealth Caritas Florida also its Medicaid plan); Florida's "MGMCRHMO" code (managed Medicare HMO, like MGMCR) and "ManagedCareHMO"; California's "HMO/POS/PPO/EPO" (every kind of commercial plan, like the existing "HMO/POS/PPO"). Still left as written on purpose: network and product names without a public definition (Aetna "Rental Network", United "Navigate", Cigna "Local Plus", Florida Blue "MBN"/"SBN"/"PHS", Colorado public-option product names), two-kind rates ("HMO/POS"), unknown local plans and workers' compensation.

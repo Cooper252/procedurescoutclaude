@@ -111,6 +111,63 @@ function Facility() {
       ].filter((g) => g.rows.length > 0)
     : [];
 
+  // arriving from a search (a service is chosen), the price comes right after
+  // the name and buttons, before the provider's own page (Cooper, 2026-11-14:
+  // on a phone it was about four screens down)
+  const pricesSection = (
+      <section className="fac-prices card">
+        <h2>{t.facPricesTitle}</h2>
+        <div className="field">
+          <label htmlFor="fac-svc">{t.facPickService}</label>
+          <select
+            id="fac-svc"
+            value={service}
+            onChange={(e) => router.replace(`/facility/${f.facility_id}${e.target.value ? `?service=${e.target.value}` : ""}`, { scroll: false })}
+          >
+            <option value="">—</option>
+            {services.map((s) => (
+              <option key={s.slug} value={s.slug}>
+                {svcName(s)}
+              </option>
+            ))}
+          </select>
+        </div>
+        {!f.prices_published_at && <p className="notice">{t.facNoFile}</p>}
+        {loading && <p className="loading">{t.loading}</p>}
+        {prices && !loading && prices.prices.length === 0 && f.prices_published_at && <p className="notice">{t.facNoPrices}</p>}
+        {!loading &&
+          groups.map((g) => (
+            <div key={g.title} className="price-group">
+              <h3>
+                {g.title} <span className="unit">{unitLabel(prices?.unit, lang)}</span>
+              </h3>
+              <div className="table-wrap">
+                <table>
+                  <tbody>
+                    {g.rows.map((p, i) => {
+                      const m = formatMoney(p.amount);
+                      return (
+                        <tr key={i}>
+                          <td>{p.plan ? `${p.payer ?? ""} · ${p.plan}` : p.setting ?? "—"}</td>
+                          <td className="num">
+                            {m ? m.text : p.percentage ? `${p.percentage}%` : p.algorithm ?? "—"}
+                            {m?.rounded && <span title={t.roundedNote}>*</span>}
+                          </td>
+                          <td className="code">{p.code}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ))}
+        {prices && prices.prices.some((p) => formatMoney(p.amount)?.rounded) && <p className="fine">* {t.roundedNote}</p>}
+        {prices && prices.codes[0] && <p className="tip">{fill(t.askTip, { c: prices.codes[0] })}</p>}
+        <ReportPrice facilityId={f.facility_id} serviceKey={service ? `svc:${service}` : undefined} />
+      </section>
+  );
+
   return (
     <div className="wrap page facility">
       <button type="button" className="link-btn" onClick={() => router.back()}>
@@ -164,6 +221,8 @@ function Facility() {
         </div>
       </header>
 
+      {service && pricesSection}
+
       {page && <ProviderHome page={page} />}
 
       {(isHospital || help) && (
@@ -180,57 +239,7 @@ function Facility() {
 
       {own && <ProviderPrices data={own} />}
 
-      <section className="fac-prices card">
-        <h2>{t.facPricesTitle}</h2>
-        <div className="field">
-          <label htmlFor="fac-svc">{t.facPickService}</label>
-          <select
-            id="fac-svc"
-            value={service}
-            onChange={(e) => router.replace(`/facility/${f.facility_id}${e.target.value ? `?service=${e.target.value}` : ""}`, { scroll: false })}
-          >
-            <option value="">—</option>
-            {services.map((s) => (
-              <option key={s.slug} value={s.slug}>
-                {svcName(s)}
-              </option>
-            ))}
-          </select>
-        </div>
-        {!f.prices_published_at && <p className="notice">{t.facNoFile}</p>}
-        {loading && <p className="loading">{t.loading}</p>}
-        {prices && !loading && prices.prices.length === 0 && f.prices_published_at && <p className="notice">{t.facNoPrices}</p>}
-        {!loading &&
-          groups.map((g) => (
-            <div key={g.title} className="price-group">
-              <h3>
-                {g.title} <span className="unit">{unitLabel(prices?.unit, lang)}</span>
-              </h3>
-              <div className="table-wrap">
-                <table>
-                  <tbody>
-                    {g.rows.map((p, i) => {
-                      const m = formatMoney(p.amount);
-                      return (
-                        <tr key={i}>
-                          <td>{p.plan ? `${p.payer ?? ""} · ${p.plan}` : p.setting ?? "—"}</td>
-                          <td className="num">
-                            {m ? m.text : p.percentage ? `${p.percentage}%` : p.algorithm ?? "—"}
-                            {m?.rounded && <span title={t.roundedNote}>*</span>}
-                          </td>
-                          <td className="code">{p.code}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ))}
-        {prices && prices.prices.some((p) => formatMoney(p.amount)?.rounded) && <p className="fine">* {t.roundedNote}</p>}
-        {prices && prices.codes[0] && <p className="tip">{fill(t.askTip, { c: prices.codes[0] })}</p>}
-        <ReportPrice facilityId={f.facility_id} serviceKey={service ? `svc:${service}` : undefined} />
-      </section>
+      {!service && pricesSection}
 
       {page && <ProviderReviews page={page} facilityName={f.name} />}
 

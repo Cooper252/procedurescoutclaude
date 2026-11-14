@@ -3136,3 +3136,12 @@ h3 {
     font-size: 16.5px;
   }
 }
+@media (max-width: 599px) {
+  /* facility page: the price for the searched service sooner on a phone */
+  .facility .fac-head .page-title {
+    font-size: 27px;
+  }
+  .facility.page {
+    padding-top: 16px;
+  }
+}
