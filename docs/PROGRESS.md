@@ -2,6 +2,16 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-14 — Birth list cleaned further; one CPT number however written (D-065)
+
+Verified in production (commit 49): "birth" now lists 321 hospital stays, 20 anesthesia options ("Neuraxial labor anesthesia vaginal delivery", "Anesthesia cesarean delivery only"…) and 59 procedures; "anesthesia" lists 400 anesthesia codes. Still wrong, fixed now in `packages/core/procedurescout_core/code_search.py` and `search.py`:
+
+- Epidural steroid shots and blood patches (CPT 62273, 64483…) were listed under birth: "epidural" was still in birth's word list (an earlier edit missed it). Removed; labor anesthesia comes from its codes (01958-01969).
+- A birth's own codes now come first in each group and in the search box (`core`), so "Vaginal birth (hospital stay)" (MS-DRG 807) is above "Postpartum diagnoses" (776), which has as many places.
+- Checked live near 89123: CPT "1967" (the national list's top spelling) had no places, while Sunrise publishes "01967". A code search now also finds the same number's other spellings (`same_code_spellings`), and the all-options list shows one option per CPT number (`_merge_spellings`), D-065.
+
+Tested: `test_birth_lists_its_own_codes_first_and_no_back_pain_injections`, `test_one_option_per_cpt_number_however_written`, `test_a_code_search_finds_every_spelling_of_the_same_number`; `test_api_lists_all_options_grouped` updated for the new order. `make check`: `414 passed, 1 skipped`.
+
 ## 2026-11-14 — All-options list tuned on real data; why the state chain stopped
 
 Verified in production (commit 46): `/v1/services/options` answers on procedurescout.com. "birth" 400 options (183 hospital stays, MS-DRG 807 shown as "Vaginal birth (hospital stay)", 379 places), "c-section" 303, "anesthesia" 400, "epidural" 305, "mri" 400. Problems seen in the real data and fixed in `packages/core/procedurescout_core/code_search.py`:

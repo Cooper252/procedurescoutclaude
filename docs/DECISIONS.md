@@ -2,6 +2,9 @@
 
 Newest first. Each entry: decision, reason, consequences.
 
+## 2026-11-14 — D-065: One CPT number, however a hospital wrote it
+Hospitals write the same CPT number differently: without its leading zeros ("1967" for 01967, labor epidural anesthesia) and labeled CPT or HCPCS (CPT is HCPCS Level I). These are the same code, not alternatives, so a search for one finds all of them (`search.same_code_spellings`, only spellings present in published prices) and the all-options list shows one option per number, in the standard five-digit spelling when published, with the larger of the place counts (never summed, so it can't overstate). A different number is never added (rule 8). Found on the live site: near 89123, Sunrise publishes 01967 while the national list's most common spelling was "1967", which no Las Vegas hospital uses.
+
 ## 2026-11-14 — D-064: Search lists every published option, grouped
 Cooper (2026-11-14): "I don't want 2 options, I want 20 options if that's what there is." Typing words now lists every published code that matches (`packages/core/procedurescout_core/code_search.py`): the hospitals' wording and the official public MS-DRG and HCPCS titles are searched, everyday words are widened to the words those use ("birth" also finds delivery, cesarean, labor, newborn; "anesthesia" also lists the CPT anesthesia section 00100-01999), and results are grouped (hospital stays, anesthesia, surgery, imaging, lab, visits, drugs, supplies, dental, other, one hospital's own item codes last) and ranked by how many places publish a price. The widened words come from the official code-set wording (D-061). Each option keeps its own code; nothing is merged or substituted (rule 8).
 

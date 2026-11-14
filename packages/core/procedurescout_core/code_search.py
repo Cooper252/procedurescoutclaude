@@ -27,7 +27,7 @@ shown for CPT codes is the hospitals' own, labeled as theirs by the site.
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from sqlalchemy import Connection, text
 
@@ -73,11 +73,10 @@ WIDEN: dict[str, tuple[str, ...]] = {
         "antepartum",
         "postpartum",
         "vbac",
-        "epidural",
     ),
     "childbirth": ("vaginal deliv*", "cesarean", "labor", "obstetric*", "newborn"),
     "baby": ("vaginal deliv*", "cesarean", "newborn", "neonat*", "obstetric*", "infant"),
-    "having a baby": ("vaginal deliv*", "cesarean", "labor", "obstetric*", "epidural"),
+    "having a baby": ("vaginal deliv*", "cesarean", "labor", "obstetric*"),
     "labor": ("vaginal deliv*", "labor", "obstetric*"),
     "delivery": ("vaginal deliv*", "cesarean", "obstetric*"),
     "pregnan*": ("obstetric*", "antepartum", "prenatal", "fetal", "pregnan*"),
@@ -344,6 +343,7 @@ class CodeOption:
     group: str
     service_slug: str | None = None  # the approved service this code belongs to
     service_unit: str | None = None
+    core: bool = False  # one of the codes that ARE the thing searched (CODE_RANGES)
 
 
 def _alternatives(normalized: str) -> list[list[str]]:
@@ -370,6 +370,35 @@ def _alternatives(normalized: str) -> list[list[str]]:
         if a not in out:
             out.append(a)
     return out[:30]
+
+
+def _merge_spellings(
+    found: dict[tuple[str, str], tuple[str | None, int, int]],
+) -> dict[tuple[str, str], tuple[str | None, int, int]]:
+    """One option per CPT number however hospitals wrote it (D-065): "1967",
+    "01967", or labeled HCPCS. The option uses the standard spelling (CPT,
+    five digits) when it was published; searching it finds every spelling.
+    Places is the largest count among the spellings (never added together, so
+    it can't overstate)."""
+    groups: dict[tuple[str, str], list[tuple[str, str]]] = {}
+    for sys_, code in found:
+        c = code.strip()
+        if sys_ in ("CPT", "HCPCS") and c.isdigit() and len(c) <= 5:
+            canon = ("CPT", c.zfill(5))
+        else:
+            canon = (sys_, code)
+        groups.setdefault(canon, []).append((sys_, code))
+    out: dict[tuple[str, str], tuple[str | None, int, int]] = {}
+    for canon, spellings in groups.items():
+        best = max(spellings, key=lambda k: (k == canon, found[k][1], found[k][2]))
+        wording = next(
+            (found[k][0] for k in sorted(spellings, key=lambda k: -found[k][1]) if found[k][0]),
+            None,
+        )
+        places = max(found[k][1] for k in spellings)
+        prices = max(found[k][2] for k in spellings)
+        out[best] = (wording, places, prices)
+    return out
 
 
 def _ranges_for(normalized: str) -> list[tuple[str, int, int]]:
@@ -473,6 +502,7 @@ def find_options(conn: Connection, query: str, limit: int = 400) -> list[CodeOpt
             found.setdefault((str(rsys), str(code)), (wording, int(places), int(prices)))
     if not found:
         return []
+    found = _merge_spellings(found)
     keys = list(found)
     pairs = [f"{s}:{c}" for s, c in keys]
     services = {
@@ -538,5 +568,19 @@ def find_options(conn: Connection, query: str, limit: int = 400) -> list[CodeOpt
             CodeOption(sys_, code, name, shown, places, prices, group_for(sys_, code), slug, unit)
         )
     order = {g: i for i, g in enumerate(GROUPS)}
-    out.sort(key=lambda o: (order[o.group], -o.places, -o.prices, o.code_system, o.code))
+    ranges = _ranges_for(q)
+
+    def core(o: CodeOption) -> int:
+        """0 when the code is one of the codes that ARE the thing (e.g. a
+        birth's own stays), so those come first in their group."""
+        c = o.code.strip()
+        system = "CPT" if o.code_system == "HCPCS" and c.isdigit() else o.code_system
+        if c.isdigit():
+            n_ = int(c)
+            if any(system == rs and lo <= n_ <= hi for rs, lo, hi in ranges):
+                return 0
+        return 1
+
+    out = [replace(o, core=core(o) == 0) for o in out]
+    out.sort(key=lambda o: (order[o.group], core(o), -o.places, -o.prices, o.code_system, o.code))
     return out[:n]

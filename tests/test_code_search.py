@@ -26,6 +26,8 @@ ROWS = [
     ("HCPCS", "59514", "CESAREAN DELIVERY ONLY", 20, 100),
     ("HCPCS", "C1874", "STENT, COATED/COVERED, WITH DELIVERY SYSTEM", 60, 900),
     ("MS-DRG", "795", "NORMAL NEWBORN", 35, 600),
+    ("CPT", "62273", "INJECTION, EPIDURAL, OF BLOOD OR CLOT PATCH", 70, 900),
+    ("MS-DRG", "776", "POSTPARTUM AND POST ABORTION DIAGNOSES W/O O.R. PROCEDURE", 45, 700),
 ]
 
 
@@ -119,7 +121,9 @@ def test_api_lists_all_options_grouped(conn: Connection) -> None:
     assert groups[0] == "stay" and "anesthesia" in groups
     assert body["total"] >= 7
     stays = body["groups"][0]["options"]
-    assert [o["places"] for o in stays] == sorted((o["places"] for o in stays), reverse=True)
+    # a birth's own stays first, most widely published first; related stays after
+    assert stays[0]["code"] == "807"
+    assert stays[-1]["code"] == "776"
 
 
 def test_real_file_habits_are_grouped_and_device_delivery_is_not_a_birth(conn: Connection) -> None:
@@ -140,3 +144,43 @@ def test_short_forms_written_out_with_hospital_wording_kept() -> None:
         plain_wording("Neuraxl lbr anes vag dlvr") == "Neuraxial labor anesthesia vaginal delivery"
     )
     assert plain_wording("HC c-section multi") == "C-section multi"
+
+
+def test_birth_lists_its_own_codes_first_and_no_back_pain_injections(conn: Connection) -> None:
+    _index(conn)
+    opts = find_options(conn, "birth")
+    keys = [(o.code_system, o.code) for o in opts]
+    assert ("CPT", "62273") not in keys  # an epidural blood patch is not a birth
+    stays = [k for k, o in zip(keys, opts, strict=True) if o.group == "stay"]
+    # 776 has more places, but 807 is a birth stay by its code: it comes first
+    assert stays.index(("MS-DRG", "807")) < stays.index(("MS-DRG", "776"))
+
+
+def test_one_option_per_cpt_number_however_written(conn: Connection) -> None:
+    _index(conn)
+    conn.execute(
+        text(
+            "INSERT INTO ref.code_index (system, code, hospital_description, facilities, prices) "
+            "VALUES ('CPT', '01961', 'ANESTH CESAREAN DELIVERY', 5, 9)"
+        )
+    )
+    opts = [o for o in find_options(conn, "c-section") if o.code.lstrip("0") == "1961"]
+    assert len(opts) == 1
+    assert (opts[0].code_system, opts[0].code) == ("CPT", "01961")  # the standard spelling
+    assert opts[0].places == 32  # the larger count, never added together
+
+
+def test_a_code_search_finds_every_spelling_of_the_same_number(conn: Connection) -> None:
+    from procedurescout_core.search import same_code_spellings
+
+    for sys_, code in [("CPT", "01967"), ("CPT", "1967"), ("HCPCS", "59409")]:
+        conn.execute(
+            text(
+                "INSERT INTO ref.code (system, code, version) "
+                "VALUES (CAST(:s AS ref.code_system), :c, 'published') ON CONFLICT DO NOTHING"
+            ),
+            {"s": sys_, "c": code},
+        )
+    assert set(same_code_spellings(conn, [("CPT", "01967")])) == {("CPT", "01967"), ("CPT", "1967")}
+    assert ("HCPCS", "59409") in same_code_spellings(conn, [("CPT", "59409")])
+    assert same_code_spellings(conn, [("MS-DRG", "807")]) == [("MS-DRG", "807")]

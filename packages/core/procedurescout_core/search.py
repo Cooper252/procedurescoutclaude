@@ -156,6 +156,34 @@ def _check_code(conn: Connection, code_system: str, code: str) -> tuple[str, str
     return system.value, code
 
 
+def same_code_spellings(conn: Connection, codes: list[tuple[str, str]]) -> list[tuple[str, str]]:
+    """The same CPT number as hospitals write it (D-065): with or without its
+    leading zeros ("01967" and "1967"), and labeled CPT or HCPCS (CPT is HCPCS
+    Level I; many files label CPT numbers "HCPCS"). Only spellings that are in
+    published prices (ref.code) are added. A different number is never added."""
+    out = list(codes)
+    wanted: list[tuple[str, str]] = []
+    for system, code in codes:
+        if system not in ("CPT", "HCPCS") or not code.isdigit() or len(code) > 5:
+            continue
+        bare = code.lstrip("0") or "0"
+        for spelled in {bare, bare.zfill(5)}:
+            for sys2 in ("CPT", "HCPCS"):
+                if (sys2, spelled) not in out and (sys2, spelled) not in wanted:
+                    wanted.append((sys2, spelled))
+    if wanted:
+        found = conn.execute(
+            text(
+                "SELECT DISTINCT system::text, code FROM ref.code "
+                "WHERE system::text || ':' || code = ANY(:k)"
+            ),
+            {"k": [f"{a}:{b}" for a, b in wanted]},
+        ).all()
+        known = {(str(a), str(b)) for a, b in found}
+        out.extend(w for w in wanted if w in known)
+    return out
+
+
 def search(
     conn: Connection,
     store: ObjectStore,
@@ -228,6 +256,8 @@ def search(
         name, unit, codes = _codes_for_service(conn, service_slug)
     else:
         codes = [_check_code(conn, code_system or "", code or "")]
+    # the same number written another way ("1967" for 01967) is the same code
+    codes = same_code_spellings(conn, codes)
     code_description = None
     if service_slug is None:
         code_description = conn.execute(
@@ -689,7 +719,8 @@ def _code_suggestions(conn: Connection, raw: str, normalized: str, n: int) -> li
         from .code_search import find_options
 
         found = [o for o in find_options(conn, raw, limit=200) if o.group != "hospital_item"]
-        found.sort(key=lambda o: (-o.places, -o.prices))  # most widely published first
+        # the searched thing's own codes first, then most widely published
+        found.sort(key=lambda o: (not o.core, -o.places, -o.prices))
         picks: list[Suggestion] = []
         for o in found[:n]:
             if o.service_slug:
