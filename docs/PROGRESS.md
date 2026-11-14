@@ -2,6 +2,17 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-14 — Word searches fast (migration 0028); insurance list under the box; doctor's care optional; copay up front
+
+Checked on the live site after commit 52 (the range fix): "knee" still took 19.2 s, "hernia" 3.3 s, a made-up word 1.2 s. Cause: the word index on `ref.code_index` covers every code, and most rows are hospitals' own item codes, so a common word matched tens of thousands of rows that were all sorted. New migration `db/migrations/versions/0028_code_search_indexes.py` (built CONCURRENTLY): a word index over codes that mean the same thing everywhere only, and one over the official MS-DRG/HCPCS titles. `code_search.py` searches procedure codes through it and looks up hospitals' item codes apart (all matches, then 100: a plain LIMIT made PostgreSQL walk the whole table, 6 s here); the title lookup now uses the code index. `search_routes.py` keeps search-box and all-options answers for 15 minutes (`OPTIONS_CACHE_SECONDS`; 0 in tests, `tests/conftest.py`). Timed here on a 1.6-million-row index (1.5 million item codes all containing "knee"): procedure-code query 472 ms → 5 ms; knee 0.16 s, birth 0.05 s, anesthesia 0.08 s, heart 0.04 s.
+
+Cooper's screenshots:
+- The insurance list opened below the photo button and the help line: the list was placed under the whole picker. `InsurancePicker.tsx` wraps the box and its list (`.ins-field`); checked here: the list starts 6 px under the box.
+- "Add up the whole cost" showed a different price and forced "Doctor's care" in ("always part of it"). The doctor's prenatal and delivery care (CPT 59400 / 59510) is now optional, still ticked at first, in the vaginal-birth and C-section bundles (`data/reference/bundles.csv`; it can be an OB-GYN's bill or a copay), and the intro says the price above is only the place's own part (`wcIntro`).
+- "Why is there no copay?" The copay box existed but was folded away under "What will I pay?". `app/search/page.tsx`: the panel is open from the start, copay first, with a note that a copay is often on the card and that yearly checkups are often $0 as preventive care; `ResultCard.tsx` now gives an estimate for a range of rates too (lowest to highest).
+
+Tested: `make check`: `418 passed, 1 skipped` (the migration runs in the test database rebuild); website `npx tsc --noEmit` clean, `npm test` passed, `npx next build` compiled.
+
 ## 2026-11-14 — Code-range lookups made fast (live "knee" timed out)
 
 Checked on the live site after commit 51: `/v1/services/options?q=hernia` took 9.5 s and "knee" returned a server error (timed out). Cause: the code-range lookups (`code_ranges.py`) turned every code in the national code index into a number, a full scan per range, and "knee" has about 9 ranges. Fix: `code_ranges.string_ranges` turns each range into text ranges of one length ("1958"-"1969" and "01958"-"01969" for CPT 01958-01969; "64"-"66" and "064"-"066" for MS-DRG; "G0105"-"G0121"), looked up through the code index's own order (`code_search.py`); the code-type filter now uses the index too. Timed here on a 1.6-million-row code index: knee 0.49 s, birth 0.10 s, anesthesia 0.11 s, heart 0.03 s, hernia 0.02 s (the search box about the same).

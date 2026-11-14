@@ -413,6 +413,8 @@ def find_options(conn: Connection, query: str, limit: int = 400) -> list[CodeOpt
     found: dict[tuple[str, str], tuple[str | None, int, int]] = {}
     if alts:
         tsq = _tsquery(alts)
+        # codes that mean the same thing everywhere, through their own word
+        # index (0028): a common word no longer sorts every hospital item code
         for sys_, code, wording, places, prices in conn.execute(
             text(
                 """
@@ -420,6 +422,7 @@ def find_options(conn: Connection, query: str, limit: int = 400) -> list[CodeOpt
                 FROM ref.code_index
                 WHERE to_tsvector('english', coalesce(hospital_description, ''))
                       @@ to_tsquery('english', :tsq)
+                  AND system NOT IN ('CDM', 'LOCAL', 'RC', 'NDC')
                 ORDER BY facilities DESC, prices DESC, system, code
                 LIMIT :n
                 """
@@ -427,6 +430,27 @@ def find_options(conn: Connection, query: str, limit: int = 400) -> list[CodeOpt
             {"tsq": tsq, "n": n},
         ).all():
             found[(str(sys_), str(code))] = (wording, int(places), int(prices))
+        # each hospital's own item codes: a few, listed last (one place each).
+        # Asked for as "all matches, then 100 of them": with a plain LIMIT,
+        # PostgreSQL may walk the whole table hoping to stop early, and finds
+        # nothing for most words (6 s on 1.6 million rows here).
+        for sys_, code, wording, places, prices in conn.execute(
+            text(
+                """
+                WITH m AS MATERIALIZED (
+                    SELECT system, code, hospital_description, facilities, prices
+                    FROM ref.code_index
+                    WHERE to_tsvector('english', coalesce(hospital_description, ''))
+                          @@ to_tsquery('english', :tsq)
+                      AND system IN ('CDM', 'LOCAL', 'RC', 'NDC')
+                )
+                SELECT system::text, code, hospital_description, facilities, prices
+                FROM m LIMIT 100
+                """
+            ),
+            {"tsq": tsq},
+        ).all():
+            found.setdefault((str(sys_), str(code)), (wording, int(places), int(prices)))
         # official public titles (MS-DRG, HCPCS) of codes hospitals published
         for sys_, code, wording, places, prices in conn.execute(
             text(
@@ -495,11 +519,11 @@ def find_options(conn: Connection, query: str, limit: int = 400) -> list[CodeOpt
                 """
                 SELECT DISTINCT ON (system, code) system::text, code, descriptor FROM ref.code
                 WHERE system IN ('MS-DRG', 'HCPCS') AND descriptor IS NOT NULL
-                  AND system::text || ':' || code = ANY(:pairs)
+                  AND code = ANY(:codes)
                 ORDER BY system, code, version DESC
                 """
             ),
-            {"pairs": pairs},
+            {"codes": sorted({c for s_, c in keys if s_ in ("MS-DRG", "HCPCS")})},
         ).all()
     }
     typed_words = alts[0] if alts else []

@@ -514,16 +514,19 @@ function EstimatePanel({ value, onChange }: { value: PlanDetails; onChange: (p: 
     </div>
   );
   return (
-    <details className="card estimate-panel">
+    // open from the start, copay first (Cooper, 2026-11-14: "why is there no
+    // Copay?" It was folded away under "What will I pay?")
+    <details className="card estimate-panel" open>
       <summary>
         <strong>{t.estTitle}</strong> <span className="muted small">{t.estSub}</span>
       </summary>
       <div className="estimate-fields">
+        {field("copay", t.estCopay, "40")}
         {field("deductibleLeft", t.estDeductible, "1000")}
         {field("coinsurance", t.estCoinsurance, "20")}
         {field("oopLeft", t.estOop, "4000")}
-        {field("copay", t.estCopay, "40")}
       </div>
+      <p className="fine">{t.estCopayOr}</p>
       <p className="fine">{t.estFine}</p>
     </details>
   );

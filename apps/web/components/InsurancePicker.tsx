@@ -170,6 +170,9 @@ export function InsurancePicker({
 
   return (
     <div className="insurance-picker">
+      {/* the list opens right under the box, above the photo button and help
+          (Cooper, 2026-11-14: it opened below them) */}
+      <div className="ins-field">
       <input
         id={id}
         autoComplete="off"
@@ -272,6 +275,7 @@ export function InsurancePicker({
           )}
         </ul>
       )}
+      </div>
       <label className="card-photo">
         <input
           type="file"

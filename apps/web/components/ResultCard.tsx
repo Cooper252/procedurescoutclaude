@@ -61,11 +61,13 @@ export function ResultCard({
 }) {
   const { t, lang } = useApp();
   // a rough "you'd pay" only from this plan's negotiated rate, never a list price
-  const est =
-    // only from one clear rate: with several published rates we can't tell which is yours
-    mode === "plan" && !unsure && plan && f.headline && f.headline_price_type === "negotiated" &&
-    !(f.headline_highest && compareDecimal(f.headline, f.headline_highest) !== 0)
-      ? estimate(f.headline, plan)
+  // a rough "you'd pay" from the plan's rate: with several published rates,
+  // from the lowest and the highest (a range), never a guess at which is yours
+  const canEst = mode === "plan" && !unsure && plan && f.headline && f.headline_price_type === "negotiated";
+  const est = canEst ? estimate(f.headline!, plan!) : null;
+  const estHigh =
+    canEst && est && f.headline_highest && compareDecimal(f.headline!, f.headline_highest) !== 0
+      ? estimate(f.headline_highest, plan!)
       : null;
   const [open, setOpen] = useState(false);
   // "not sure which plan": lowest to highest rate across the insurer's plans
@@ -159,7 +161,14 @@ export function ResultCard({
 
       {est && (
         <p className="estimate-line">
-          <strong>{fill(t.estYouPay, { p: centsToDollars(est.cents) })}</strong>{" "}
+          <strong>
+            {fill(t.estYouPay, {
+              p:
+                estHigh && estHigh.cents !== est.cents
+                  ? `${centsToDollars(est.cents)}–${centsToDollars(estHigh.cents)}`
+                  : centsToDollars(est.cents),
+            })}
+          </strong>{" "}
           <span className="muted small">{t[`estHow_${est.how}` as const]}</span>
         </p>
       )}

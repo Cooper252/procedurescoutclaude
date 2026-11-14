@@ -12,7 +12,7 @@ publish date of its file.
 from __future__ import annotations
 
 import re
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from decimal import Decimal
 from typing import Annotated
 
@@ -193,11 +193,42 @@ class SuggestionOut(BaseModel):
     about: str | None = None  # what the service is; for a code, the hospitals' wording
 
 
+# Answers for the search box and the all-options list are the same for
+# everyone until the next load rebuilds the code index, so they are kept for a
+# while (OPTIONS_CACHE_SECONDS, default 15 minutes; 0 turns it off, as in tests).
+_answers: dict[tuple[str, str], tuple[float, object]] = {}
+
+
+def _cached[T](kind: str, q: str, make: Callable[[], T]) -> T:
+    import os
+    import time
+
+    from procedurescout_core.matching import normalize_name
+
+    ttl = int(os.environ.get("OPTIONS_CACHE_SECONDS", "900") or 0)
+    if ttl <= 0:
+        return make()
+    key = (kind, normalize_name(q))
+    now = time.monotonic()
+    hit = _answers.get(key)
+    if hit and now - hit[0] < ttl:
+        return hit[1]  # type: ignore[return-value]
+    value = make()
+    if len(_answers) > 2000:
+        _answers.clear()
+    _answers[key] = (now, value)
+    return value
+
+
 @router.get("/services/suggest", response_model=list[SuggestionOut])
 def services_suggest(
     conn: Conn, q: Annotated[str, Query(min_length=1, max_length=60)]
 ) -> list[SuggestionOut]:
     """Search-box suggestions from service names and approved everyday words."""
+    return _cached("suggest", q, lambda: _suggest_out(conn, q))
+
+
+def _suggest_out(conn: Connection, q: str) -> list[SuggestionOut]:
     return [
         SuggestionOut(
             slug=s.slug,
@@ -242,6 +273,10 @@ def services_options(
     """Every published price option for what was typed, grouped by kind and
     ranked by how many places publish it (Cooper, 2026-11-14: "give all the
     options")."""
+    return _cached("options", q, lambda: _options_out(conn, q))
+
+
+def _options_out(conn: Connection, q: str) -> OptionsOut:
     from procedurescout_core.code_search import GROUPS, find_options
 
     found = find_options(conn, q, limit=400)

@@ -29,6 +29,8 @@ def _load_dotenv() -> None:
 
 
 _load_dotenv()
+# each test changes the code index: search answers are never kept between them
+os.environ["OPTIONS_CACHE_SECONDS"] = "0"
 
 
 def _require(name: str) -> str:
