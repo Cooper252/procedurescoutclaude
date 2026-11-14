@@ -11,6 +11,8 @@
     "prebuild": "node scripts/copy-ocr.mjs"
   },
   "dependencies": {
+    "@fontsource/bricolage-grotesque": "5.2.10",
+    "@fontsource/plus-jakarta-sans": "5.2.8",
     "@tesseract.js-data/eng": "1.0.0",
     "next": "15.5.28",
     "react": "19.3.1",

@@ -31,12 +31,12 @@
   --info: #1e4fbf;
   --info-50: #edf2ff;
   --danger: #b42318;
-  --radius: 16px;
+  --radius: 20px;
   --radius-sm: 10px;
   --shadow-sm: 0 1px 2px rgba(15, 29, 43, 0.06);
   --shadow: 0 1px 2px rgba(15, 29, 43, 0.05), 0 8px 24px -8px rgba(15, 29, 43, 0.12);
   --shadow-lg: 0 2px 4px rgba(15, 29, 43, 0.04), 0 20px 48px -16px rgba(15, 29, 43, 0.22);
-  --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+  --font: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
     "Noto Sans", sans-serif;
   color-scheme: light;
 }
@@ -2888,4 +2888,98 @@ details.unpriced > summary:focus-visible { outline: 2px solid var(--accent, #0b6
 .card-read {
   color: var(--care-600);
   font-weight: 600;
+}
+
+
+/* ---------- Bold teal look (Cooper chose option A, 2026-11-14) ----------
+   Deep teal top section with white headline, floating white boxes and a
+   glowing coral search button. Fonts are self-hosted (@fontsource, imported in
+   layout.tsx): Plus Jakarta Sans for text, Bricolage Grotesque for headings.
+   Text on teal stays at or above 4.5:1 contrast (WCAG AA). */
+h1,
+h2,
+h3 {
+  font-family: "Bricolage Grotesque", var(--font);
+}
+.eyebrow,
+.care-panel h2 {
+  font-family: var(--font);
+}
+.header {
+  border-bottom: 0;
+  box-shadow: 0 1px 0 rgba(15, 29, 43, 0.06);
+}
+.nav-link.on {
+  background: var(--brand);
+  color: #fff;
+}
+.care-banner {
+  background: #0a5257;
+  border-bottom: 0;
+  color: #dff7ea;
+}
+.care-banner-what {
+  color: #fff;
+}
+.hero {
+  background:
+    radial-gradient(700px 380px at 92% 10%, rgba(255, 138, 101, 0.32), transparent 60%),
+    radial-gradient(800px 500px at 10% 100%, rgba(52, 211, 153, 0.18), transparent 60%),
+    linear-gradient(135deg, #06474c 0%, #0b6e75 60%, #0b7a80 100%);
+  padding: 52px 0 60px;
+  color: #fff;
+}
+.hero h1 {
+  color: #fff;
+  font-weight: 800;
+  font-size: clamp(2.4rem, 6vw, 4rem);
+  letter-spacing: -0.04em;
+}
+.hero .lead {
+  color: #e2f3f3;
+}
+.hero .search-card,
+.hero .care-panel {
+  color: var(--ink);
+  border: 0;
+  border-radius: 24px;
+  box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.45);
+}
+.hero .search .search-btn {
+  background: #ff7a50;
+  color: #1a0f0a;
+  box-shadow: 0 8px 20px -6px rgba(255, 122, 80, 0.7);
+}
+.hero .search .search-btn:hover {
+  background: #ff6a3d;
+}
+.hero .popular .eyebrow {
+  color: #ffd9cc;
+}
+.hero .popular .chip {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  color: #fff;
+}
+.hero .popular .chip:hover {
+  background: rgba(255, 255, 255, 0.24);
+}
+.online-card {
+  background: linear-gradient(120deg, var(--accent-50), #ffe4d8);
+  border: 0;
+}
+.online-card .chip {
+  border: 0;
+  box-shadow: 0 2px 6px rgba(15, 29, 43, 0.06);
+}
+.bill-card,
+.mini-card {
+  border: 0;
+  box-shadow: 0 10px 30px -12px rgba(11, 110, 117, 0.25);
+}
+.band.two .mini-card:nth-child(1) {
+  border-left: 6px solid var(--brand);
+}
+.band.two .mini-card:nth-child(2) {
+  border-left: 6px solid var(--accent);
 }

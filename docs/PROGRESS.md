@@ -2,6 +2,12 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-14 — New home page look ("bold teal", Cooper chose option A)
+
+Cooper found the site plain and picked option A of three mockups. `apps/web/app/globals.css` (block "Bold teal look"): the home page's top section is now deep teal with a white headline, the search and free-care boxes float on it, the coral search button glows, popular searches are see-through pills; the free-care strip under the menu is dark teal on every page; the current menu item is solid teal; cards lost their gray borders for soft shadows, with teal and coral edges on the two lower cards. New fonts, self-hosted from npm so no outside font service is used: Plus Jakarta Sans for text and Bricolage Grotesque for headings (`@fontsource/plus-jakarta-sans` 5.2.8, `@fontsource/bricolage-grotesque` 5.2.10, imported in `app/layout.tsx`). Text on teal keeps at least 4.5:1 contrast.
+
+Tested: `npm run build` compiled; `tsc --noEmit` passed; `npm test` passed; `npm audit`: `found 0 vulnerabilities`. Checked by screenshots at computer and phone width (home and help-paying pages).
+
 ## 2026-11-14 — State reports name the failed price files
 
 Each state's load report (`report` step, `reference/cli.py` `cmd_report`) now has a `price_file_problems` list: for the state's latest price-file run, every hospital file that failed to download, failed to load or had a problem, with the file name, address and reason (from `src.reference_reject`). Before, the reports showed only counts (Georgia "download_failed": 5, Florida pass 2: 8), so the failures could not be looked into. The next state reports will show them; Florida and Georgia show them after their next run.

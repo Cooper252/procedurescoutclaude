@@ -2,6 +2,13 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { AppStateProvider } from "@/components/AppState";
 import { Footer, Header } from "@/components/Chrome";
+import "@fontsource/plus-jakarta-sans/latin-400.css";
+import "@fontsource/plus-jakarta-sans/latin-500.css";
+import "@fontsource/plus-jakarta-sans/latin-600.css";
+import "@fontsource/plus-jakarta-sans/latin-700.css";
+import "@fontsource/plus-jakarta-sans/latin-800.css";
+import "@fontsource/bricolage-grotesque/latin-700.css";
+import "@fontsource/bricolage-grotesque/latin-800.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
