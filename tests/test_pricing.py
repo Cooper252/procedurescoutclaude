@@ -921,6 +921,24 @@ REAL_SPELLINGS: dict[str, list[tuple[str, str, str | None]]] = {
         ("Kaiser Permanente", "Kaiser MD MCO", None),  # "MCO" alone isn't certain
         ("UnitedHealthcare Insurance Company", "Optum VA Community Care", None),
     ],
+    "FL": [
+        # Florida hospitals (2026-11-13 load reports): plan codes
+        ("Oscar", "HIX", "Oscar Health · Marketplace (exchange) plan"),
+        ("Freedom Health", "MGMCR", "Freedom Health (Florida) · Medicare Advantage"),
+        ("Optimum  Healthcare", "PFFS", "Optimum HealthCare (Florida) · Medicare Advantage"),
+        ("BCBS", "MCRPPO", "Florida Blue · Medicare Advantage"),
+        ("Sunshine State Health Plan", "QHP", "Sunshine Health · Marketplace (exchange) plan"),
+        ("Cigna", "NBN", None),  # an unexplained network code
+        ("CorVel Corporation", "WORKERSCOMP", None),  # workers' compensation
+    ],
+    "GA": [
+        # Georgia hospitals (2026-11-13 load report)
+        ("Care Source", "Medicare Advantage", "CareSource · Medicare Advantage"),
+        ("Aetna", "POS", "Aetna · POS"),
+        ("Peach State Ambetter", "HIX", "Ambetter · Marketplace (exchange) plan"),
+        ("Centurion", "PRISN", None),  # prison health care
+        ("Humana", "Hmo/Pos", None),  # two kinds of plan in one rate
+    ],
     "CT": [
         # Connecticut hospitals (2026-11-13 load report)
         (

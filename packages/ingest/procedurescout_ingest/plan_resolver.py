@@ -53,6 +53,9 @@ _TYPES: list[tuple[re.Pattern[str], str]] = [
             r"medicare advantage|medicare managed care|managed medicare|\bmedicare\b|\bmcr\b"
             r"|\bma\b|mapd|d snp|\bdual\b|medicarecomplete|\bcare advantage\b|\bmcare\b"
             r"|\bsenior\b|\b65 plus\b"
+            # Florida files' plan codes (2026-11-13): managed Medicare, Medicare
+            # HMO/PPO, private fee-for-service (a Medicare Advantage plan type)
+            r"|\bmgmcr\b|\bmcr ?hmo\b|\bmcr ?ppo\b|\bpffs\b"
         ),
         "Medicare Advantage",
     ),

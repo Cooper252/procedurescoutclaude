@@ -278,3 +278,8 @@ care ?first (blue ?choice|advantage)( inc)?,CareFirst BlueCross BlueShield,,,Car
 aetna us health ?care( inc)?,Aetna,,,Aetna U.S. Healthcare is Aetna's former name; https://www.aetna.com,"Claude (delegated by Cooper, D-047)",2026-11-13
 cigna health ?care( of)? mid ?atlantic( inc)?,Cigna,,,"Cigna HealthCare Mid-Atlantic is Cigna's company in MD, DC and VA; https://www.cigna.com","Claude (delegated by Cooper, D-047)",2026-11-13
 private health ?care systems?( phcs)?,PHCS (MultiPlan),,,Private HealthCare Systems (PHCS) is MultiPlan's network; https://www.multiplan.us,"Claude (delegated by Cooper, D-047)",2026-11-13
+freedom health( inc)?,Freedom Health (Florida),,FL,Florida Medicare Advantage plan (Elevance Health); https://www.freedomhealth.com,"Claude (delegated by Cooper, D-047)",2026-11-13
+optimum( health ?care)?( inc)?,Optimum HealthCare (Florida),,FL,Florida Medicare Advantage plan (Elevance Health); https://www.youroptimumhealthcare.com,"Claude (delegated by Cooper, D-047)",2026-11-13
+care ?source( (georgia|ga|ohio|indiana|kentucky|west virginia|north carolina))?,CareSource,,GA OH IN KY WV NC,"CareSource's own name in the states where it sells Medicaid, Medicare Advantage and marketplace plans; https://www.caresource.com","Claude (delegated by Cooper, D-047)",2026-11-13
+peach state ambetter|ambetter (from )?peach state( health plan)?,Ambetter,,GA,Ambetter from Peach State Health Plan is the Georgia marketplace plan (Centene); https://ambetter.pshpgeorgia.com,"Claude (delegated by Cooper, D-047)",2026-11-13
+aetna first health,First Health (Aetna),,,First Health is the Aetna network; https://www.firsthealth.com,"Claude (delegated by Cooper, D-047)",2026-11-13

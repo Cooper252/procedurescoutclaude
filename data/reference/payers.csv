@@ -810,3 +810,9 @@ HealthSpring (Medicare Advantage),Medicare Advantage,other,medicare_advantage,"C
 MedStar Family Choice,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-13
 AmeriHealth Caritas District of Columbia,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-13
 Health Services for Children with Special Needs (HSCSN),Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-13
+Oscar Health,Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-13
+Sunshine Health,Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-13
+Aetna,POS,pos,commercial,"Claude (delegated by Cooper, D-047)",2026-11-13
+CareSource,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-13
+Freedom Health (Florida),Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-13
+Optimum HealthCare (Florida),Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-13
