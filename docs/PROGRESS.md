@@ -2,6 +2,12 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-14 — State reports name the failed price files
+
+Each state's load report (`report` step, `reference/cli.py` `cmd_report`) now has a `price_file_problems` list: for the state's latest price-file run, every hospital file that failed to download, failed to load or had a problem, with the file name, address and reason (from `src.reference_reject`). Before, the reports showed only counts (Georgia "download_failed": 5, Florida pass 2: 8), so the failures could not be looked into. The next state reports will show them; Florida and Georgia show them after their next run.
+
+Tested: `test_report_lists_which_price_files_failed`. `make check`: `398 passed, 1 skipped`.
+
 ## 2026-11-14 — Florida and Georgia loads: insurers and hospital names
 
 The Florida (two passes, 126 price files, 184 million prices) and Georgia (72 of 77 price files, 62 million prices) loads finished with no failed steps (the website-step fix is in use).

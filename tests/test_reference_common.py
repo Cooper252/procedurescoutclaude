@@ -301,3 +301,41 @@ def test_every_reference_load_names_its_source() -> None:
         and not {k.arg for k in node.keywords} & {"blob", "source_url", "source_file"}
     ]
     assert missing == []
+
+
+def test_report_lists_which_price_files_failed(engine: Engine) -> None:
+    """The state report names each failed price file and why, from the latest
+    price-file run only (2026-11-14: reports showed only counts)."""
+    stats = LoadStats(rows_in=3, rows_loaded=1)
+    stats.reject(
+        "Synthetic Hospital A", "download_failed", "a.json | https://example.test/a (status 404)"
+    )
+    stats.reject("Synthetic Hospital B", "file_problem", "b.csv | no prices found")
+    stats.reject("Synthetic Hospital C", "other_rule", "not shown")
+    params = {"test": "synthetic_pf", "state": "ZZ"}
+    try:
+        cli._run(
+            engine,
+            "price_file_check",
+            lambda c: LoadStats(),
+            source_file="synthetic_old",
+            parameters=params,
+        )
+        cli._run(
+            engine,
+            "price_file_check",
+            lambda c: stats,
+            source_file="synthetic_new",
+            parameters=params,
+        )
+        with engine.connect() as c:
+            got = cli.price_file_problems(c, "ZZ")
+        assert got == [
+            "download_failed: a.json | https://example.test/a (status 404)",
+            "file_problem: b.csv | no prices found",
+        ]
+    finally:
+        with engine.begin() as c:
+            c.execute(
+                text("DELETE FROM src.reference_load WHERE parameters->>'test' = 'synthetic_pf'")
+            )

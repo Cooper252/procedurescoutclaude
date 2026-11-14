@@ -1030,11 +1030,33 @@ def cmd_report(args: argparse.Namespace, engine: Engine) -> None:
             SELECT dataset || ' ' || status, count(*) FROM src.reference_load
             GROUP BY 1 ORDER BY 1""",
     }
-    out: dict[str, dict[str, int]] = {}
+    out: dict[str, object] = {}
     with engine.connect() as conn:
         for key, sql in queries.items():
             out[key] = {str(k): int(v) for k, v in conn.execute(text(sql), {"s": args.state})}
+        out["price_file_problems"] = price_file_problems(conn, args.state)
     print(json.dumps(out, indent=2, sort_keys=True))
+
+
+def price_file_problems(conn: Connection, state: str, limit: int = 60) -> list[str]:
+    """Which hospitals' price files failed to download or had problems in the
+    state's latest price-file run, and why (2026-11-14: the reports showed only
+    counts, e.g. "download_failed": 5)."""
+    rows = conn.execute(
+        text(
+            """
+            SELECT r.rule, r.message FROM src.reference_reject r
+            WHERE r.load_id = (
+                SELECT id FROM src.reference_load
+                WHERE dataset = 'price_file_check' AND parameters->>'state' = :s
+                ORDER BY started_at DESC LIMIT 1)
+              AND r.rule IN ('download_failed', 'file_problem', 'load_failed')
+            ORDER BY r.rule, r.message LIMIT :n
+            """
+        ),
+        {"s": state, "n": limit},
+    ).all()
+    return [f"{rule}: {message}"[:400] for rule, message in rows]
 
 
 def cmd_nv_all(args: argparse.Namespace, engine: Engine) -> None:
