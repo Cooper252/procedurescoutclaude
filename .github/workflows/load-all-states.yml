@@ -139,8 +139,9 @@ jobs:
           python-version: "3.12"
           cache: pip
           cache-dependency-path: requirements.txt
-      - run: pip install -r requirements.txt
-        timeout-minutes: 10
+      - name: Install
+        timeout-minutes: 15
+        run: pip install -r requirements.txt || (sleep 60 && pip install -r requirements.txt)
       - name: Stop if the live database is not on the newest version
         id: version
         run: |
@@ -150,9 +151,22 @@ jobs:
           from alembic.script import ScriptDirectory
           from sqlalchemy import create_engine, text
           from procedurescout_core.db_url import sqlalchemy_url
+          import time
+          from sqlalchemy.exc import OperationalError
           head = ScriptDirectory.from_config(Config("alembic.ini")).get_current_head()
-          with create_engine(sqlalchemy_url(os.environ["DATABASE_URL"])).connect() as c:
-              now = c.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
+          # 2026-11-14: a brief live-database outage here stopped the whole
+          # chain (IN pass 4). Wait for it (about 12 minutes in all) first.
+          engine = create_engine(sqlalchemy_url(os.environ["DATABASE_URL"]), pool_pre_ping=True)
+          for wait in (30, 60, 120, 240, 300, 0):
+              try:
+                  with engine.connect() as c:
+                      now = c.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
+                  break
+              except OperationalError as exc:
+                  if not wait:
+                      sys.exit(f"the live database did not answer for about 12 minutes: {exc}")
+                  print(f"live database not answering; trying again in {wait} s")
+                  time.sleep(wait)
           print(f"live database at {now}, code expects {head}")
           sys.exit(0 if int(now) >= int(head) else "deploy the API first (it upgrades the database), then run this again")
           PY

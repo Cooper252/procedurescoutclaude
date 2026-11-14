@@ -61,7 +61,8 @@ HOSPITAL_ITEM_SYSTEMS = frozenset({"CDM", "LOCAL", "RC", "NDC"})
 # (Claude, delegated by Cooper, D-061)
 WIDEN: dict[str, tuple[str, ...]] = {
     "birth": (
-        "deliv*",
+        "vaginal deliv*",
+        "vag deliv*",
         "cesarean",
         "caesarean",
         "c-section",
@@ -74,12 +75,12 @@ WIDEN: dict[str, tuple[str, ...]] = {
         "vbac",
         "epidural",
     ),
-    "childbirth": ("deliv*", "cesarean", "labor", "obstetric*", "newborn"),
-    "baby": ("deliv*", "cesarean", "newborn", "neonat*", "obstetric*", "infant"),
-    "having a baby": ("deliv*", "cesarean", "labor", "obstetric*", "epidural"),
-    "labor": ("deliv*", "epidural", "obstetric*"),
-    "delivery": ("deliv*", "cesarean", "obstetric*"),
-    "pregnan*": ("obstetric*", "antepartum", "prenatal", "fetal", "pregnan*", "deliv*"),
+    "childbirth": ("vaginal deliv*", "cesarean", "labor", "obstetric*", "newborn"),
+    "baby": ("vaginal deliv*", "cesarean", "newborn", "neonat*", "obstetric*", "infant"),
+    "having a baby": ("vaginal deliv*", "cesarean", "labor", "obstetric*", "epidural"),
+    "labor": ("vaginal deliv*", "labor", "obstetric*"),
+    "delivery": ("vaginal deliv*", "cesarean", "obstetric*"),
+    "pregnan*": ("obstetric*", "antepartum", "prenatal", "fetal", "pregnan*"),
     "prenatal": ("antepartum", "obstetric*", "prenatal", "fetal"),
     "c section": ("cesarean", "caesarean", "c-section", "csection"),
     "c-section": ("cesarean", "caesarean", "c-section", "csection"),
@@ -125,6 +126,37 @@ WIDEN: dict[str, tuple[str, ...]] = {
     "chemotherapy": ("chemotherap*", "chemo"),
 }
 
+# Code ranges that ARE the thing, whatever a hospital wrote for them
+# (CMS MS-DRG v42 MDC 14 "Pregnancy, Childbirth" 768, 783-798, 805-807 and
+# MDC 15 "Newborns" 789-795; APR-DRG 540-566 obstetrics and 580-640 newborns,
+# published with a severity digit, e.g. 5601; CPT Maternity Care and Delivery
+# 59000-59899 and obstetric anesthesia 01958-01969). (D-061)
+_BIRTH_RANGES: tuple[tuple[str, int, int], ...] = (
+    ("MS-DRG", 768, 768),
+    ("MS-DRG", 783, 798),
+    ("MS-DRG", 805, 807),
+    ("APR-DRG", 540, 566),
+    ("APR-DRG", 580, 640),
+    ("APR-DRG", 5400, 5664),
+    ("APR-DRG", 5800, 6404),
+    ("CPT", 59000, 59899),
+    ("CPT", 1958, 1969),
+)
+CODE_RANGES: dict[str, tuple[tuple[str, int, int], ...]] = {
+    "birth": _BIRTH_RANGES,
+    "childbirth": _BIRTH_RANGES,
+    "baby": _BIRTH_RANGES,
+    "having a baby": _BIRTH_RANGES,
+    "labor": _BIRTH_RANGES,
+    "c section": (("MS-DRG", 783, 788), ("CPT", 59510, 59622), ("CPT", 1961, 1963)),
+    "c-section": (("MS-DRG", 783, 788), ("CPT", 59510, 59622), ("CPT", 1961, 1963)),
+    "cesarean": (("MS-DRG", 783, 788), ("CPT", 59510, 59622), ("CPT", 1961, 1963)),
+    "newborn": (("MS-DRG", 789, 795), ("APR-DRG", 580, 640), ("APR-DRG", 5800, 6404)),
+    "anesthesia": (("CPT", 100, 1999),),
+    "anesthetic": (("CPT", 100, 1999),),
+    "anaesthesia": (("CPT", 100, 1999),),
+}
+
 # CPT sections by code number (the published section ranges of the code set)
 _CPT_SECTIONS = (
     (100, 1999, "anesthesia"),
@@ -163,6 +195,9 @@ def group_for(system: str, code: str) -> str:
     if system == "CDT":
         return "dental"
     c = code.strip().upper()
+    # some hospitals label CPT numbers as HCPCS (Level I is CPT)
+    if system == "HCPCS" and c.isdigit():
+        system = "CPT"
     if system == "CPT":
         if c.endswith("U"):
             return "lab"
@@ -176,6 +211,8 @@ def group_for(system: str, code: str) -> str:
     if system == "HCPCS" and c:
         if c[0] == "C" and c[1:2] in ("1", "2"):
             return "supply"  # C1000-C2999: devices
+        if c[:3] == "C89":
+            return "imaging"  # C8900-C8999: MRA and other imaging
         return _HCPCS_LETTER.get(c[0], "other")
     return "other"
 
@@ -267,6 +304,35 @@ def clean_wording(raw: str | None) -> str | None:
     return s or None
 
 
+# Short forms common in hospital price files, written out for the name we
+# show; the hospital's own wording is still shown beside it, labeled.
+_SHORT = (
+    (r"\bw/o\b", "without"),
+    (r"\bw/", "with "),
+    (r"\banes(th)?\b", "anesthesia"),
+    (r"\bneuraxl\b", "neuraxial"),
+    (r"\blbr\b", "labor"),
+    (r"\bvag\b", "vaginal"),
+    (r"\b(dlvr|deliv|del)\b", "delivery"),
+    (r"\bcsec\b", "C-section"),
+    (r"\bproc\b", "procedure"),
+    (r"\bxr\b", "X-ray"),
+    (r"\bcntrst\b", "contrast"),
+    (r"\binj\b", "injection"),
+    (r"\bnb\b", "newborn"),
+    (r"\bhc\s+", ""),  # "HC" = hospital charge: a prefix, not a word of the name
+)
+
+
+def plain_wording(wording: str) -> str:
+    """A hospital's wording with its common short forms written out."""
+    out = wording
+    for pattern, words in _SHORT:
+        out = re.sub(pattern, words, out, flags=re.IGNORECASE)
+    out = " ".join(out.split())
+    return out[:1].upper() + out[1:] if out else wording
+
+
 @dataclass(frozen=True, slots=True)
 class CodeOption:
     code_system: str
@@ -304,6 +370,15 @@ def _alternatives(normalized: str) -> list[list[str]]:
         if a not in out:
             out.append(a)
     return out[:30]
+
+
+def _ranges_for(normalized: str) -> list[tuple[str, int, int]]:
+    padded = f" {normalized.replace('-', ' ')} "
+    out: list[tuple[str, int, int]] = []
+    for key, ranges in CODE_RANGES.items():
+        if f" {key.replace('-', ' ')} " in padded:
+            out.extend(r for r in ranges if r not in out)
+    return out
 
 
 def _tsquery(alts: list[list[str]]) -> str:
@@ -379,21 +454,23 @@ def find_options(conn: Connection, query: str, limit: int = 400) -> list[CodeOpt
         ).all():
             found.setdefault((str(sys_), str(code)), (wording, int(places), int(prices)))
     anesthesia = any(a[0].startswith(("anesth", "anaesth")) for a in alts)
-    if anesthesia:
-        # the CPT anesthesia section, whatever the hospitals wrote
-        for sys_, code, wording, places, prices in conn.execute(
+    for sys_, lo, hi in _ranges_for(q):
+        # codes published without leading zeros ("1967") count too
+        for rsys, code, wording, places, prices in conn.execute(
             text(
                 """
                 SELECT system::text, code, hospital_description, facilities, prices
                 FROM ref.code_index
-                WHERE system = 'CPT' AND code ~ '^0[01][0-9]{3}$' AND code >= '00100'
+                WHERE system = CAST(:sys AS ref.code_system)
+                  AND (CASE WHEN code ~ '^[0-9]{3,5}$' THEN code::int END)
+                      BETWEEN :lo AND :hi
                 ORDER BY facilities DESC, prices DESC, code
                 LIMIT :n
                 """
             ),
-            {"n": n},
+            {"sys": sys_, "lo": lo, "hi": hi, "n": n},
         ).all():
-            found.setdefault((str(sys_), str(code)), (wording, int(places), int(prices)))
+            found.setdefault((str(rsys), str(code)), (wording, int(places), int(prices)))
     if not found:
         return []
     keys = list(found)
@@ -451,6 +528,8 @@ def find_options(conn: Connection, query: str, limit: int = 400) -> list[CodeOpt
         elif wording and group_for(sys_, code) == "stay":
             # hospital-stay wording uses the DRG abbreviations: write them out
             name, shown = drg_plain(wording), wording
+        elif wording and plain_wording(wording) != wording:
+            name, shown = plain_wording(wording), wording
         else:
             name, shown = wording or f"{sys_} {code}", None
         if shown and shown.lower() == name.lower():

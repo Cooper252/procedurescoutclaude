@@ -2,6 +2,18 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-14 — All-options list tuned on real data; why the state chain stopped
+
+Verified in production (commit 46): `/v1/services/options` answers on procedurescout.com. "birth" 400 options (183 hospital stays, MS-DRG 807 shown as "Vaginal birth (hospital stay)", 379 places), "c-section" 303, "anesthesia" 400, "epidural" 305, "mri" 400. Problems seen in the real data and fixed in `packages/core/procedurescout_core/code_search.py`:
+
+- "birth" also found stents and drug implants "with delivery system": the bare word "deliv*" is gone; birth now uses "vaginal delivery", cesarean, labor, obstetric, newborn… plus the code ranges that are births whatever the wording (`CODE_RANGES`: MS-DRG 768, 783-798, 805-807; APR-DRG 540-566 and 580-640, also with the severity digit; CPT 59000-59899 and obstetric anesthesia 01958-01969; similar ranges for C-section, newborn and anesthesia).
+- Many hospitals publish anesthesia codes without the leading zero ("CPT 1967"): they are now found and grouped as anesthesia. CPT numbers labeled HCPCS ("HCPCS 59514") are grouped like CPT; HCPCS C8900-C8999 (MRA) are imaging.
+- Names write out common short forms (`plain_wording`: "Neuraxl lbr anes vag dlvr" → "Neuraxial labor anesthesia vaginal delivery"); the hospital's wording stays beside it, labeled.
+
+Tested: `test_real_file_habits_are_grouped_and_device_delivery_is_not_a_birth`, `test_short_forms_written_out_with_hospital_wording_kept`. `make check`: `411 passed, 1 skipped`.
+
+Load chain: Cooper's screenshot shows "IN (pass 4)" failed after 2 min 45 s with both the price-file and office steps skipped, so a step before them failed, and "Start the next run" (which needs the database version check to pass) did not run, ending the chain. The work-database setup at that commit (1ec8e11) was rerun here on an empty database and works ("work database ready"). The likeliest cause is the live database not answering the version check (the same outages as Idaho pass 1 and Indiana pass 3). `.github/workflows/load-all-states.yml` (protected; Cooper copies it in): the version check now waits for the live database (30 s to 5 min, about 12 minutes) before failing, and the install step retries once.
+
 ## 2026-11-14 — À la carte price list: tick what you need, see one total per place
 
 Cooper: "when they search Birth, or MRI ... it gives them checkboxes as to what they need ... Almost like an à la carte price list once they select the main procedure." Built:

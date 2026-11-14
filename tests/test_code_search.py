@@ -21,6 +21,11 @@ ROWS = [
     ("ICD", "10D00Z1", "Maternity Ã» C-Section", 2, 2),
     ("CDM", "Px0001", "HC C-SECTION", 1, 1),
     ("CPT", "70551", "MRI BRAIN W/O CONTRAST", 50, 1000),
+    # real-file habits: leading zero dropped, CPT labeled HCPCS, "delivery system" devices
+    ("CPT", "1961", "ANES CESAREAN DELIVERY ONLY", 32, 300),
+    ("HCPCS", "59514", "CESAREAN DELIVERY ONLY", 20, 100),
+    ("HCPCS", "C1874", "STENT, COATED/COVERED, WITH DELIVERY SYSTEM", 60, 900),
+    ("MS-DRG", "795", "NORMAL NEWBORN", 35, 600),
 ]
 
 
@@ -115,3 +120,23 @@ def test_api_lists_all_options_grouped(conn: Connection) -> None:
     assert body["total"] >= 7
     stays = body["groups"][0]["options"]
     assert [o["places"] for o in stays] == sorted((o["places"] for o in stays), reverse=True)
+
+
+def test_real_file_habits_are_grouped_and_device_delivery_is_not_a_birth(conn: Connection) -> None:
+    _index(conn)
+    birth = {(o.code_system, o.code): o for o in find_options(conn, "birth")}
+    assert ("HCPCS", "C1874") not in birth  # a stent "delivery system" is not a birth
+    assert birth[("MS-DRG", "795")].group == "stay"  # newborn stay, by its code range
+    assert birth[("CPT", "1961")].group == "anesthesia"  # 01961 published as "1961"
+    csec = {(o.code_system, o.code): o for o in find_options(conn, "c-section")}
+    assert csec[("HCPCS", "59514")].group == "surgery"  # a CPT number labeled HCPCS
+    assert group_for("HCPCS", "C8901") == "imaging"
+
+
+def test_short_forms_written_out_with_hospital_wording_kept() -> None:
+    from procedurescout_core.code_search import plain_wording
+
+    assert (
+        plain_wording("Neuraxl lbr anes vag dlvr") == "Neuraxial labor anesthesia vaginal delivery"
+    )
+    assert plain_wording("HC c-section multi") == "C-section multi"
