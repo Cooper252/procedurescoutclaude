@@ -2,6 +2,16 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-14 — How many prices a search can reach; more colonoscopy services
+
+Cooper: "we have millions of prices for each state and I'm getting very few when I search". Checked: the site has 247 services and 229 of them find prices through exactly one code (colonoscopy: CPT 45378 and 45380 only; vaginal birth: MS-DRG 807 only, while many hospitals list births under APR-DRG). Most rows in a hospital file are its own charge lines, drugs and supplies (CDM, revenue, NDC, local codes), which no service can stand for; but common procedure codes with many prices were reachable only by typing the code number.
+
+New `packages/ingest/procedurescout_ingest/coverage.py`, in every state's load report (`service_coverage`) and in the all-states check (`scripts/state_check.py`): for the state's current published hospital files, the prices under a code some approved service uses (overall and for procedure codes only: CPT, HCPCS, CDT and the DRG families), prices by code type, and the 40 procedure codes with the most places that no service uses, with the hospitals' own wording. Each report now shows which services and codes to add next (D-061).
+
+Services added now (D-061, from official code definitions): Screening colonoscopy (HCPCS G0121 and G0105, CMS HCPCS Level II) and Colonoscopy with polyp removal (CPT 45385 and 45384, code numbers only), with search words ("colon cancer screening", "polyp removal", "polypectomy"). 249 services.
+
+Tested: `test_state_report_measures_prices_reachable_by_services`; `test_committed_catalog_files_load_with_review_state` loads the new services. `make check`: `403 passed, 1 skipped`.
+
 ## 2026-11-14 — Indiana pass 3; loads survive brief database outages
 
 Indiana pass 3: 14 more price files loaded (116.0 million prices), 27 skipped as already loaded and unchanged, 7 in an unknown format, 1 failed to load, 2 downloads failed; it stopped itself at its time limit ("run again to continue"). The 27 unchanged files show passes 1 and 2 did load prices; their reports held only one line, most likely because GitHub ended those runs at its 6-hour limit before the report was written. Then the live database dropped the connection ("SSL connection has been closed unexpectedly", then "service temporarily unavailable") during insurance matching, and the whole run crashed (the same outage as Idaho pass 1), so this report has no price-file problem list.

@@ -1035,6 +1035,11 @@ def cmd_report(args: argparse.Namespace, engine: Engine) -> None:
         for key, sql in queries.items():
             out[key] = {str(k): int(v) for k, v in conn.execute(text(sql), {"s": args.state})}
         out["price_file_problems"] = price_file_problems(conn, args.state)
+        # how many prices a service search can reach, and the most common
+        # procedure codes no service uses yet (Cooper, 2026-11-14)
+        from ..coverage import service_coverage
+
+        out["service_coverage"] = service_coverage(conn, args.state)
     print(json.dumps(out, indent=2, sort_keys=True))
 
 

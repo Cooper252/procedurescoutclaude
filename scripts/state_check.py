@@ -150,6 +150,11 @@ def main() -> None:
     a = p.parse_args()
     owner = os.environ["DATABASE_URL"]
     c = counts(owner, a.state)
+    # prices reachable by searching a service, and procedure codes no service uses
+    from procedurescout_ingest.coverage import service_coverage
+
+    with create_engine(owner).connect() as conn:
+        c["service_coverage"] = service_coverage(conn, a.state)
     place, sample, payer = c.pop("_place"), c.pop("_sample"), c.pop("_payer", None)
     try:
         c.update(api_checks(a.state, place, sample, payer))

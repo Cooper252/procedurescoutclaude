@@ -244,6 +244,29 @@ def test_cash_search_with_a_cash_price_is_not_flagged(conn: Connection, world: L
     assert near.status == "prices" and not near.plan_rates_only
 
 
+def test_state_report_measures_prices_reachable_by_services(
+    conn: Connection, world: LocalStore
+) -> None:
+    """Cooper (2026-11-14): millions of prices per state but few in searches.
+    The state report counts the prices a service search can reach and lists the
+    procedure codes no service uses yet (the synthetic file's MS-DRG 999)."""
+    from procedurescout_ingest.coverage import service_coverage
+
+    cov = service_coverage(conn, "NV")
+    cpt, drg = cov["by_code_type"]["CPT"], cov["by_code_type"]["MS-DRG"]
+    assert cpt["prices"] == cpt["in_services"] > 0  # CPT 99999 is the synthetic service's code
+    assert drg["prices"] > 0 and drg["in_services"] == 0
+    assert cov["prices"] == cpt["prices"] + drg["prices"] + sum(
+        v["prices"] for k, v in cov["by_code_type"].items() if k not in ("CPT", "MS-DRG")
+    )
+    assert cov["prices_in_services"] == cpt["prices"]
+    assert [x.split(" | ")[0] for x in cov["top_procedure_codes_not_in_any_service"]] == [
+        "MS-DRG 999"
+    ]
+    assert "SYNTHETIC SERVICE B" in cov["top_procedure_codes_not_in_any_service"][0]
+    assert service_coverage(conn, "AZ")["prices"] == 0  # no published files there
+
+
 def test_unmapped_spellings_go_to_the_review_queue(conn: Connection, world: LocalStore) -> None:
     added = catalog.collect_unmapped_plans(conn)
     assert added >= 0
