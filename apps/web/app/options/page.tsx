@@ -2,19 +2,19 @@
 
 // Every published price option for what a person typed (Cooper, 2026-11-14:
 // "I don't want 2 options, I want 20 options if that's what there is").
-// Grouped by kind (hospital stays, anesthesia, surgery, imaging, ...), most
-// widely published first. Each option keeps its own code; nothing is merged.
+// The person ticks what they need (a hospital stay, anesthesia, the doctor,
+// newborn care...) and sees one price list for all of it at each place.
+// Each option keeps its own code; nothing is merged.
 
-import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useApp } from "@/components/AppState";
+import { OptionPicker, optionNames } from "@/components/OptionPicker";
 import { PageIntro } from "@/components/PageIntro";
 import { api } from "@/lib/api";
-import { fill, SERVICE_ES } from "@/lib/i18n";
-import type { CodeOption, Options } from "@/lib/types";
-
-const FIRST = 8;
+import { fill } from "@/lib/i18n";
+import { itemHref, listHref } from "@/lib/priceList";
+import type { Options } from "@/lib/types";
 
 export default function OptionsPage() {
   return (
@@ -26,12 +26,12 @@ export default function OptionsPage() {
 
 function AllOptions() {
   const { t, lang, place } = useApp();
+  const router = useRouter();
   const sp = useSearchParams();
   const q = (sp.get("q") ?? "").trim();
   const [data, setData] = useState<Options | null>(null);
   const [failed, setFailed] = useState(false);
-  const [filter, setFilter] = useState("");
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+  const [selected, setSelected] = useState<string[]>(sp.getAll("i"));
   const [zip, setZip] = useState(sp.get("zip") ?? place?.zip ?? "");
   const hasLatLng = Boolean(sp.get("lat") && sp.get("lng"));
 
@@ -49,10 +49,10 @@ function AllOptions() {
     };
   }, [q]);
 
-  // where / how paying, carried into each option's price search
+  // where / how paying, carried into the price list
   const rest = useMemo(() => {
     const p = new URLSearchParams(sp.toString());
-    p.delete("q");
+    p.delete("i");
     if (!hasLatLng) {
       if (/^\d{5}$/.test(zip)) p.set("zip", zip);
       else p.delete("zip");
@@ -60,25 +60,8 @@ function AllOptions() {
     return p;
   }, [sp, zip, hasLatLng]);
 
-  const href = (o: { service?: string | null; code_system?: string | null; code?: string | null; slug?: string }) => {
-    const p = new URLSearchParams(rest.toString());
-    if (o.code_system && o.code) {
-      p.set("code_system", o.code_system);
-      p.set("code", o.code);
-    } else if (o.slug) p.set("service", o.slug);
-    return `/search?${p.toString()}`;
-  };
-
-  const needle = filter.trim().toLowerCase();
-  const shown = (o: CodeOption) =>
-    !needle ||
-    o.name.toLowerCase().includes(needle) ||
-    (o.wording ?? "").toLowerCase().includes(needle) ||
-    `${o.code_system} ${o.code}`.toLowerCase().includes(needle);
-
   const ready = /^\d{5}$/.test(zip) || hasLatLng;
-  const label = (slug: string, name: string) => (lang === "es" ? SERVICE_ES[slug] ?? name : name);
-  const groupLabel = (g: string) => (t as unknown as Record<string, string>)[`optionGroup_${g}`] ?? g;
+  const names = optionNames(data, lang);
 
   return (
     <>
@@ -88,15 +71,13 @@ function AllOptions() {
         lead={data && data.total > 0 ? fill(t.optionsLead, { n: String(data.total) }) : undefined}
       />
       <div className="wrap page options-page">
-        {failed && <p className="notice">{t.optionsNone.replace("{q}", q)}</p>}
+        {failed && <p className="notice">{fill(t.optionsNone, { q })}</p>}
         {!data && !failed && q.length >= 2 && <p className="loading">…</p>}
-        {data && data.total === 0 && data.services.length === 0 && (
-          <p className="notice">{fill(t.optionsNone, { q })}</p>
-        )}
+        {data && data.total === 0 && data.services.length === 0 && <p className="notice">{fill(t.optionsNone, { q })}</p>}
         {data && (data.total > 0 || data.services.length > 0) && (
           <>
-            <div className="options-tools">
-              {!hasLatLng && (
+            {!hasLatLng && (
+              <div className="options-tools one">
                 <label className="field options-zip">
                   <span>{t.optionsZipLabel}</span>
                   <input
@@ -108,72 +89,37 @@ function AllOptions() {
                     onChange={(e) => setZip(e.target.value.replace(/\D/g, ""))}
                   />
                 </label>
-              )}
-              <label className="field options-filter">
-                <span>{t.optionsFilter}</span>
-                <input value={filter} placeholder={t.optionsFilterPh} onChange={(e) => setFilter(e.target.value)} />
-              </label>
-            </div>
-            <p className="fine options-how">{t.optionsHowTo}</p>
-            {data.services.length > 0 && !needle && (
-              <section className="options-group">
-                <h2>
-                  {t.optionsServices} <span className="options-count">{data.services.length}</span>
-                </h2>
-                <ul className="options-list">
-                  {data.services.map((s) => (
-                    <li key={s.slug}>
-                      <Link className={ready ? "option" : "option off"} href={ready ? href({ slug: s.slug }) : "#"} aria-disabled={!ready}>
-                        <span className="option-name">{label(s.slug, s.name)}</span>
-                        {s.about && <span className="option-wording">{s.about}</span>}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </section>
+              </div>
             )}
-            {data.groups.map((g) => {
-              const items = g.options.filter(shown);
-              if (!items.length) return null;
-              const all = openGroups[g.group] || Boolean(needle);
-              const list = all ? items : items.slice(0, FIRST);
-              return (
-                <section key={g.group} className="options-group">
-                  <h2>
-                    {groupLabel(g.group)} <span className="options-count">{items.length}</span>
-                  </h2>
-                  <ul className="options-list">
-                    {list.map((o) => (
-                      <li key={`${o.code_system}:${o.code}`}>
-                        <Link className={ready ? "option" : "option off"} href={ready ? href(o) : "#"} aria-disabled={!ready}>
-                          <span className="option-name">{o.service ? label(o.service, o.name) : o.name}</span>
-                          {o.wording && (
-                            <span className="option-wording">
-                              {t.theirWording}: “{o.wording}”
-                            </span>
-                          )}
-                          <span className="option-meta">
-                            <span className="option-code">
-                              {o.code_system} {o.code}
-                            </span>
-                            <span>{o.places === 1 ? t.optionsPlaces1 : fill(t.optionsPlaces, { n: String(o.places) })}</span>
-                          </span>
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                  {items.length > FIRST && !needle && (
-                    <button
-                      type="button"
-                      className="btn ghost sm"
-                      onClick={() => setOpenGroups((s) => ({ ...s, [g.group]: !s[g.group] }))}
-                    >
-                      {all ? t.optionsShowFewer : fill(t.optionsShowAll, { n: String(items.length) })}
-                    </button>
+            <p className="pick-intro">{t.pickIntro}</p>
+            <OptionPicker
+              data={data}
+              selected={selected}
+              onChange={setSelected}
+              priceHref={(k) => (ready ? itemHref(k, rest) : null)}
+            />
+            <div className="pick-bar" role="region" aria-label={t.pickBarLabel}>
+              <div className="wrap pick-bar-in">
+                <span className="pick-bar-count">
+                  {selected.length === 0
+                    ? t.pickNone
+                    : selected.length === 1
+                      ? t.pickOne
+                      : fill(t.pickMany, { n: String(selected.length) })}
+                  {selected.length > 0 && (
+                    <span className="pick-bar-names">{selected.map((k) => names[k] ?? k).join(" · ")}</span>
                   )}
-                </section>
-              );
-            })}
+                </span>
+                <button
+                  type="button"
+                  className="btn primary"
+                  disabled={selected.length === 0 || !ready}
+                  onClick={() => router.push(listHref(selected, rest))}
+                >
+                  {ready ? t.pickSee : t.pickNeedZip}
+                </button>
+              </div>
+            </div>
           </>
         )}
       </div>

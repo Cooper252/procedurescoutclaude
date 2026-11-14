@@ -2,6 +2,18 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-14 — À la carte price list: tick what you need, see one total per place
+
+Cooper: "when they search Birth, or MRI ... it gives them checkboxes as to what they need ... Almost like an à la carte price list once they select the main procedure." Built:
+
+- `apps/web/components/OptionPicker.tsx`: the all-options list is now a checklist. Hospital stays are pick-one (choosing a stay replaces another); every other option can be added. Each option also has "Prices for just this".
+- `apps/web/app/options/page.tsx`: tick items; a bar fixed to the bottom of the screen counts them and opens "See prices for these". A ZIP box shows when no place is known.
+- New `apps/web/app/price-list/page.tsx`: the chosen items as chips (remove any, "+ Add or change items" opens the checklist with its own search box, e.g. add "epidural"), cash / my insurance switch with the insurance picker, then every place near the person with each item's price (its lowest published price, a range when several) and the total. Places with a price for every item come first, cheapest total first; places missing some items follow, with "Not published" (or "Insurance rates only" in a cash search) on the missing lines and no total. Up to 8 items. Each item is fetched with the existing search, so plan matching and labels are unchanged.
+- `apps/web/lib/priceList.ts`: item keys, links, and totals added exactly as published (BigInt, no rounding, no floats); a total only when every item has a dollar price.
+- `app/search/page.tsx`: a single-item result now offers "+ Add anesthesia, the doctor, newborn care or anything else, and see one price list". Texts in English and Spanish (`lib/i18n.ts`); styles in `app/globals.css`.
+
+Tested: `lib/priceList.test.mts` (exact sums, no total when an item is missing, links), in `npm test`: `price list tests passed`. `npx tsc --noEmit` clean; `npx next build` built `/options` and `/price-list`. `make check`: `409 passed, 1 skipped`. Checked on a phone-size screen: the checklist with a local API and sample index rows (removed afterwards), and the price list with the site's labeled preview data (3 places with totals, 2 with "Not published" lines). Not yet deployed.
+
 ## 2026-11-14 — Every published option for what people type (D-064)
 
 Cooper: "EVERY code, or at least most of them, should be searchable ... I want 20 options if that's what there is ... Where is anesthesia, c-section, epidural?" Checked on the live site: the search box listed at most 8 items; "anesthesia" showed only codes whose wording said "without anesthesia"; "birth" showed 4 services and unrelated codes; "c-section" showed broken text ("Maternity Ã» C-Section").

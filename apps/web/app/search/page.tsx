@@ -14,6 +14,7 @@ import { api } from "@/lib/api";
 import { fill, SERVICE_ES } from "@/lib/i18n";
 import { EMPTY_PLAN, type PlanDetails } from "@/lib/estimate";
 import { compareDecimal, money, unitLabel } from "@/lib/money";
+import { listHref } from "@/lib/priceList";
 import type { Bundle, Mode, Plan, ProviderType, SearchResult, Service } from "@/lib/types";
 
 const RADII = ["5", "10", "25", "50", "100"];
@@ -230,6 +231,19 @@ function Results() {
               {t.codeWording}: “{result.code_description}”
             </p>
           )}
+          {/* add the other pieces (anesthesia, the doctor, newborn care...) and
+              see one price list (Cooper, 2026-11-14) */}
+          <Link
+            className="list-start"
+            href={listHref([code && codeSystem ? `${codeSystem}:${code}` : `svc:${service}`], (() => {
+              const p = new URLSearchParams(sp.toString());
+              p.set("add", "1");
+              if (!code && (svc?.name || result?.service_name)) p.set("q", svc?.name ?? result?.service_name ?? "");
+              return p;
+            })()) + "&add=1"}
+          >
+            {t.listMakeFromHere}
+          </Link>
           <p className="results-where">
             {online ? (
               t.onlineWhere

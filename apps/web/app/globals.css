@@ -3293,3 +3293,260 @@ h3 {
     grid-template-columns: 1fr;
   }
 }
+
+/* à la carte price list (Cooper, 2026-11-14) */
+.pick-intro {
+  font-weight: 600;
+  color: var(--ink-2);
+  margin: 4px 0 12px;
+}
+.options-tools.one {
+  grid-template-columns: minmax(0, 260px);
+}
+.pick {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+.pick.on {
+  border-color: var(--brand);
+  background: var(--brand-50);
+  box-shadow: 0 0 0 1px var(--brand) inset;
+}
+.pick-main {
+  flex: 1;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px 16px;
+  cursor: pointer;
+  min-width: 0;
+}
+.pick-main input {
+  width: 22px;
+  height: 22px;
+  margin-top: 2px;
+  flex: none;
+  accent-color: var(--brand);
+}
+.pick-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.pick-alone {
+  flex: none;
+  align-self: center;
+  margin-right: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--brand-600);
+  white-space: nowrap;
+}
+.pick-hint {
+  margin: -4px 0 10px;
+  color: var(--muted);
+}
+.options-page {
+  padding-bottom: 110px;
+}
+.pick-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  background: var(--surface);
+  border-top: 1px solid var(--line-2);
+  box-shadow: 0 -8px 24px -12px rgba(15, 29, 43, 0.25);
+  padding: 12px 0 calc(12px + env(safe-area-inset-bottom));
+}
+.pick-bar-in {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.pick-bar-count {
+  font-weight: 700;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.pick-bar-names {
+  font-weight: 400;
+  font-size: 0.82rem;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pick-bar .btn {
+  flex: none;
+}
+.pick-bar .btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.list-title {
+  margin: 0 0 6px;
+}
+.list-chips {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.list-chips .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 6px 6px 6px 12px;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line-2);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.list-chips .chip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.list-chips .chip button {
+  border: 0;
+  background: var(--brand-100);
+  color: var(--brand-600);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  flex: none;
+}
+.list-mode {
+  max-width: 420px;
+  margin-top: 8px;
+}
+.list-insurance {
+  max-width: 520px;
+  margin-top: 12px;
+}
+.list-adder {
+  margin-bottom: 20px;
+  padding: 18px;
+}
+.list-add-search label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.list-add-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.list-add-row input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  padding: 12px 14px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius-sm);
+  min-height: 48px;
+}
+.list-explain {
+  color: var(--muted);
+  margin: 0 0 16px;
+}
+.list-section {
+  font-size: 1.1rem;
+  margin: 18px 0 10px;
+}
+.list-places {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 12px;
+}
+.list-place {
+  padding: 16px;
+}
+.list-place-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.list-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  margin: 10px 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--care-50);
+  color: var(--care-600);
+}
+.list-total strong {
+  font-size: 1.3rem;
+  color: var(--ink);
+}
+.list-missing {
+  margin: 10px 0;
+  font-size: 0.9rem;
+  color: var(--warn);
+}
+.list-lines {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.list-lines li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+  font-size: 0.93rem;
+}
+.list-line-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.list-line-price {
+  flex: none;
+  font-weight: 700;
+  text-align: right;
+}
+.list-lines li.missing .list-line-price {
+  font-weight: 500;
+  color: var(--muted);
+}
+.list-start {
+  display: inline-block;
+  margin: 8px 0 4px;
+  font-weight: 700;
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+@media (max-width: 640px) {
+  .pick {
+    flex-direction: column;
+  }
+  .pick-alone {
+    align-self: flex-start;
+    margin: -6px 16px 12px 50px;
+  }
+}
