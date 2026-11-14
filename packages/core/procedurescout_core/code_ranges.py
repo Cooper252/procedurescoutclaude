@@ -328,6 +328,33 @@ def in_range(system: str, code: str, r: Range) -> bool:
     return sys_ == rs and parts[0] == lo[0] == hi[0] and lo[1] <= parts[1] <= hi[1]
 
 
+def string_ranges(r: Range) -> list[tuple[list[str], str, str, int]]:
+    """A range as (code systems, first, last, length) text ranges that the
+    code index can look up directly: the same length and digits compare the
+    same way as numbers. CPT numbers come both as five digits ("01967") and
+    without leading zeros ("1967"), also labeled HCPCS; MS-DRG as "064" or
+    "64"; letter codes (G0105, D1110) are a letter and four digits."""
+    rs, first, last = r
+    lo, hi = split_code(first), split_code(last)
+    if lo is None or hi is None or lo[0] != hi[0] or lo[1] > hi[1]:
+        return []
+    letter = lo[0]
+    systems = ["CPT", "HCPCS"] if rs == "CPT" else [rs]
+    if letter:
+        return [(systems, f"{letter}{lo[1]:04d}", f"{letter}{hi[1]:04d}", 5)]
+    pad = {"CPT": 5, "MS-DRG": 3}.get(rs, 0)
+    out: list[tuple[list[str], str, str, int]] = []
+    for length in range(len(str(lo[1])), len(str(hi[1])) + 1):
+        a = max(lo[1], 10 ** (length - 1))
+        b = min(hi[1], 10**length - 1)
+        if a <= b:
+            out.append((systems, str(a), str(b), length))
+    if pad and len(str(lo[1])) < pad:
+        b = min(hi[1], 10 ** (pad - 1) - 1)  # padded forms of numbers shorter than pad
+        out.append((systems, str(lo[1]).zfill(pad), str(b).zfill(pad), pad))
+    return out
+
+
 def ranges_for(normalized: str) -> list[Range]:
     """Every range for the words in a search."""
     padded = f" {normalized.replace('-', ' ')} "

@@ -31,7 +31,7 @@ from dataclasses import dataclass, replace
 
 from sqlalchemy import Connection, text
 
-from .code_ranges import in_range, ranges_for, split_code
+from .code_ranges import in_range, ranges_for, string_ranges
 
 # group keys, in the order the site shows them
 GROUPS = (
@@ -445,36 +445,26 @@ def find_options(conn: Connection, query: str, limit: int = 400) -> list[CodeOpt
         ).all():
             found.setdefault((str(sys_), str(code)), (wording, int(places), int(prices)))
     anesthesia = any(a[0].startswith(("anesth", "anaesth")) for a in alts)
-    for rs, first, last in ranges_for(q):
-        lo, hi = split_code(first), split_code(last)
-        if lo is None or hi is None:
-            continue
-        letter = lo[0]
-        # CPT numbers are also published labeled HCPCS, and without leading zeros
-        systems = ["CPT", "HCPCS"] if rs == "CPT" else [rs]
-        for rsys, code, wording, places, prices in conn.execute(
-            text(
-                """
-                SELECT system::text, code, hospital_description, facilities, prices
-                FROM ref.code_index
-                WHERE system::text = ANY(:systems)
-                  AND (CASE WHEN upper(code) ~ :pat
-                            THEN substring(upper(code) from :off)::int END)
-                      BETWEEN :lo AND :hi
-                ORDER BY facilities DESC, prices DESC, code
-                LIMIT :n
-                """
-            ),
-            {
-                "systems": systems,
-                "pat": f"^{letter}[0-9]{{1,5}}$",
-                "off": 1 + len(letter),
-                "lo": lo[1],
-                "hi": hi[1],
-                "n": n,
-            },
-        ).all():
-            found.setdefault((str(rsys), str(code)), (wording, int(places), int(prices)))
+    for r in ranges_for(q):
+        # looked up through the index's code order (2026-11-14: turning every
+        # code into a number scanned the whole index; "knee" timed out)
+        for systems, first, last, length in string_ranges(r):
+            for rsys, code, wording, places, prices in conn.execute(
+                text(
+                    """
+                    SELECT system::text, code, hospital_description, facilities, prices
+                    FROM ref.code_index
+                    WHERE system = ANY(CAST(:systems AS ref.code_system[]))
+                      AND code BETWEEN :first AND :last
+                      AND length(code) = :len
+                      AND upper(code) ~ '^[A-Z]?[0-9]+$'
+                    ORDER BY facilities DESC, prices DESC, code
+                    LIMIT :n
+                    """
+                ),
+                {"systems": systems, "first": first, "last": last, "len": length, "n": n},
+            ).all():
+                found.setdefault((str(rsys), str(code)), (wording, int(places), int(prices)))
     if not found:
         return []
     found = _merge_spellings(found)

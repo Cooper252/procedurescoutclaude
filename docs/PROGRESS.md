@@ -2,6 +2,12 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-14 — Code-range lookups made fast (live "knee" timed out)
+
+Checked on the live site after commit 51: `/v1/services/options?q=hernia` took 9.5 s and "knee" returned a server error (timed out). Cause: the code-range lookups (`code_ranges.py`) turned every code in the national code index into a number, a full scan per range, and "knee" has about 9 ranges. Fix: `code_ranges.string_ranges` turns each range into text ranges of one length ("1958"-"1969" and "01958"-"01969" for CPT 01958-01969; "64"-"66" and "064"-"066" for MS-DRG; "G0105"-"G0121"), looked up through the code index's own order (`code_search.py`); the code-type filter now uses the index too. Timed here on a 1.6-million-row code index: knee 0.49 s, birth 0.10 s, anesthesia 0.11 s, heart 0.03 s, hernia 0.02 s (the search box about the same).
+
+Tested: `test_ranges_are_looked_up_as_index_ranges`; all `tests/test_code_search.py` pass. `make check`: `418 passed, 1 skipped`.
+
 ## 2026-11-14 — "$0.00 with your coinsurance share" fixed; same stay under other codes (D-066)
 
 Cooper: "Why does some pricing say 'You'd pay about $0.00 with your coinsurance share'?" `apps/web/lib/estimate.ts` treated empty plan boxes as 0% coinsurance and $0 deductible, so every insurance rate became "$0.00". Now no estimate is shown until coinsurance (or a copay) is typed; a deductible alone gives an estimate only when the price is within it; a 0% typed on purpose still gives $0. Tested in `lib/estimate.test.mts` (`estimate tests passed`).

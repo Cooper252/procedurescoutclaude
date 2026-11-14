@@ -283,3 +283,17 @@ def test_same_stay_codes_load_as_variants_and_apr_spellings_match(conn: Connecti
         )
     )
     assert ("APR-DRG", "560-1") in same_code_spellings(conn, [("APR-DRG", "5601")])
+
+
+def test_ranges_are_looked_up_as_index_ranges() -> None:
+    from procedurescout_core.code_ranges import string_ranges
+
+    assert string_ranges(("CPT", "01958", "01969")) == [
+        (["CPT", "HCPCS"], "1958", "1969", 4),
+        (["CPT", "HCPCS"], "01958", "01969", 5),
+    ]
+    assert string_ranges(("MS-DRG", "064", "066")) == [
+        (["MS-DRG"], "64", "66", 2),
+        (["MS-DRG"], "064", "066", 3),
+    ]
+    assert string_ranges(("HCPCS", "G0105", "G0121")) == [(["HCPCS"], "G0105", "G0121", 5)]
