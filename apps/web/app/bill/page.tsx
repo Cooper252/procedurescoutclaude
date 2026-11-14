@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useApp } from "@/components/AppState";
 import { ExtText } from "@/components/ExtText";
 import { Receipt } from "@/components/Icons";
+import { PageIntro } from "@/components/PageIntro";
 
 export default function BillHelp() {
   const { t } = useApp();
@@ -15,12 +16,18 @@ export default function BillHelp() {
     [t.billStep5t, t.billStep5],
   ];
   return (
+    <>
+    <PageIntro
+      narrow
+      eyebrow={
+        <>
+          <Receipt size={16} /> {t.navBill}
+        </>
+      }
+      title={t.billPageTitle}
+      lead={t.billPageSub}
+    />
     <div className="wrap page narrow">
-      <p className="eyebrow">
-        <Receipt size={16} /> {t.navBill}
-      </p>
-      <h1 className="page-title">{t.billPageTitle}</h1>
-      <p className="lead">{t.billPageSub}</p>
       <ol className="steps">
         {steps.map(([title, body], i) => (
           <li key={i} className="step">
@@ -47,5 +54,6 @@ export default function BillHelp() {
         ))}
       </ol>
     </div>
+    </>
   );
 }

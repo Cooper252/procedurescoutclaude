@@ -8,6 +8,7 @@ import { Pin } from "@/components/Icons";
 import { api } from "@/lib/api";
 import { money } from "@/lib/money";
 import type { Bundle, Estimate, FacilityDetail, NearbyFacility } from "@/lib/types";
+import { PageIntro } from "@/components/PageIntro";
 
 export default function BundlesPage() {
   return (
@@ -90,9 +91,9 @@ function Builder() {
   const lineFor = (id: string) => est?.lines.find((l) => l.component_id === id);
 
   return (
+    <>
+    <PageIntro title={t.bunTitle} lead={t.bunSub} />
     <div className="wrap page bundles">
-      <h1 className="page-title">{t.bunTitle}</h1>
-      <p className="lead">{t.bunSub}</p>
 
       {bundles && (
         <div className="segmented bundle-tabs" role="tablist">
@@ -211,5 +212,6 @@ function Builder() {
         )
       )}
     </div>
+    </>
   );
 }

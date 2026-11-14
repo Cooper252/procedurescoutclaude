@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { useApp } from "@/components/AppState";
 import { GUIDES } from "@/lib/learn";
+import { PageIntro } from "@/components/PageIntro";
 
 export default function Learn() {
   const { t, lang } = useApp();
   return (
+    <>
+    <PageIntro narrow title={t.learnTitle} lead={t.learnSub} />
     <div className="wrap page narrow">
-      <h1 className="page-title">{t.learnTitle}</h1>
-      <p className="lead">{t.learnSub}</p>
       <div className="guides">
         {GUIDES[lang].map((g) => (
           <details key={g.id} id={g.id} className="guide">
@@ -24,5 +25,6 @@ export default function Learn() {
         <Link href="/disclaimer">{t.navDisclaimer}</Link>
       </p>
     </div>
+    </>
   );
 }

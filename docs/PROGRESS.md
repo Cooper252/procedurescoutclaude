@@ -2,6 +2,32 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-14 — Louisiana and Kentucky Medicaid plans ready
+
+Insurers (D-047), from each state's own lists, ready before these states load: AmeriHealth Caritas Louisiana and Healthy Blue (Louisiana; formerly Amerigroup Louisiana, contract ends Dec 31 2026, so only placed in Louisiana), Humana Healthy Horizons (Humana's Medicaid plan), WellCare of Kentucky (Wellcare's Kentucky Medicaid plan) and "PHP by Molina" (Passport Health Plan). Sources in `payer_name_rules.csv` (Louisiana Department of Health notice, Kentucky's 2025 plan guide). A bare "AmeriHealth Caritas" stays the Delaware plan in Delaware and becomes the Louisiana plan in Louisiana. Because Wellcare now has a Medicaid plan, "Allwell" (always Wellcare's Medicare Advantage brand) is pinned to Medicare Advantage.
+
+Tested: `test_reviewed_insurer_names_place_real_hospital_spellings` (LA and KY cases). `make check`: `398 passed, 1 skipped`.
+
+## 2026-11-13 — Ready for the next states: Medicaid plans and hospital policies
+
+Insurers (D-047), from each state's own Medicaid site, so the next loads place them on the first run: Hawaii's QUEST Integration plans (AlohaCare, 'Ohana Health Plan; HMSA, Kaiser and UnitedHealthcare Community Plan were already placed; https://medquest.hawaii.gov), Illinois's HealthChoice Illinois plans (CountyCare Health Plan, Cook County; "Blue Cross Community Health Plans" is BCBS of Illinois's Medicaid plan; Aetna Better Health, Meridian and Molina were already placed; https://hfs.illinois.gov). Indiana (Anthem, CareSource, Managed Health Services, Humana, UnitedHealthcare) and Iowa (Iowa Total Care, Molina, Wellpoint) were already covered. "'Ohana" is also an everyday Hawaiian word, so it is placed only in Hawaii.
+
+Hospital policies (D-060): fixed Idaho's Intermountain row: it matched Boise's INTERMOUNTAIN HOSPITAL, a separate psychiatric hospital, while Intermountain's only Idaho hospital in its policy is Cassia Regional (pattern now `^CASSIA REGIONAL HOSPITAL$`). Fixed Colorado's Intermountain row, which missed Good Samaritan (Lafayette) and Saint Joseph (Denver). Added Kootenai Health with St. Mary's and Clearwater Valley (free to 250%, approved 05/05/2025), HCA's Idaho hospitals (Eastern Idaho Regional, West Valley; emergency care), OSF HealthCare in Illinois (free to 250%; 75%, 50%, 25% off to 300%, 350%, 400%) and Cook County Health's Stroger and Provident hospitals (CareLink: free to 250%, half off to 350%, for Cook County residents). 232 health-system rows. Idaho rows checked against the live Idaho hospital names; Illinois is not loaded yet, so the OSF and Cook County patterns will be checked when it is. Not added: St. Luke's (Idaho; up to 400% but no discount amounts), UI Health Care (up to 350%, no amounts), Eskenazi (clinic sliding fee only). Montana's Intermountain row (`^INTERMOUNTAIN`) likely matches none of its Montana hospitals (St. Vincent, Holy Rosary, St. James); fix when Montana loads.
+
+Tested: `test_reviewed_insurer_names_place_real_hospital_spellings` (HI and IL cases, and "Ohana" not placed in Georgia). `make check`: `398 passed, 1 skipped`.
+
+## 2026-11-14 — Easier to use on a phone
+
+Cooper asked for the site to be extremely easy on a phone. Checked every main page at iPhone width (390px): none scrolls sideways. Changes:
+
+- Search results (`app/search/page.tsx`, `lib/i18n.ts`, `app/globals.css` "Phone-friendly results"): before, in-person/online, distance, type and sort filled the first screen and the first price was below it. On phones they now fold into one "Filters" button showing a short summary ("25 mi · All types · Lowest price"); "How are you paying?" stays visible because it changes the prices. The first price now shows on the first screen. On computers everything stays visible as before (in-person/online moved down next to the other filters). Spanish words added.
+- Result cards: Details, Directions and Email this to me sit on one row (each at least 44px tall); the email form opens on its own row.
+- Home page on phones: less space above the headline, ZIP code and distance side by side, the online-visit buttons use the full card width.
+
+Tested: `tsc --noEmit` passed; `npm test` passed; `npm run build` compiled. Screenshots at phone width (home, search, help paying, bill, how it works, bundles, providers, learn; page width 390px on all) and computer width (search).
+
+Inner pages match the home page: a teal top section with white heading (`components/PageIntro.tsx`, used on Got a bill?, How it works, Learn and Whole procedure estimates; the For providers top section gets the same look with a coral "Claim your listing" button). Help paying keeps its green free-care look. Checked by screenshots at phone width (390px, no sideways scrolling) and computer width; `tsc --noEmit`, `npm test` and `npm run build` passed.
+
 ## 2026-11-14 — New home page look ("bold teal", Cooper chose option A)
 
 Cooper found the site plain and picked option A of three mockups. `apps/web/app/globals.css` (block "Bold teal look"): the home page's top section is now deep teal with a white headline, the search and free-care boxes float on it, the coral search button glows, popular searches are see-through pills; the free-care strip under the menu is dark teal on every page; the current menu item is solid teal; cards lost their gray borders for soft shadows, with teal and coral edges on the two lower cards. New fonts, self-hosted from npm so no outside font service is used: Plus Jakarta Sans for text and Bricolage Grotesque for headings (`@fontsource/plus-jakarta-sans` 5.2.8, `@fontsource/bricolage-grotesque` 5.2.10, imported in `app/layout.tsx`). Text on teal keeps at least 4.5:1 contrast.

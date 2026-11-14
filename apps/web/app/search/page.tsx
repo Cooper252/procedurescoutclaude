@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useApp } from "@/components/AppState";
-import { Heart, Pin, Video } from "@/components/Icons";
+import { Chevron, Heart, Pin, Video } from "@/components/Icons";
 import { InsurancePicker, type Insurance } from "@/components/InsurancePicker";
 import { ResultCard } from "@/components/ResultCard";
 import { portalText } from "@/lib/i18n_portal";
@@ -49,6 +49,8 @@ function Results() {
   const online = sp.get("online") === "1";
   const [myPlan, setMyPlan] = useState<PlanDetails>(EMPTY_PLAN);
   const [planLoaded, setPlanLoaded] = useState(false);
+  // phones: in person/online, distance, type and sort fold into one button (Cooper, 2026-11-14)
+  const [filtersOpen, setFiltersOpen] = useState(false);
   useEffect(() => {
     try {
       const saved = window.sessionStorage.getItem("ps-plan");
@@ -264,19 +266,6 @@ function Results() {
             <p className="mode-hint">{modes.find((x) => x.m === mode)?.hint}</p>
           </fieldset>
 
-          {/* in person or online, as visible as how you pay (Cooper, 2026-11-12) */}
-          <fieldset className="modes visit-modes">
-            <legend>{t.visitHow}</legend>
-            <div className="segmented two" role="radiogroup">
-              <button type="button" role="radio" aria-checked={!online} className={!online ? "seg on" : "seg"} onClick={() => setParam({ online: null })}>
-                <Pin size={16} /> {t.visitInPerson}
-              </button>
-              <button type="button" role="radio" aria-checked={online} className={online ? "seg on" : "seg"} onClick={() => setParam({ online: "1" })}>
-                <Video size={16} /> {t.visitOnline}
-              </button>
-            </div>
-            {online && <p className="mode-hint">{t.visitOnlineHint}</p>}
-          </fieldset>
 
           {mode === "plan" && (
             <div className="field plan-pick">
@@ -325,6 +314,34 @@ function Results() {
                 <span className="typical-of">{fill(t.typicalOf, { n: result.typical.count })}</span>
               </div>
             )}
+            <button
+              type="button"
+              className="btn ghost sm filters-toggle show-sm"
+              aria-expanded={filtersOpen}
+              aria-controls="more-filters"
+              onClick={() => setFiltersOpen(!filtersOpen)}
+            >
+              <span>{filtersOpen ? t.filtersHide : t.filtersBtn}</span>
+              <span className="filters-summary">
+                {online ? t.onlineShort : `${radius} mi`} · {kinds.length ? fill(t.typeSome, { n: kinds.length }) : t.typeAnyShort} ·{" "}
+                {sort === "near" ? t.sortShortNear : t.sortShortPrice}
+              </span>
+              <Chevron size={16} className={filtersOpen ? "flip" : ""} />
+            </button>
+            <div id="more-filters" className={filtersOpen ? "more-filters open" : "more-filters"}>
+            {/* in person or online, as visible as how you pay (Cooper, 2026-11-12); inside Filters on phones */}
+            <fieldset className="modes visit-modes">
+              <legend>{t.visitHow}</legend>
+              <div className="segmented two" role="radiogroup">
+                <button type="button" role="radio" aria-checked={!online} className={!online ? "seg on" : "seg"} onClick={() => setParam({ online: null })}>
+                  <Pin size={16} /> {t.visitInPerson}
+                </button>
+                <button type="button" role="radio" aria-checked={online} className={online ? "seg on" : "seg"} onClick={() => setParam({ online: "1" })}>
+                  <Video size={16} /> {t.visitOnline}
+                </button>
+              </div>
+              {online && <p className="mode-hint">{t.visitOnlineHint}</p>}
+            </fieldset>
             <div className="filters">
               <div className="field">
                 <label htmlFor="f-r">{t.filterDistance}</label>
@@ -352,6 +369,7 @@ function Results() {
                   <option value="near">{t.sortNear}</option>
                 </select>
               </div>
+            </div>
             </div>
             <p className="count">
               {fill(t.facilityCount, { n: result.facilities.length, r: radius })} · {sort === "near" ? t.sortNear : t.sortedBy}

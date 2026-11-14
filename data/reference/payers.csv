@@ -816,3 +816,10 @@ Aetna,POS,pos,commercial,"Claude (delegated by Cooper, D-047)",2026-11-13
 CareSource,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-13
 Freedom Health (Florida),Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-13
 Optimum HealthCare (Florida),Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-13
+AlohaCare,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-13
+'Ohana Health Plan,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-13
+CountyCare Health Plan,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-13
+AmeriHealth Caritas Louisiana,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-14
+Healthy Blue (Louisiana),Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-14
+Humana,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-14
+Wellcare,Medicaid plan,other,medicaid_managed_care,"Claude (delegated by Cooper, D-047)",2026-11-14

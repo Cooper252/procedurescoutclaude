@@ -35,7 +35,7 @@ After sign-up: add the GitHub secrets for the live-load run, run `add-staff` for
 - **Big states may exceed GitHub's 6-hour limit** per run (California, Texas, Florida, New York). If so, those states get split into parts; measure on a mid-size state first.
 - **Insurance names per state**: matched automatically when certain; Claude researches the rest with evidence (D-047).
 - **Help paying, per state**: income limits for every state + DC are in (D-056). State laws on hospital bills are shown for 20 states with such laws or programs (NV, CA, NY, NJ, IL, CO, MD, WA, OR, CT, VT, RI, ME, NM, MA, MN, OH, TN, NC (state program), and DE from January 1, 2027; `apps/web/lib/stateLaws.ts`, each from the state's own statute, regulation or agency page, D-056); add more states as their laws are confirmed.
-- **Hospital financial-assistance policies**: 46 hospitals' own policies plus 228 health-system policies across 49 states and DC, each from the hospital's or system's own document (D-060). Hospitals without one show "ask about financial assistance".
+- **Hospital financial-assistance policies**: 46 hospitals' own policies plus 232 health-system policies across 49 states and DC, each from the hospital's or system's own document (D-060). Hospitals without one show "ask about financial assistance".
 
 ## 4. Built and ready (no action needed)
 

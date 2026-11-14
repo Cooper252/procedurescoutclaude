@@ -938,6 +938,34 @@ REAL_SPELLINGS: dict[str, list[tuple[str, str, str | None]]] = {
         ("Peach State Ambetter", "HIX", "Ambetter · Marketplace (exchange) plan"),
         ("Centurion", "PRISN", None),  # prison health care
         ("Humana", "Hmo/Pos", None),  # two kinds of plan in one rate
+        ("Ohana", "Medicaid", None),  # Hawaii-only plan; not placed in Georgia
+    ],
+    "HI": [
+        # Hawaii Medicaid (QUEST Integration) plans, ready before Hawaii loads (Med-QUEST list)
+        ("AlohaCare", "QUEST Integration Medicaid", "AlohaCare · Medicaid plan"),
+        ("'Ohana Health Plan", "Medicaid", "'Ohana Health Plan · Medicaid plan"),
+        ("WellCare Ohana", "Medicaid", "'Ohana Health Plan · Medicaid plan"),
+    ],
+    "LA": [
+        # Healthy Louisiana plans, ready before Louisiana loads (LDH notice, Sept 2026)
+        ("AmeriHealth Caritas", "Medicaid", "AmeriHealth Caritas Louisiana · Medicaid plan"),
+        ("Healthy Blue", "Medicaid", "Healthy Blue (Louisiana) · Medicaid plan"),
+        ("Humana Healthy Horizons in Louisiana", "Medicaid", "Humana · Medicaid plan"),
+    ],
+    "KY": [
+        # Kentucky Medicaid plans (state guide)
+        ("WellCare of Kentucky", "Medicaid", "Wellcare · Medicaid plan"),
+        ("PHP by Molina Healthcare", "Medicaid", "Passport Health Plan · Medicaid plan"),
+        ("Humana Healthy Horizons in Kentucky", "Medicaid", "Humana · Medicaid plan"),
+    ],
+    "IL": [
+        # HealthChoice Illinois plans, ready before Illinois loads (HFS list)
+        ("CountyCare", "Medicaid", "CountyCare Health Plan · Medicaid plan"),
+        (
+            "Blue Cross Community Health Plans",
+            "BCCHP",
+            "Blue Cross and Blue Shield of Illinois · Medicaid plan",
+        ),
     ],
     "CT": [
         # Connecticut hospitals (2026-11-13 load report)

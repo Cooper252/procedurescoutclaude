@@ -2,6 +2,7 @@
 
 import { useApp } from "@/components/AppState";
 import { FileCheck, Search, Shield, Alert, Heart } from "@/components/Icons";
+import { PageIntro } from "@/components/PageIntro";
 
 export default function HowItWorks() {
   const { t } = useApp();
@@ -13,9 +14,9 @@ export default function HowItWorks() {
     { icon: <Heart size={24} />, title: t.how5t, body: t.how5 },
   ];
   return (
+    <>
+    <PageIntro narrow title={t.howTitle} lead={t.howSub} />
     <div className="wrap page narrow">
-      <h1 className="page-title">{t.howTitle}</h1>
-      <p className="lead">{t.howSub}</p>
       <div className="how">
         {items.map((it) => (
           <section key={it.title} className="how-item">
@@ -32,5 +33,6 @@ export default function HowItWorks() {
         <p className="small">{t.howSources}</p>
       </section>
     </div>
+    </>
   );
 }
