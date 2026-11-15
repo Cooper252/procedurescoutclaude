@@ -461,7 +461,7 @@ CODE_RANGES: dict[str, tuple[Range, ...]] = {
     "ear tubes": EAR_TUBES,
     "infusion": INFUSION,
     "iv": INFUSION,
-    "iron infusion": IRON_INFUSION,
+    "iron infusion": (*IRON_INFUSION, *INFUSION),  # the iron and giving it by IV
     "botox": BOTOX,
     "sleep apnea": SLEEP_APNEA,
     "cpap": (_r("HCPCS", "E0601"), _r("HCPCS", "A7030", "A7039")),

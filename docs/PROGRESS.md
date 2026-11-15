@@ -2,6 +2,10 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-15 — Live check (commit 59)
+
+Verified in production: the birth price list near 89123 shows "Epidural for labor (CPT 01967)" with the anesthesia time-billing note, the "only insurance rates" notice with "See prices with my insurance", and no total where an item is missing. New words work: "birth control" (IUDs and the implant, no birth stays), "bone density" (DEXA first), "mole removal", "kidney stone" (stays and lithotripsy). "Iron infusion" listed only the iron drugs (5); it now also lists giving it by IV (CPT 96360-96379) (`code_ranges.py`). `make check`: `431 passed, 1 skipped`.
+
 ## 2026-11-15 — Price list: offer the insurance switch
 
 On the live birth price list near 89123 (cash), most hospital-stay lines say "Insurance rates only". `app/price-list/page.tsx` now says that some places published only what insurance plans pay for some items and offers the same "See prices with my insurance" button as the results page (`lib/i18n.ts` `listRatesOnlyNote`, English and Spanish). `npx tsc --noEmit` clean, `npm test` passed, `npx next build` compiled.
