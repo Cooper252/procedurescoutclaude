@@ -225,6 +225,54 @@ ROOT_CANAL = (_r("CDT", "D3310", "D3348"), _r("HCPCS", "D3310", "D3348"))
 EXTRACTION = (_r("CDT", "D7140", "D7250"), _r("HCPCS", "D7140", "D7250"))
 IMPLANT = (_r("CDT", "D6010", "D6067"), _r("HCPCS", "D6010", "D6067"))
 
+CIRCUMCISION = (_r("CPT", "54150"), _r("CPT", "54160", "54161"))
+IUD = (_r("CPT", "58300", "58301"), _r("HCPCS", "J7296", "J7301"))
+BIRTH_CONTROL_IMPLANT = (_r("CPT", "11981", "11983"), _r("HCPCS", "J7307"))
+SKIN_LESION_REMOVAL = (
+    _r("CPT", "11400", "11446"),
+    _r("CPT", "11300", "11313"),
+    _r("CPT", "17000", "17111"),
+)
+SKIN_BIOPSY = (_r("CPT", "11102", "11107"),)
+JOINT_INJECTION = (_r("CPT", "20600", "20611"), _r("HCPCS", "J1030", "J1040"), _r("HCPCS", "J3301"))
+CAST = (_r("CPT", "29000", "29799"),)
+HEARING_TEST = (
+    _r("CPT", "92551", "92557"),
+    _r("CPT", "92567", "92568"),
+    _r("CPT", "92650", "92653"),
+)
+EAR_TUBES = (_r("CPT", "69433", "69436"),)
+INFUSION = (_r("CPT", "96360", "96379"),)
+IRON_INFUSION = (
+    _r("HCPCS", "J1439"),
+    _r("HCPCS", "J1756"),
+    _r("HCPCS", "J2916"),
+    _r("HCPCS", "J1750"),
+    _r("HCPCS", "J1437"),
+)
+BOTOX = (_r("HCPCS", "J0585"), _r("CPT", "64615"), _r("CPT", "64612"))
+SLEEP_APNEA = (_r("CPT", "95800", "95811"), _r("HCPCS", "G0398", "G0400"), _r("HCPCS", "E0601"))
+NERVE_BLOCK = (_r("CPT", "64400", "64530"),)
+EPIDURAL_INJECTION = (_r("CPT", "62320", "62327"), _r("CPT", "64479", "64484"))
+COLPOSCOPY = (_r("CPT", "57452", "57461"),)
+DEXA = (_r("CPT", "77080", "77081"), _r("CPT", "77085"))
+HOLTER = (_r("CPT", "93224", "93248"),)
+NUCLEAR_STRESS = (_r("CPT", "78451", "78454"),)
+PET = (_r("CPT", "78811", "78816"), _r("CPT", "78608", "78609"))
+LITHOTRIPSY = (_r("CPT", "50590"), _r("MS-DRG", "691", "694"))
+PROSTATE = (
+    _r("CPT", "55700", "55706"),
+    _r("CPT", "55866"),
+    _r("CPT", "52601"),
+    _r("CPT", "52441", "52442"),
+    _r("CPT", "84153", "84154"),
+)
+THYROID_SURGERY = (_r("CPT", "60200", "60271"),)
+SINUS_SURGERY = (_r("CPT", "31253", "31298"),)
+DEVIATED_SEPTUM = (_r("CPT", "30520"),)
+LUMPECTOMY = (_r("CPT", "19301", "19302"),)
+MASTECTOMY = (_r("CPT", "19303", "19307"), _r("MS-DRG", "582", "583"))
+
 # what people type -> the ranges (a word matches anywhere in the search)
 CODE_RANGES: dict[str, tuple[Range, ...]] = {
     "birth": BIRTH,
@@ -386,7 +434,59 @@ CODE_RANGES: dict[str, tuple[Range, ...]] = {
     "tooth extraction": EXTRACTION,
     "extraction": EXTRACTION,
     "wisdom teeth": (_r("CDT", "D7220", "D7250"), _r("HCPCS", "D7220", "D7250")),
-    "implant": IMPLANT,
+    # "implant" alone could be a dental, breast, hearing or birth-control implant
+    "dental implant": IMPLANT,
+    "tooth implant": IMPLANT,
+    "breast implant": (
+        _r("CPT", "19325"),
+        _r("CPT", "19340", "19342"),
+        _r("CPT", "19328", "19330"),
+    ),
+    "circumcision": CIRCUMCISION,
+    "iud": IUD,
+    "birth control": (*IUD, *BIRTH_CONTROL_IMPLANT),
+    "nexplanon": BIRTH_CONTROL_IMPLANT,
+    "mole removal": SKIN_LESION_REMOVAL,
+    "wart removal": (_r("CPT", "17110", "17111"),),
+    "skin tag": (_r("CPT", "11200", "11201"),),
+    "skin biopsy": SKIN_BIOPSY,
+    "cortisone": JOINT_INJECTION,
+    "cortisone shot": JOINT_INJECTION,
+    "steroid shot": JOINT_INJECTION,
+    "joint injection": JOINT_INJECTION,
+    "cast": CAST,
+    "splint": CAST,
+    "hearing test": HEARING_TEST,
+    "hearing aid": (_r("HCPCS", "V5010", "V5275"), _r("CPT", "92590", "92595")),
+    "ear tubes": EAR_TUBES,
+    "infusion": INFUSION,
+    "iv": INFUSION,
+    "iron infusion": IRON_INFUSION,
+    "botox": BOTOX,
+    "sleep apnea": SLEEP_APNEA,
+    "cpap": (_r("HCPCS", "E0601"), _r("HCPCS", "A7030", "A7039")),
+    "nerve block": NERVE_BLOCK,
+    "epidural injection": EPIDURAL_INJECTION,
+    "epidural steroid": EPIDURAL_INJECTION,
+    "colposcopy": COLPOSCOPY,
+    "bone density": DEXA,
+    "dexa": DEXA,
+    "holter": HOLTER,
+    "heart monitor": HOLTER,
+    "nuclear stress test": NUCLEAR_STRESS,
+    "pet scan": PET,
+    "pet": PET,
+    "kidney stone": LITHOTRIPSY,
+    "kidney stones": LITHOTRIPSY,
+    "lithotripsy": LITHOTRIPSY,
+    "prostate": PROSTATE,
+    "thyroid surgery": THYROID_SURGERY,
+    "thyroidectomy": THYROID_SURGERY,
+    "sinus surgery": SINUS_SURGERY,
+    "deviated septum": DEVIATED_SEPTUM,
+    "septoplasty": DEVIATED_SEPTUM,
+    "lumpectomy": LUMPECTOMY,
+    "mastectomy": MASTECTOMY,
 }
 
 _CODE = re.compile(r"^([A-Z]?)(\d{1,5})$")

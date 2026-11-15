@@ -78,12 +78,15 @@ _TYPES: list[tuple[re.Pattern[str], str]] = [
         re.compile(
             r"marketplace|exchange|\bhix\b|\bqhp\b|\bifp\b|\biex\b|health connect|\baca\b"
             r"|covered calif(ornia)?\b|\bcovered ca\b"
+            # Anthem's individual-plan network: "Enhanced Pathways", "Pathway X"
+            r"|\bpathways?( x)?( enhanced)?\b|\benhanced pathways?\b"
         ),
         "Marketplace (exchange) plan",
     ),
     # Florida: "ManagedCareHMO" (2026-11-14)
-    (re.compile(r"^(commercial |managed ?care ?)?hmo$"), "HMO"),
-    (re.compile(r"^(commercial )?ppo$"), "PPO"),
+    # Maryland: "United Healthcare All HMO Products" (2026-11-15)
+    (re.compile(r"^(commercial |managed ?care ?|all )?hmo( products)?$"), "HMO"),
+    (re.compile(r"^(commercial |all )?ppo( products)?$"), "PPO"),
     (re.compile(r"^(commercial )?epo$"), "EPO"),
     (re.compile(r"^(commercial )?pos$"), "POS"),
     (
@@ -251,6 +254,7 @@ def _only_repeats_insurer(plan_raw: str, payer_raw: str, insurer_name: str) -> b
     own.discard("")
     own |= _initials(insurer_name)
     plan = _LOCATION_PREFIX.sub("", re.sub(r"[_/-]", " ", normalize_name(plan_raw)) + " ")
+    plan = re.sub(r"^\s*\d+ (?=[a-z])", "", plan)  # a plan number in front
     rest = [
         w
         for w in plan.split()
@@ -259,10 +263,11 @@ def _only_repeats_insurer(plan_raw: str, payer_raw: str, insurer_name: str) -> b
     return not rest
 
 
-def _beyond_name(raw: str, insurer_name: str) -> str:
+def _beyond_name(raw: str, insurer_name: str, also: str = "") -> str:
     """The words of a spelling that aren't the insurer's name ("BLUE SHIELD OF
-    CA HMO" -> "hmo" for Blue Shield of California)."""
-    own = set(loosen(insurer_name).split()) | _initials(insurer_name)
+    CA HMO" -> "hmo" for Blue Shield of California); `also`: the insurer as
+    the file wrote it ("United Healthcare" for UnitedHealthcare)."""
+    own = set(loosen(insurer_name).split()) | _initials(insurer_name) | set(loosen(also).split())
     words = [
         w for w in loosen(raw).split() if w not in own and w not in _FILLER and w not in _STATES
     ]
@@ -317,6 +322,8 @@ def _pick_plan(
     # billing numbers after a name ("AETNA COMMERCIAL [100112]", Louisiana
     # files, 2026-11-15) say nothing about the plan
     p = " ".join(w for w in p.split() if not _billing_number(w))
+    # a plan number in front ("19_HUMANA 20170101", Maryland pass 1)
+    p = re.sub(r"^\d+ (?=[a-z])", "", p)
     if _SKIP.search(p) or _SKIP.search(normalize_name(payer_raw).replace("_", " ")):
         return None, ""
     plans = {
@@ -337,7 +344,11 @@ def _pick_plan(
     if rule_plan and rule_plan != BY_PLAN_TEXT:
         return plans.get(rule_plan), rule_plan
     # p: the plan text without a billing-location prefix ("NLFH BCBS HMO" -> "bcbs hmo")
-    label = plan_type(p) or plan_type(_beyond_name(p, name))
+    label = (
+        plan_type(p)
+        or plan_type(_beyond_name(p, name))
+        or plan_type(_beyond_name(p, name, payer_raw))
+    )
     if label is None:
         # "ARKANSAS_BLUE_MEDICARE | 344_1", "Blue Cross HMO | Blue Cross HMO":
         # the kind of plan is in the insurer text

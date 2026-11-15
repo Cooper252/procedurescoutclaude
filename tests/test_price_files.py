@@ -93,9 +93,12 @@ def test_rows_with_values_past_the_last_column_are_flagged() -> None:
 
 
 def test_read_csv_flags_bad_bytes_and_non_template() -> None:
-    data = TALL.read_bytes().replace(b"SYNTHETIC SERVICE B", b"SYNTHETIC \xff SERVICE B")
+    # 0x81 is text in neither UTF-8 nor Windows-1252
+    data = TALL.read_bytes().replace(b"SYNTHETIC SERVICE B", b"SYNTHETIC \x81 SERVICE B")
     check = read_csv(io.BytesIO(data))
-    assert "1 rows contain bytes that are not valid UTF-8" in check.problems
+    assert (
+        "1 rows contain bytes that are not text (neither UTF-8 nor Windows-1252)" in check.problems
+    )
     short = read_csv(io.BytesIO(b"a,b\n1,2\n"))
     assert short.problems == [
         "fewer than three rows: not the CMS CSV template (starts with: 'a,b 1,2')"
@@ -465,9 +468,11 @@ def test_all_states_findings_bom_bad_bytes_and_newer_version() -> None:
     lines = TALL.read_bytes().split(b"\n")
     body = [ln for ln in lines[3:] if ln.strip()]
     many = b"\n".join(lines[:3] + body * 60) + b"\n"
-    one_bad = many.replace(b"SYNTHETIC SERVICE B", b"SYNTHETIC \xff SERVICE B", 1)
+    one_bad = many.replace(b"SYNTHETIC SERVICE B", b"SYNTHETIC \x81 SERVICE B", 1)
     noted = read_csv(io.BytesIO(one_bad))
-    assert noted.problems == [] and noted.notes == ["1 rows contain bytes that are not valid UTF-8"]
+    assert noted.problems == [] and noted.notes == [
+        "1 rows contain bytes that are not text (neither UTF-8 nor Windows-1252)"
+    ]
 
 
 def test_newer_template_version_is_a_note(conn: Connection, tmp_path: Path) -> None:
@@ -611,3 +616,12 @@ def test_the_live_run_saves_after_each_hospital(conn: Connection, tmp_path: Path
         commit=lambda: saves.append(1),
     )
     assert len(calls) == 2 and len(saves) == 4
+
+
+def test_windows_1252_text_is_read_and_does_not_hold_the_file() -> None:
+    # Maryland pass 1: University of Maryland files saved by older Windows
+    # tools ("\xae" is the registered sign in Windows-1252)
+    data = TALL.read_bytes().replace(b"SYNTHETIC SERVICE B", b"SYNTHETIC\xae SERVICE B")
+    check = read_csv(io.BytesIO(data))
+    assert check.problems == []
+    assert any("Windows-1252" in n for n in check.notes)

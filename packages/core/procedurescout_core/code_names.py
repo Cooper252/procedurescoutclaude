@@ -16,6 +16,12 @@ import re
 
 # longest first, so "W/O CC/MCC" is replaced before "W/O"
 _DRG_WORDS: tuple[tuple[str, str], ...] = (
+    (r"\bWITHOUT (CC/MCC|MCC/CC)\b", "without complications"),
+    (r"\bWITH (CC/MCC|MCC/CC)\b", "with complications"),
+    (r"\bWITHOUT MCC\b", "without major complications"),
+    (r"\bWITH MCC\b", "with major complications"),
+    (r"\bWITHOUT CC\b", "without complications"),
+    (r"\bWITH CC\b", "with complications"),
     (r"\bW/?O (CC/MCC|MCC/CC)\b", "without complications"),
     (r"\bW/? ?(CC/MCC|MCC/CC)\b", "with complications"),
     (r"\bW CC/MCC\b", "with complications"),

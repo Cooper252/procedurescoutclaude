@@ -350,3 +350,51 @@ def test_medicare_g_codes_are_grouped_with_what_they_are() -> None:
     assert group_for("HCPCS", "G0008") == "visit"  # giving a flu shot
     assert group_for("HCPCS", "G0439") == "visit"  # annual wellness visit
     assert group_for("HCPCS", "G0130") == "other"
+    assert group_for("HCPCS", "Q2035") == "drug"  # a flu vaccine
+    assert group_for("HCPCS", "Q4101") == "supply"  # a skin substitute
+
+
+def test_more_everyday_words_and_ambiguous_ones() -> None:
+    from procedurescout_core.code_ranges import ranges_for
+
+    assert ("CPT", "58300", "58301") in ranges_for("birth control")
+    assert not any(r[0] == "MS-DRG" for r in ranges_for("birth control"))  # not a birth
+    assert ranges_for("implant") == []  # dental, breast, hearing or birth control?
+    assert ("CPT", "77080", "77081") in ranges_for("bone density")
+
+
+def test_a_service_is_suggested_once_even_when_two_of_its_codes_match(conn: Connection) -> None:
+    from pathlib import Path
+
+    from procedurescout_ingest.reference import catalog
+
+    ref_dir = Path(__file__).resolve().parent.parent / "data/reference"
+    catalog.load_provider_types(conn, (ref_dir / "provider_types.csv").read_text())
+    catalog.load_services(conn, (ref_dir / "service_catalog.csv").read_text())
+    _index(conn)
+    for code in ("99386", "99396"):
+        conn.execute(
+            text(
+                "INSERT INTO ref.code_index "
+                "(system, code, hospital_description, facilities, prices) "
+                "VALUES ('CPT', :c, 'PREVENTIVE VISIT CHECKUP', 50, 50)"
+            ),
+            {"c": code},
+        )
+    slugs = [s.slug for s in suggest(conn, "checkup", limit=20)]
+    assert len(slugs) == len(set(slugs))
+
+
+def test_a_searched_code_of_a_service_is_named_by_the_service(conn: Connection) -> None:
+    from pathlib import Path
+
+    from procedurescout_core.search import _code_name
+    from procedurescout_ingest.reference import catalog
+
+    ref_dir = Path(__file__).resolve().parent.parent / "data/reference"
+    catalog.load_provider_types(conn, (ref_dir / "provider_types.csv").read_text())
+    catalog.load_services(conn, (ref_dir / "service_catalog.csv").read_text())
+    _index(conn)
+    assert _code_name(conn, ("CPT", "01967")) == "Epidural for labor"
+    # "1967" (no leading zero) is the same code, so the same name
+    assert _code_name(conn, ("CPT", "1961")) != "Epidural for labor"

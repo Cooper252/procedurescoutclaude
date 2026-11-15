@@ -153,7 +153,7 @@ _HCPCS_LETTER = {
     "K": "supply",
     "L": "supply",
     "V": "supply",
-    "Q": "supply",
+    "Q": "drug",  # mostly drugs and vaccines (Q2035 flu vaccine, Q5xxx biosimilars)
     "J": "drug",
     "P": "lab",
     "R": "imaging",
@@ -191,6 +191,8 @@ def group_for(system: str, code: str) -> str:
     if system == "HCPCS" and c:
         if c[0] == "C" and c[1:2] in ("1", "2"):
             return "supply"  # C1000-C2999: devices
+        if c[:2] == "Q4":
+            return "supply"  # Q4100-Q4999: skin substitutes
         if c[:3] == "C89":
             return "imaging"  # C8900-C8999: MRA and other imaging
         if c[0] == "G" and c[1:].isdigit():

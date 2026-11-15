@@ -187,6 +187,23 @@ def _code_name(conn: Connection, code: tuple[str, str]) -> str | None:
     from .code_search import clean_wording, group_for, plain_wording
 
     system, value = code
+    # an approved service for this code (any spelling of it): its plain name
+    spellings = [f"{a}:{b}" for a, b in same_code_spellings(conn, [code])]
+    service = conn.execute(
+        text(
+            """
+            SELECT p.consumer_name FROM ref.procedure_code pc
+            JOIN ref.procedure p ON p.id = pc.procedure_id
+            WHERE pc.review_state = 'approved' AND p.review_state = 'approved'
+              AND pc.role = 'primary' AND p.kind = 'service'
+              AND pc.code_system::text || ':' || pc.code = ANY(:k)
+            ORDER BY p.consumer_name LIMIT 1
+            """
+        ),
+        {"k": spellings},
+    ).scalar()
+    if service:
+        return str(service)
     title = conn.execute(
         text(
             "SELECT descriptor FROM ref.code WHERE system = CAST(:s AS ref.code_system) "
@@ -789,11 +806,11 @@ def suggest(conn: Connection, query: str, limit: int = 10) -> list[Suggestion]:
     if room:
         # codes come after services (Cooper, 2026-11-12), and a code that belongs
         # to a service already suggested isn't listed again
-        out.extend(
-            c
-            for c in _code_suggestions(conn, query.strip(), q, room + len(out))
-            if c.slug not in seen
-        )
+        for c in _code_suggestions(conn, query.strip(), q, room + len(out)):
+            # two codes of one service (99386 and 99396) list the service once
+            if c.slug not in seen:
+                seen.add(c.slug)
+                out.append(c)
         out = out[: max(1, min(limit, 20))]
     return out
 

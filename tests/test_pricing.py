@@ -1426,3 +1426,55 @@ def test_louisiana_billing_numbers_and_plain_medicaid(conn: Connection, world: L
         },
     )
     assert wrong == []
+
+
+def test_maine_and_maryland_spellings(conn: Connection, world: LocalStore) -> None:
+    """Maine and Maryland pass 1 (2026-11-15)."""
+    anthem_me = "Anthem Blue Cross Blue Shield (Maine)"
+    wrong = _placed_by_state(
+        conn,
+        {
+            "ME": [
+                (
+                    "Harvard",
+                    "Commercial",
+                    "Harvard Pilgrim Health Care · All plans (one rate published for all)",
+                ),
+                (
+                    "CHO",
+                    "Commercial",
+                    "Community Health Options · All plans (one rate published for all)",
+                ),
+                (
+                    "Martin's Point",
+                    "MCR Advantage",
+                    "Martin's Point Health Care · Medicare Advantage",
+                ),
+                ("Medicare A ME JK", "Default", "Original Medicare · Original Medicare"),
+                (
+                    "Blue Cross Blue Shield of ME Anthem",
+                    "All Plans",
+                    f"{anthem_me} · All plans (one rate published for all)",
+                ),
+                ("Anthem", "Enhanced Pathways", f"{anthem_me} · Marketplace (exchange) plan"),
+                ("Traditional Medicaid", "Traditional Medicaid", "Maine Medicaid · Medicaid"),
+                ("Martins Point Generation", "Commercial", None),
+            ],
+            "MD": [
+                (
+                    "United Healthcare",
+                    "United Healthcare All HMO Products",
+                    "UnitedHealthcare · HMO",
+                ),
+                ("HUMANA", "19_HUMANA 20170101", "Humana · All plans (one rate published for all)"),
+                (
+                    "MARYLAND PHYSICIANS MEDICAID",
+                    "181_MARYLAND PHYSICIANS CARE MEDICAID 20240101",
+                    "Maryland Physicians Care · Medicaid plan",
+                ),
+            ],
+            # "CHO" and "Harvard" alone mean these insurers only in their states
+            "TX": [("CHO", "Commercial", None), ("Harvard", "Commercial", None)],
+        },
+    )
+    assert wrong == []

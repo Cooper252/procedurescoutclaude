@@ -371,11 +371,26 @@ def read_json(stream: IO[bytes]) -> FileCheck:
     return check
 
 
-def _text_lines(stream: IO[bytes]) -> Iterator[str]:
+def _text_lines(stream: IO[bytes], errors: str = "replace") -> Iterator[str]:
     wrapper = io.TextIOWrapper(
-        cast(io.BufferedReader, stream), encoding="utf-8-sig", errors="replace", newline=""
+        cast(io.BufferedReader, stream), encoding="utf-8-sig", errors=errors, newline=""
     )
     yield from wrapper
+
+
+def _windows_text(cell: str) -> tuple[str, bool, bool]:
+    """(text, was not UTF-8, still unreadable). Cells that aren't UTF-8 are
+    read as Windows-1252, as the price reader does (price_parser._fix_cell);
+    only bytes that are text in neither count as unreadable."""
+    try:
+        cell.encode("utf-8")
+        return cell, False, False
+    except UnicodeEncodeError:
+        raw = cell.encode("utf-8", "surrogateescape")
+        try:
+            return raw.decode("cp1252"), True, False
+        except UnicodeDecodeError:
+            return raw.decode("cp1252", errors="replace"), True, True
 
 
 def _head(stream: IO[bytes]) -> bytes:
@@ -406,11 +421,14 @@ def read_csv(stream: IO[bytes]) -> FileCheck:
     (standard_charge|payer|plan|...)."""
     check = FileCheck()
     head = _head(stream)
-    reader = csv.reader(_text_lines(stream))
+    reader = csv.reader(_text_lines(stream, errors="surrogateescape"))
     try:
         labels = next(reader)
         values = next(reader)
         columns = next(reader)
+        labels, values, columns = (
+            [_windows_text(c)[0] for c in r] for r in (labels, values, columns)
+        )
     except StopIteration:
         check.problems.append(
             "fewer than three rows: not the CMS CSV template" + _starts_with(head)
@@ -449,7 +467,7 @@ def read_csv(stream: IO[bytes]) -> FileCheck:
     gross_i = idx.get("standard_charge|gross")
     cash_i = idx.get("standard_charge|discounted_cash")
     type_is = [i for c, i in idx.items() if c.startswith("code|") and c.endswith("|type")]
-    rows = ragged = wider = replaced = gross = cash = 0
+    rows = ragged = wider = replaced = windows = gross = cash = 0
     code_types: Counter[str] = Counter()
     settings: Counter[str] = Counter()
     width = len(columns)
@@ -462,8 +480,15 @@ def read_csv(stream: IO[bytes]) -> FileCheck:
                 wider += 1  # values past the last column: refused when loading
             elif len(row) != width:
                 ragged += 1  # shorter, or longer only by empty cells: lines up
-            if any("�" in cell for cell in row):
-                replaced += 1
+            # Windows-1252 text (a file saved by older Windows tools, e.g. a registered sign)
+            # is read correctly; only bytes that are text in neither count
+            fixed = [_windows_text(cell) for cell in row]
+            if any(f[1] for f in fixed):
+                row = [f[0] for f in fixed]
+                if any(f[2] for f in fixed):
+                    replaced += 1
+                else:
+                    windows += 1
             if payer_i is not None and payer_i < len(row):
                 payers.add(row[payer_i])
             if setting_i is not None and setting_i < len(row) and row[setting_i]:
@@ -490,10 +515,16 @@ def read_csv(stream: IO[bytes]) -> FileCheck:
             f"{ragged} rows are shorter than the header or longer only by empty cells "
             "(read normally)"
         )
+    if windows:
+        check.notes.append(
+            f"{windows} rows are in Windows-1252 text rather than UTF-8 (read correctly)"
+        )
     if replaced:
         # a few stray characters (usually in descriptions) don't make the prices
         # wrong; only hold the file when more than 1% of rows have them
-        message = f"{replaced} rows contain bytes that are not valid UTF-8"
+        message = (
+            f"{replaced} rows contain bytes that are not text (neither UTF-8 nor Windows-1252)"
+        )
         (check.notes if replaced * 100 <= max(rows, 1) else check.problems).append(message)
     check.summary.update(
         {

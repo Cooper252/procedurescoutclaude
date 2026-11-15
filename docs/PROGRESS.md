@@ -2,6 +2,36 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-15 — Maine and Maryland pass 1 reports
+
+Maine pass 1: 18 of 18 price files loaded (8.9 million prices), no file problems. Maryland pass 1: 38 of 38 loaded (36.0 million prices); 16 files flagged, 15 of them for "bytes that are not valid UTF-8" (the University of Maryland Medical System files: about 400,000 rows each), plus two files dated more than a year ago (Frederick Health, Mount Washington Pediatric). With more than 1 in 100 rows flagged, those hospitals' first files were held back.
+
+Windows text: the price reader already reads non-UTF-8 cells as Windows-1252 (the encoding older Windows tools save, with signs such as the registered mark), but the file check counted every such row as broken. `price_files.py` now reads them the same way (`_windows_text`); rows in Windows-1252 are a note ("read correctly"), and only bytes that are text in neither encoding count as a problem (still held when more than 1 in 100). The Maryland hospitals publish on their next pass if their other checks pass. Tests: `test_windows_1252_text_is_read_and_does_not_hold_the_file`, `test_read_csv_flags_bad_bytes_and_non_template` (a byte that is text in neither).
+
+Insurers (D-047), from both states' most-used unmatched spellings: "Harvard" (Harvard Pilgrim, New England states only), "CHO" (Community Health Options, Maine only), "Martin's Point" with an apostrophe, "Blue Cross Blue Shield of ME Anthem", Medicare contractor regions such as "Medicare A ME JK", "Wellcare Health Plan Inc MCR Adv", plain "Traditional Medicaid" in Maine (MaineCare) and Maryland (Maryland Medicaid), "MARYLAND PHYSICIANS MEDICAID"; plan texts "All HMO Products"/"All PPO Products", Anthem's "Pathway" individual-plan network (marketplace), and a plan number in front ("19_HUMANA 20170101"); the insurer as the file wrote it is now also taken out of the plan text ("United Healthcare All HMO Products" -> HMO). Community Health Options and Harvard Pilgrim are placed only in their states (`payer_states.csv`). Re-running every earlier report's unmatched spellings: 5 changed, all intended (Colorado and Georgia Anthem "Pathway" plans -> marketplace; DC UnitedHealthcare "All HMO/PPO Products"). Test: `test_maine_and_maryland_spellings`.
+
+Hospital policies (D-060), checked against the live Maryland and Maine hospital names: MedStar (7), Johns Hopkins (4 incl. Suburban) and MaineHealth (8) matched as written. Added from the systems' own policy documents: University of Maryland Medical System (11 hospitals: free care up to 200% of the Maryland Department of Health income limits, sliding-scale reduced-cost care to 300%, hardship help) and Northern Light Health (9 hospitals: free care below 200% of the federal poverty level for Maine residents, emergency care for anyone). No hospital matched two rows.
+
+`make check`: `431 passed, 1 skipped`.
+
+## 2026-11-15 — Live check (commit 57): code names, checkups, Q-codes
+
+Verified in production: "colonoscopy" now opens with the colonoscopies (G0121, G0105, CPT 45378), then anesthesia; "flu shot" opens with giving a flu shot and flu vaccines; "checkup" lists the Medicare wellness visits and all 14 preventive-visit codes (99381-99397) with the checkup services.
+
+Fixed:
+- A searched code's name used one hospital's wording for that exact spelling ("Pf crna neuraxial delivery vaginal w mdp" for CPT 01967; a whole AMA-style sentence for 99285). An approved service for the code, in any spelling, now names it ("Epidural for labor", "Emergency room visit, most serious (level 5)") (`search.py` `_code_name`).
+- MS-DRG titles written with "WITHOUT MCC" / "WITH CC" in full are now written out like the short forms ("without major complications") (`code_names.py`).
+- The search box listed "Annual physical, adult 40 to 64" twice (two of its codes matched): a service is listed once (`search.py` `suggest`).
+- Flu vaccine Q-codes (Q2035-Q2039) were grouped as supplies: HCPCS Q-codes are drugs, except Q4xxx skin substitutes (`code_search.py`).
+
+Tests: `test_a_service_is_suggested_once_even_when_two_of_its_codes_match`, `test_a_searched_code_of_a_service_is_named_by_the_service`, `test_medicare_g_codes_are_grouped_with_what_they_are` (Q-codes). `make check`: `429 passed, 1 skipped`.
+
+## 2026-11-15 — More everyday words; testing handoff updated
+
+`code_ranges.py` now covers about 190 everyday words (was about 130): circumcision, IUD and birth-control implant ("birth control" no longer pulls in births), mole/wart/skin-tag removal, skin biopsy, cortisone/joint injections, casts and splints, hearing tests and aids, ear tubes, IV and iron infusions, Botox, sleep apnea and CPAP, nerve blocks, epidural steroid injections (apart from labor epidurals), colposcopy, bone density (DEXA), Holter monitors, nuclear stress tests, PET scans, kidney stones, prostate, thyroid and sinus surgery, deviated septum, lumpectomy, mastectomy, breast and dental implants. "Implant" alone is left to wording (it could be dental, breast, hearing or birth control). Test: `test_more_everyday_words_and_ambiguous_ones`. `make check`: `427 passed, 1 skipped`.
+
+`docs/TESTING_HANDOFF.md` lists everything added since 2026-11-14 for the full test run; `docs/FEATURE_MATRIX.md` has rows for D-066, D-067/D-068 and the estimate panel.
+
 ## 2026-11-15 — Live check of the search changes (commit 55)
 
 Verified in production: "x-ray" lists X-rays (imaging) first, "std test" lists syphilis, chlamydia/gonorrhea and hepatitis tests first, "flu shot" now finds 400 options and "checkup" 31 (was 14). Still off, fixed here: Medicare's G-codes were all "other", so "colonoscopy" opened with an "Other codes" group (G0121/G0105 screening colonoscopy) and "flu shot" with G0008; G0104-G0121 are now grouped as procedures and G0008-G0010 (giving a vaccine) and G0402/G0438/G0439 (wellness visits) as visits (`code_search.py` `group_for`). The flu-shot code list was a span that also held the rabies (90675) and pneumococcal (90677) vaccines; it now lists only influenza vaccine codes (`code_ranges.py`). "Checkup" means a preventive visit; sick visits stay under "office visit". Test: `test_medicare_g_codes_are_grouped_with_what_they_are`. `make check`: `426 passed, 1 skipped`.
