@@ -46,6 +46,9 @@ _SKIP = re.compile(
     r"|dental|vision|suppl|\bsupp\b|medigap|out of state|rental|network access|catch ?all"
     r"|swing|\birf\b|\brac\b|home health|nursing|student|sick baby|non par|self pay"
     r"|uninsured|research|\bpace\b|non[ -]?contract"
+    # GNOCHC: a former New Orleans coverage program for uninsured adults, not
+    # Louisiana Medicaid itself (Louisiana pass 2, 2026-11-15)
+    r"|gnochc"
 )
 _TYPES: list[tuple[re.Pattern[str], str]] = [
     (
@@ -234,6 +237,12 @@ def _initials(name: str) -> set[str]:
     return out
 
 
+def _billing_number(word: str) -> bool:
+    """A billing number after a name ("[100112]"): four digits or more. Short
+    numbers can mean something ("/65": Medicare-age members), so they stay."""
+    return word.isdigit() and len(word) >= 4
+
+
 def _only_repeats_insurer(plan_raw: str, payer_raw: str, insurer_name: str) -> bool:
     """'AETNA | AETNA', 'Aetna | Aetna Commercial', 'BCBS | BCBS AL Commercial':
     the plan text adds nothing but the insurer's name, so it is one rate for all
@@ -242,7 +251,11 @@ def _only_repeats_insurer(plan_raw: str, payer_raw: str, insurer_name: str) -> b
     own.discard("")
     own |= _initials(insurer_name)
     plan = _LOCATION_PREFIX.sub("", re.sub(r"[_/-]", " ", normalize_name(plan_raw)) + " ")
-    rest = [w for w in plan.split() if w not in own and w not in _FILLER and w not in _STATES]
+    rest = [
+        w
+        for w in plan.split()
+        if w not in own and w not in _FILLER and w not in _STATES and not _billing_number(w)
+    ]
     return not rest
 
 
@@ -301,6 +314,9 @@ def _pick_plan(
 ) -> tuple[str | None, str]:
     """(plan id, label) for one spelling of a known insurer, or (None, '')."""
     p = _LOCATION_PREFIX.sub("", normalize_name(plan_raw).replace("_", " ") + " ").strip()
+    # billing numbers after a name ("AETNA COMMERCIAL [100112]", Louisiana
+    # files, 2026-11-15) say nothing about the plan
+    p = " ".join(w for w in p.split() if not _billing_number(w))
     if _SKIP.search(p) or _SKIP.search(normalize_name(payer_raw).replace("_", " ")):
         return None, ""
     plans = {

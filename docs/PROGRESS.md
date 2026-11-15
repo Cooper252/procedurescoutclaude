@@ -2,6 +2,20 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-15 — Live check of the search changes (commit 55)
+
+Verified in production: "x-ray" lists X-rays (imaging) first, "std test" lists syphilis, chlamydia/gonorrhea and hepatitis tests first, "flu shot" now finds 400 options and "checkup" 31 (was 14). Still off, fixed here: Medicare's G-codes were all "other", so "colonoscopy" opened with an "Other codes" group (G0121/G0105 screening colonoscopy) and "flu shot" with G0008; G0104-G0121 are now grouped as procedures and G0008-G0010 (giving a vaccine) and G0402/G0438/G0439 (wellness visits) as visits (`code_search.py` `group_for`). The flu-shot code list was a span that also held the rabies (90675) and pneumococcal (90677) vaccines; it now lists only influenza vaccine codes (`code_ranges.py`). "Checkup" means a preventive visit; sick visits stay under "office visit". Test: `test_medicare_g_codes_are_grouped_with_what_they_are`. `make check`: `426 passed, 1 skipped`.
+
+## 2026-11-15 — Louisiana pass 2 report; misaligned rows refused (D-067); 16 GiB file limit (D-068)
+
+Louisiana pass 2 (report from Cooper's downloads): 105 price files chosen, 27 loaded (77.7 million prices), 69 unchanged and skipped, 5 same content, 2 downloads failed (Bayou Bend and East Carroll on apps.para-hcfs.com: self-signed certificate; certificate checks stay on), 2 Excel/unknown formats. 9 hospitals' first files were held only because some rows had a different number of columns than the header; 4 for files dated more than a year ago (Beacon Behavioral x3, Caldwell Memorial, Serenity Springs); Freedom Behavioral and Regions Behavioral for non-CMS templates; Claiborne Memorial for an Excel workbook. Prices reachable through a service: 0.6% (most prices are drug and supply codes; the all-options list reaches the rest by word). 38,085 insurer spellings unmatched nationally; Louisiana's most-used are Tricare, Humana, Aetna and Medicaid plans written with billing numbers ("TRICARE [8002]").
+
+D-067: rows with values past the last column were read by position (a price could land under the wrong heading); they are now refused, and rows that only differ by empty cells no longer hold a file. The 9 Louisiana hospitals (and others held the same way) publish on their next pass if their other checks pass, since held first files are downloaded and checked again. D-068: per-file limit raised from 4 to 16 GiB for Northwestern Memorial (Cooper, 2026-11-15).
+
+Insurers (D-047), from Louisiana's most-used unmatched spellings: names followed by billing numbers ("AETNA [1001] | AETNA COMMERCIAL [100112]") now match: billing numbers (four digits or more) in the plan text are ignored, shorter numbers such as "/65" still count (`plan_resolver.py` `_billing_number`); Vantage Health Plan added (Louisiana, owned by Blue Cross and Blue Shield of Louisiana since 2018; sources in `payer_name_rules.csv`); plain "MEDICAID" in a Louisiana hospital is Louisiana Medicaid (Louisiana only); GNOCHC (a former New Orleans program for uninsured adults) is left unmatched. Tricare, vision and psychiatric plans stay unmatched by design. Re-running every earlier report's unmatched spellings: no other spelling changed. Test: `test_louisiana_billing_numbers_and_plain_medicaid`.
+
+Tested: `test_a_row_split_by_an_unquoted_comma_is_refused_not_misread` (the split row is refused, the short row read), `test_rows_with_values_past_the_last_column_are_flagged`, `test_read_csv_wide_and_ragged_row` (a row longer only by an empty cell is a note). `make check`: `425 passed, 1 skipped`.
+
 ## 2026-11-15 — Closest groups first; dental codes once; checkups; plain names for codes; joint and spine stays
 
 Live checks of the all-options list (commit 54) showed:

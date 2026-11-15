@@ -343,3 +343,10 @@ def test_a_searched_code_gets_a_plain_name(conn: Connection) -> None:
 def test_codes_with_a_modifier_keep_their_kind() -> None:
     assert group_for("CPT", "99283-XU") == "visit"  # not "lab" for the trailing U
     assert group_for("CPT", "0001U") == "lab"
+
+
+def test_medicare_g_codes_are_grouped_with_what_they_are() -> None:
+    assert group_for("HCPCS", "G0121") == "surgery"  # screening colonoscopy
+    assert group_for("HCPCS", "G0008") == "visit"  # giving a flu shot
+    assert group_for("HCPCS", "G0439") == "visit"  # annual wellness visit
+    assert group_for("HCPCS", "G0130") == "other"

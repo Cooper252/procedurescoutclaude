@@ -49,7 +49,10 @@ from procedurescout_core.enums import FileFormat, Severity
 from .discovery import RATE_LIMIT_WAITS, RETRY_STATUSES
 from .reference.common import LoadStats
 
-DEFAULT_MAX_BYTES = 4 * 1024 * 1024 * 1024  # 4 GiB; Cooper approved ~5 GB in total
+# 16 GiB per file: Cooper raised it on 2026-11-15 ("Yes, raise the limit") for
+# Northwestern Memorial, whose file is over 4 GiB. Files are streamed and read
+# piece by piece, then deleted; the runner has about 40 GB free after cleanup.
+DEFAULT_MAX_BYTES = 16 * 1024 * 1024 * 1024
 DEFAULT_MAX_DOWNLOAD_SECONDS = 40 * 60  # one slow server can't use up a run
 FAILURE_WAITS = (30, 60, 120, 300, 600)  # after 3, 4, 5... files fail in a row
 MAX_FAILURES_IN_A_ROW = 8  # then the run stops cleanly and the next run carries on
@@ -446,7 +449,7 @@ def read_csv(stream: IO[bytes]) -> FileCheck:
     gross_i = idx.get("standard_charge|gross")
     cash_i = idx.get("standard_charge|discounted_cash")
     type_is = [i for c, i in idx.items() if c.startswith("code|") and c.endswith("|type")]
-    rows = ragged = replaced = gross = cash = 0
+    rows = ragged = wider = replaced = gross = cash = 0
     code_types: Counter[str] = Counter()
     settings: Counter[str] = Counter()
     width = len(columns)
@@ -455,8 +458,10 @@ def read_csv(stream: IO[bytes]) -> FileCheck:
             if not any(cell.strip() for cell in row):
                 continue
             rows += 1
-            if len(row) != width:
-                ragged += 1
+            if len(row) > width and any(c.strip() for c in row[width:]):
+                wider += 1  # values past the last column: refused when loading
+            elif len(row) != width:
+                ragged += 1  # shorter, or longer only by empty cells: lines up
             if any("�" in cell for cell in row):
                 replaced += 1
             if payer_i is not None and payer_i < len(row):
@@ -472,8 +477,19 @@ def read_csv(stream: IO[bytes]) -> FileCheck:
                     code_types[row[ti].strip()] += 1
     except csv.Error as exc:
         check.problems.append(f"CSV error after {rows} rows: {exc}")
+    if wider:
+        # those rows are refused when loading; the file is held back for a
+        # look only when they are more than 1 in 100
+        wide_msg = (
+            f"{wider} rows have values past the last column (split by an unquoted comma?); "
+            "they are not loaded"
+        )
+        (check.notes if wider * 100 <= max(rows, 1) else check.problems).append(wide_msg)
     if ragged:
-        check.problems.append(f"{ragged} rows have a different number of columns than the header")
+        check.notes.append(
+            f"{ragged} rows are shorter than the header or longer only by empty cells "
+            "(read normally)"
+        )
     if replaced:
         # a few stray characters (usually in descriptions) don't make the prices
         # wrong; only hold the file when more than 1% of rows have them

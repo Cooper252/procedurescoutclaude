@@ -1394,3 +1394,35 @@ def test_one_state_insurers_are_matched_only_in_their_state(
         text("SELECT count(*) FROM ref.plan_alias WHERE raw_payer_normalized = 'medicaid-arkansas'")
     ).scalar()
     assert arkansas == 0  # Arkansas Medicaid by rule, but this hospital is in Nevada
+
+
+def test_louisiana_billing_numbers_and_plain_medicaid(conn: Connection, world: LocalStore) -> None:
+    """Louisiana pass 2 (2026-11-15): names followed by billing numbers."""
+    wrong = _placed_by_state(
+        conn,
+        {
+            "LA": [
+                (
+                    "AETNA [1001]",
+                    "AETNA COMMERCIAL [100112]",
+                    "Aetna · All plans (one rate published for all)",
+                ),
+                (
+                    "AETNA [1001]",
+                    "AETNA [100100]",
+                    "Aetna · All plans (one rate published for all)",
+                ),
+                (
+                    "VANTAGE [1071]",
+                    "VANTAGE HEALTH COMMERCIAL [107100]",
+                    "Vantage Health Plan · All plans (one rate published for all)",
+                ),
+                ("MEDICAID [3000]", "MEDICAID [300000]", "Louisiana Medicaid · Medicaid"),
+                ("MEDICAID [3000]", "GNOCHC [300005]", None),
+                ("TRICARE [8002]", "TRICARE EAST REGION [800205]", None),
+            ],
+            # plain "MEDICAID" is Louisiana's only in Louisiana
+            "TX": [("MEDICAID [3000]", "MEDICAID [300000]", None)],
+        },
+    )
+    assert wrong == []

@@ -512,10 +512,19 @@ def parse_csv(stream: IO[bytes]) -> Iterator[ParsedPrice | RejectedRow]:
         return row[i] if i is not None and i < len(row) else None
 
     seen_items: set[int] = set()
+    width = len(columns)
     for line, (row, fixed) in enumerate(rows, start=4):
         if not any(c.strip() for c in row):
             continue
         ref = f"line {line}"
+        # A row with values past the last column was split somewhere it
+        # shouldn't have been (an unquoted comma in a description): every
+        # value after that point is in the wrong column, so the row is refused
+        # rather than read with prices under the wrong headings. Rows that are
+        # only shorter, or longer by empty cells, line up and are read.
+        if len(row) > width and any(c.strip() for c in row[width:]):
+            yield RejectedRow(ref, "wider_than_header", f"{len(row)} values for {width} columns")
+            continue
         codes = [
             (row[t] if t is not None and t < len(row) else None, row[c] if c < len(row) else None)
             for t, c in code_cols

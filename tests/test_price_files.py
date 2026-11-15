@@ -76,7 +76,20 @@ def test_read_csv_wide_and_ragged_row() -> None:
     assert check.last_updated_raw == "09/01/2026"
     assert check.summary["payer_names"] == ["Synthetic Payer One", "Synthetic Payer Two"]
     assert check.summary["rows"] == 2
-    assert check.problems == ["1 rows have a different number of columns than the header"]
+    # longer only by an empty cell: lines up, read normally (a note, not a problem)
+    assert check.problems == []
+    assert check.notes == [
+        "1 rows are shorter than the header or longer only by empty cells (read normally)"
+    ]
+
+
+def test_rows_with_values_past_the_last_column_are_flagged() -> None:
+    data = WIDE.read_bytes().replace(b",20000,20000,\n", b",20000,20000,shifted\n")
+    if not data.endswith(b"shifted\n"):
+        data = data.rstrip(b"\n") + b"shifted\n"
+    check = read_csv(io.BytesIO(data))
+    # 1 of 2 rows: more than 1 in 100, so the file is held for a look
+    assert any("values past the last column" in p for p in check.problems)
 
 
 def test_read_csv_flags_bad_bytes_and_non_template() -> None:

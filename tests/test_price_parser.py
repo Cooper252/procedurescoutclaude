@@ -77,6 +77,21 @@ def test_csv_wide_prices() -> None:
     assert kinds(prices)["gross"] == 2
 
 
+def test_a_row_split_by_an_unquoted_comma_is_refused_not_misread() -> None:
+    data = (
+        b"hospital_name,last_updated_on,version\n"
+        b"Synthetic Hospital,2026-01-01,2.2.0\n"
+        b"description,code|1,code|1|type,setting,standard_charge|gross\n"
+        b"GOOD ROW,11111,CPT,outpatient,100\n"
+        # "SPLINT, SHORT ARM" unquoted: every value after it moves one column right
+        b"SPLINT, SHORT ARM,22222,CPT,outpatient,250\n"
+        b"SHORT ROW,33333,CPT,outpatient\n"
+    )
+    prices, rejects = run(data, FileFormat.CSV_WIDE)
+    assert [(r.rule) for r in rejects] == ["wider_than_header"]
+    assert {p.code for p in prices} == {"11111"}  # 22222 never read with shifted values
+
+
 HEAD = (
     b"hospital_name,last_updated_on,version\n"
     b"Synthetic Hospital,2026-01-01,2.2.0\n"

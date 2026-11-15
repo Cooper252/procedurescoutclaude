@@ -165,9 +165,16 @@ OCCUPATIONAL_THERAPY = (_r("CPT", "97165", "97168"),)
 SPEECH_THERAPY = (_r("CPT", "92507"), _r("CPT", "92521", "92524"))
 SLEEP_STUDY = (_r("CPT", "95800", "95811"),)
 DIALYSIS = (_r("CPT", "90935", "90947"),)
+# influenza vaccine codes only (90675 rabies and 90677 pneumococcal sit
+# between them, so the list is exact)
 FLU_SHOT = (
-    _r("CPT", "90653", "90694"),
     _r("CPT", "90630"),
+    _r("CPT", "90653", "90668"),
+    _r("CPT", "90672", "90674"),
+    _r("CPT", "90682"),
+    _r("CPT", "90685", "90689"),
+    _r("CPT", "90694"),
+    _r("CPT", "90756"),
     _r("HCPCS", "G0008"),
     _r("HCPCS", "Q2034", "Q2039"),
 )
@@ -302,8 +309,9 @@ CODE_RANGES: dict[str, tuple[Range, ...]] = {
     "emergency room": ER_VISIT,
     "office visit": OFFICE_VISIT,
     "doctor visit": OFFICE_VISIT,
-    "checkup": (*PREVENTIVE, *OFFICE_VISIT),
-    "check up": (*PREVENTIVE, *OFFICE_VISIT),
+    # a checkup is a preventive visit; sick visits are "office visit"
+    "checkup": PREVENTIVE,
+    "check up": PREVENTIVE,
     "physical": PREVENTIVE,
     "annual": PREVENTIVE,
     "wellness": PREVENTIVE,

@@ -193,6 +193,12 @@ def group_for(system: str, code: str) -> str:
             return "supply"  # C1000-C2999: devices
         if c[:3] == "C89":
             return "imaging"  # C8900-C8999: MRA and other imaging
+        if c[0] == "G" and c[1:].isdigit():
+            n_ = int(c[1:])
+            if 104 <= n_ <= 121:
+                return "surgery"  # G0104-G0121: screening colonoscopy, sigmoidoscopy
+            if 8 <= n_ <= 10 or n_ in (402, 438, 439):
+                return "visit"  # giving a vaccine; Medicare wellness visits
         return _HCPCS_LETTER.get(c[0], "other")
     return "other"
 
