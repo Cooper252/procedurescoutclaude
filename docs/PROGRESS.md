@@ -2,6 +2,14 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-15 — Price list: offer the insurance switch
+
+On the live birth price list near 89123 (cash), most hospital-stay lines say "Insurance rates only". `app/price-list/page.tsx` now says that some places published only what insurance plans pay for some items and offers the same "See prices with my insurance" button as the results page (`lib/i18n.ts` `listRatesOnlyNote`, English and Spanish). `npx tsc --noEmit` clean, `npm test` passed, `npx next build` compiled.
+
+## 2026-11-15 — Louisiana hospital policies checked against live names
+
+Checked the Louisiana policy rows (D-060) against the 153 live Louisiana hospital names: Ochsner (10, not Ochsner LSU Health), CHRISTUS (4) and Lake Charles Memorial matched as written. The FMOL Health row missed the three hospitals whose names now start with "FMOL HEALTH" ("FMOL HEALTH OUR LADY OF THE ANGELS", "FMOL HEALTH | OUR LADY OF THE LAKE", "FMOL HEALTH ST FRANCIS"); its pattern now allows that prefix (5 hospitals). Added from the hospitals' own documents: Willis-Knighton (free care at or below 200% of the poverty guideline, 76% off between 200% and 400%) and Touro (free at or below 250%, reduced rates to 400%; the summary is from 2018, noted on the row). No hospital matched two rows. `make check`: `431 passed, 1 skipped`.
+
 ## 2026-11-15 — Maine and Maryland pass 1 reports
 
 Maine pass 1: 18 of 18 price files loaded (8.9 million prices), no file problems. Maryland pass 1: 38 of 38 loaded (36.0 million prices); 16 files flagged, 15 of them for "bytes that are not valid UTF-8" (the University of Maryland Medical System files: about 400,000 rows each), plus two files dated more than a year ago (Frederick Health, Mount Washington Pediatric). With more than 1 in 100 rows flagged, those hospitals' first files were held back.

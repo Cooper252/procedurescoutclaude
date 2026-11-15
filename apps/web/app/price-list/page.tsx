@@ -363,6 +363,17 @@ function PriceList() {
               <p className="notice">{fill(t.listFailed, { what: failedItems.map(nameOf).join(", ") })}</p>
             )}
             {complete.length === 0 && partial.length === 0 && <p className="notice">{t.listNone}</p>}
+            {/* cash search where places published only insurance rates for some
+                items: say so and offer the switch (birth stays, 2026-11-15) */}
+            {mode === "cash" &&
+              [...complete.map((x) => x.r), ...partial].some((r) => r.lines.some((l) => !l.low && l.ratesOnly)) && (
+                <p className="notice">
+                  {t.listRatesOnlyNote}{" "}
+                  <button type="button" className="btn ghost sm" onClick={() => go(items, { mode: "plan" })}>
+                    {t.planOnlyBtn}
+                  </button>
+                </p>
+              )}
             {complete.length > 0 && (
               <section>
                 <h2 className="list-section">{fill(t.listCompleteHead, { n: String(complete.length) })}</h2>
