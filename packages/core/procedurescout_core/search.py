@@ -115,6 +115,9 @@ class SearchResult:
     typical: Typical | None = None
     all_plans_spellings: Spellings = field(default_factory=Spellings)
     code_description: str | None = None  # hospitals' own wording for a searched code
+    # a plain name for a searched code: the official MS-DRG/HCPCS title written
+    # out, or the hospitals' wording with short forms written out
+    code_name: str | None = None
     insurer_unsure: str | None = None  # insurer name when searching all its plans
 
 
@@ -178,6 +181,35 @@ def _variant_codes(conn: Connection, slug: str) -> set[tuple[str, str]]:
     return {(str(a), str(b)) for a, b in rows}
 
 
+def _code_name(conn: Connection, code: tuple[str, str]) -> str | None:
+    """A searched code's plain name, the same way the options list names it."""
+    from .code_names import drg_plain
+    from .code_search import clean_wording, group_for, plain_wording
+
+    system, value = code
+    title = conn.execute(
+        text(
+            "SELECT descriptor FROM ref.code WHERE system = CAST(:s AS ref.code_system) "
+            "AND code = :c AND descriptor IS NOT NULL AND system IN ('MS-DRG', 'HCPCS') "
+            "ORDER BY version DESC LIMIT 1"
+        ),
+        {"s": system, "c": value},
+    ).scalar()
+    if title:
+        return drg_plain(str(title)) if system == "MS-DRG" else clean_wording(str(title))
+    wording = conn.execute(
+        text(
+            "SELECT hospital_description FROM ref.code_index "
+            "WHERE system = CAST(:s AS ref.code_system) AND code = :c"
+        ),
+        {"s": system, "c": value},
+    ).scalar()
+    cleaned = clean_wording(str(wording)) if wording else None
+    if not cleaned:
+        return None
+    return drg_plain(cleaned) if group_for(system, value) == "stay" else plain_wording(cleaned)
+
+
 def _check_code(conn: Connection, code_system: str, code: str) -> tuple[str, str]:
     try:
         system = CodeSystem(code_system)
@@ -220,6 +252,10 @@ def same_code_spellings(conn: Connection, codes: list[tuple[str, str]]) -> list[
             bare = code.lstrip("0") or "0"
             for spelled in {bare, bare.zfill(3)}:
                 want("MS-DRG", spelled)
+        elif system in ("CDT", "HCPCS") and re.fullmatch(r"[Dd]\d{4}", code):
+            # dental codes are HCPCS D-codes; files label them either way
+            for sys2 in ("CDT", "HCPCS"):
+                want(sys2, code.upper())
         elif system == "APR-DRG":
             # group 560, severity 1: "5601", "560-1" or "560.1"
             m = re.fullmatch(r"(\d{3})[-.]?([1-4])", code)
@@ -617,6 +653,7 @@ def search(
         typical=typ,
         all_plans_spellings=fallback,
         code_description=code_description,
+        code_name=_code_name(conn, codes[0]) if service_slug is None and codes else None,
         insurer_unsure=insurer_name,
     )
 

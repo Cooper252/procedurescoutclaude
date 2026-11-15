@@ -105,7 +105,7 @@ WIDEN: dict[str, tuple[str, ...]] = {
     "ultrasound": ("ultrasound", "ultrason*", "sonogra*", "echo*"),
     "sonogram": ("ultrasound", "sonogra*"),
     "mammogram": ("mammogra*",),
-    "blood test": ("blood", "panel", "assay"),
+    "blood test": ("blood count", "cbc", "metabolic panel", "lipid panel", "panel"),
     "er": ("emergency",),
     "emergency room": ("emergency",),
     "knee replacement": ("knee arthroplasty", "knee replac*", "joint replac*"),
@@ -124,6 +124,14 @@ WIDEN: dict[str, tuple[str, ...]] = {
     "endoscopy": ("endoscop*", "egd", "esophagogastroduodenoscop*"),
     "dialysis": ("dialysis", "hemodialysis"),
     "chemo": ("chemotherap*", "chemo"),
+    "pap": ("papanicolaou", "cervical cytolog*", "cytopath*", "pap"),
+    "std": ("chlamydia", "gonorrh*", "hiv", "syphilis", "herpes", "trichomonas", "hepatitis"),
+    "sti": ("chlamydia", "gonorrh*", "hiv", "syphilis", "herpes", "trichomonas"),
+    "eye exam": ("ophthalmolog*", "eye exam*", "refraction"),
+    "flu shot": ("influenza", "flu vacc*", "flu vax", "flu"),
+    "flu vaccine": ("influenza", "flu vacc*", "flu"),
+    "vaccine": ("vaccin*", "immuniz*", "toxoid"),
+    "shot": ("vaccin*", "immuniz*", "injection"),
     "chemotherapy": ("chemotherap*", "chemo"),
 }
 
@@ -165,6 +173,8 @@ def group_for(system: str, code: str) -> str:
     if system == "CDT":
         return "dental"
     c = code.strip().upper()
+    # a billing modifier after the code ("99283-XU") doesn't change its kind
+    c = re.sub(r"[-\s][A-Z0-9]{2}$", "", c)
     # some hospitals label CPT numbers as HCPCS (Level I is CPT)
     if system == "HCPCS" and c.isdigit():
         system = "CPT"
@@ -315,6 +325,8 @@ class CodeOption:
     service_slug: str | None = None  # the approved service this code belongs to
     service_unit: str | None = None
     core: bool = False  # one of the codes that ARE the thing searched (code_ranges.py)
+    # 0: such a code; 1: name or wording has every word typed; 2: a wider word
+    tier: int = 2
 
 
 def _alternatives(normalized: str) -> list[list[str]]:
@@ -356,6 +368,8 @@ def _merge_spellings(
         c = code.strip()
         if sys_ in ("CPT", "HCPCS") and c.isdigit() and len(c) <= 5:
             canon = ("CPT", c.zfill(5))
+        elif sys_ in ("CDT", "HCPCS") and re.fullmatch(r"[Dd]\d{4}", c):
+            canon = ("CDT", c.upper())  # dental codes are HCPCS D-codes
         else:
             canon = (sys_, code)
         groups.setdefault(canon, []).append((sys_, code))
@@ -571,6 +585,23 @@ def find_options(conn: Connection, query: str, limit: int = 400) -> list[CodeOpt
             return 1
         return 2
 
-    out = [replace(o, core=core(o) == 0) for o in out]
-    out.sort(key=lambda o: (order[o.group], core(o), -o.places, -o.prices, o.code_system, o.code))
+    out = [replace(o, core=core(o) == 0, tier=core(o)) for o in out]
+    # groups holding the closest matches come first ("x-ray": the X-rays, not
+    # the injections done with an X-ray); each hospital's own item codes last
+    # among groups with equally close matches, the one whose closest match
+    # is most widely published ("colonoscopy": the colonoscopies before the
+    # anesthesia for one)
+    best: dict[str, tuple[int, int]] = {}
+    for o in out:
+        cur = best.get(o.group, (3, 0))
+        if (o.tier, -o.places) < cur:
+            best[o.group] = (o.tier, -o.places)
+
+    def group_rank(g: str) -> tuple[int, int, int, int]:
+        tier, places = best.get(g, (3, 0))
+        return (1 if g == "hospital_item" else 0, tier, places, order[g])
+
+    out.sort(
+        key=lambda o: (group_rank(o.group), o.tier, -o.places, -o.prices, o.code_system, o.code)
+    )
     return out[:n]

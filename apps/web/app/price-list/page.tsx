@@ -172,7 +172,10 @@ function PriceList() {
     const r = results[k];
     const it = parseItem(k);
     if (r?.service_name && it?.kind === "service") return r.service_name;
-    if (it?.kind === "code") return r?.code_description ? `${r.code_description} (${it.system} ${it.code})` : `${it.system} ${it.code}`;
+    if (it?.kind === "code") {
+      const plain = r?.code_name ?? r?.code_description;
+      return plain ? `${plain} (${it.system} ${it.code})` : `${it.system} ${it.code}`;
+    }
     return k;
   };
 

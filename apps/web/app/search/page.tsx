@@ -156,8 +156,11 @@ function Results() {
   }, [coords, service, codeSystem, code, mode, planId, payerRaw, insurerId, ptype, radius, online, attempt]);
 
   const svc = services.find((s) => s.slug === service) ?? null;
+  // a searched code: its plain name with the code after it
   const name = code
-    ? `${codeSystem ?? ""} ${code}`
+    ? result?.code_name
+      ? `${result.code_name} (${codeSystem ?? ""} ${code})`
+      : `${codeSystem ?? ""} ${code}`
     : svc
       ? (lang === "es" ? SERVICE_ES[svc.slug] ?? svc.name : svc.name)
       : result?.service_name ?? "";

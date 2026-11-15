@@ -297,3 +297,49 @@ def test_ranges_are_looked_up_as_index_ranges() -> None:
         (["MS-DRG"], "064", "066", 3),
     ]
     assert string_ranges(("HCPCS", "G0105", "G0121")) == [(["HCPCS"], "G0105", "G0121", 5)]
+
+
+def test_closest_groups_first_and_dental_codes_once(conn: Connection) -> None:
+    _index(conn)
+    for sys_, code, wording, places in [
+        ("CPT", "73560", "RADIOLOGIC EXAM KNEE 1-2 VIEWS", 40),
+        ("CPT", "23350", "INJECTION FOR SHOULDER X-RAY", 90),
+        ("HCPCS", "D1110", "DENTAL PROPHYLAXIS ADULT", 30),
+        ("CDT", "D1110", "PROPHYLAXIS - ADULT", 8),
+    ]:
+        conn.execute(
+            text(
+                "INSERT INTO ref.code_index "
+                "(system, code, hospital_description, facilities, prices) "
+                "VALUES (CAST(:s AS ref.code_system), :c, :w, :f, :f)"
+            ),
+            {"s": sys_, "c": code, "w": wording, "f": places},
+        )
+    xray = find_options(conn, "x-ray")
+    # the X-rays themselves (imaging) before an injection done with an X-ray
+    assert xray[0].group == "imaging"
+    clean = [o for o in find_options(conn, "teeth cleaning") if o.code == "D1110"]
+    assert len(clean) == 1 and clean[0].code_system == "CDT" and clean[0].places == 30
+
+
+def test_a_word_inside_a_longer_phrase_does_not_add_its_codes() -> None:
+    from procedurescout_core.code_ranges import ranges_for
+
+    assert ("CPT", "99381", "99397") in ranges_for("physical")  # a yearly physical
+    assert ("CPT", "99381", "99397") not in ranges_for("physical therapy")
+    assert ranges_for("x-ray") and ranges_for("x-ray") == ranges_for("x ray")
+
+
+def test_a_searched_code_gets_a_plain_name(conn: Connection) -> None:
+    from procedurescout_core.search import _code_name
+
+    _index(conn)
+    assert _code_name(conn, ("CPT", "01967")) == (
+        "Neuraxial labor analgesia/anesthesia for planned vaginal delivery"
+    )
+    assert _code_name(conn, ("MS-DRG", "807")).startswith("Vaginal delivery without")  # type: ignore[union-attr]
+
+
+def test_codes_with_a_modifier_keep_their_kind() -> None:
+    assert group_for("CPT", "99283-XU") == "visit"  # not "lab" for the trailing U
+    assert group_for("CPT", "0001U") == "lab"

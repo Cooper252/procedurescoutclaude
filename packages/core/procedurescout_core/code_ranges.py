@@ -159,11 +159,20 @@ CARPAL_TUNNEL = (_r("CPT", "64721"), _r("CPT", "29848"))
 BARIATRIC = (_r("MS-DRG", "619", "621"), _r("CPT", "43644", "43645"), _r("CPT", "43770", "43775"))
 ER_VISIT = (_r("CPT", "99281", "99285"), _r("HCPCS", "G0380", "G0384"))
 OFFICE_VISIT = (_r("CPT", "99202", "99215"),)
+PREVENTIVE = (_r("CPT", "99381", "99397"), _r("HCPCS", "G0438", "G0439"), _r("HCPCS", "G0402"))
 PHYSICAL_THERAPY = (_r("CPT", "97110", "97164"), _r("CPT", "97530"), _r("CPT", "97140"))
 OCCUPATIONAL_THERAPY = (_r("CPT", "97165", "97168"),)
 SPEECH_THERAPY = (_r("CPT", "92507"), _r("CPT", "92521", "92524"))
 SLEEP_STUDY = (_r("CPT", "95800", "95811"),)
 DIALYSIS = (_r("CPT", "90935", "90947"),)
+FLU_SHOT = (
+    _r("CPT", "90653", "90694"),
+    _r("CPT", "90630"),
+    _r("HCPCS", "G0008"),
+    _r("HCPCS", "Q2034", "Q2039"),
+)
+VACCINE_ADMIN = (_r("CPT", "90460", "90474"), _r("HCPCS", "G0008", "G0010"))
+VACCINES = (_r("CPT", "90476", "90759"), *VACCINE_ADMIN)
 CHEMO = (_r("CPT", "96401", "96549"),)
 BLOOD_TESTS = (
     _r("CPT", "80047", "80053"),
@@ -175,6 +184,31 @@ BLOOD_TESTS = (
     _r("CPT", "82306"),
 )
 URINE_TEST = (_r("CPT", "81000", "81003"),)
+PAP = (
+    _r("CPT", "88141", "88175"),
+    _r("HCPCS", "P3000", "P3001"),
+    _r("HCPCS", "Q0091"),
+    _r("HCPCS", "G0101"),
+    _r("HCPCS", "G0123", "G0124"),
+)
+STD_TESTS = (
+    _r("CPT", "87491"),
+    _r("CPT", "87591"),
+    _r("CPT", "87661"),
+    _r("CPT", "86701", "86703"),
+    _r("CPT", "87389"),
+    _r("CPT", "86592", "86593"),
+    _r("CPT", "86780"),
+    _r("CPT", "86695", "86696"),
+    _r("CPT", "86803"),
+    _r("CPT", "87340"),
+)
+EYE_EXAM = (_r("CPT", "92002", "92015"),)
+ALLERGY_TESTS = (_r("CPT", "95004", "95078"),)
+PREGNANCY_TEST = (_r("CPT", "81025"), _r("CPT", "84702", "84703"))
+STREP_TEST = (_r("CPT", "87880"), _r("CPT", "87651"))
+FLU_TEST = (_r("CPT", "87804"), _r("CPT", "87502"), _r("CPT", "87400"))
+COVID_TEST = (_r("CPT", "87635"), _r("CPT", "87426"), _r("CPT", "87811"), _r("CPT", "86769"))
 DENTAL_CLEANING = (_r("CDT", "D1110", "D1120"), _r("HCPCS", "D1110", "D1120"))
 DENTAL_EXAM = (_r("CDT", "D0120", "D0180"), _r("HCPCS", "D0120", "D0180"))
 DENTAL_XRAY = (_r("CDT", "D0210", "D0350"), _r("HCPCS", "D0210", "D0350"))
@@ -268,18 +302,58 @@ CODE_RANGES: dict[str, tuple[Range, ...]] = {
     "emergency room": ER_VISIT,
     "office visit": OFFICE_VISIT,
     "doctor visit": OFFICE_VISIT,
-    "checkup": OFFICE_VISIT,
+    "checkup": (*PREVENTIVE, *OFFICE_VISIT),
+    "check up": (*PREVENTIVE, *OFFICE_VISIT),
+    "physical": PREVENTIVE,
+    "annual": PREVENTIVE,
+    "wellness": PREVENTIVE,
+    "well child": (_r("CPT", "99381", "99384"), _r("CPT", "99391", "99394")),
+    "well baby": (_r("CPT", "99381"), _r("CPT", "99391")),
     "physical therapy": PHYSICAL_THERAPY,
     "occupational therapy": OCCUPATIONAL_THERAPY,
     "speech therapy": SPEECH_THERAPY,
     "sleep study": SLEEP_STUDY,
     "dialysis": DIALYSIS,
+    "flu shot": FLU_SHOT,
+    "flu vaccine": FLU_SHOT,
+    "flu": FLU_SHOT,
+    "vaccine": VACCINES,
+    "vaccines": VACCINES,
+    "shot": VACCINES,
+    "shots": VACCINES,
+    "immunization": VACCINES,
+    "shingles": (_r("CPT", "90750"), _r("CPT", "90736")),
+    "tetanus": (_r("CPT", "90714", "90715"), _r("CPT", "90702"), _r("CPT", "90700")),
+    "tdap": (_r("CPT", "90715"),),
+    "hpv": (_r("CPT", "90649", "90651"),),
+    "pneumonia vaccine": (
+        _r("CPT", "90670"),
+        _r("CPT", "90671"),
+        _r("CPT", "90677"),
+        _r("CPT", "90732"),
+    ),
     "chemo": CHEMO,
     "chemotherapy": CHEMO,
     "blood test": BLOOD_TESTS,
     "blood work": BLOOD_TESTS,
     "lab": BLOOD_TESTS + URINE_TEST,
     "urine": URINE_TEST,
+    "pap": PAP,
+    "pap smear": PAP,
+    "pap test": PAP,
+    "std": STD_TESTS,
+    "sti": STD_TESTS,
+    "std test": STD_TESTS,
+    "hiv test": (_r("CPT", "86701", "86703"), _r("CPT", "87389")),
+    "eye exam": EYE_EXAM,
+    "vision exam": EYE_EXAM,
+    "allergy": ALLERGY_TESTS,
+    "allergy test": ALLERGY_TESTS,
+    "pregnancy test": PREGNANCY_TEST,
+    "strep": STREP_TEST,
+    "strep test": STREP_TEST,
+    "flu test": FLU_TEST,
+    "covid test": COVID_TEST,
     "teeth cleaning": DENTAL_CLEANING,
     "dental cleaning": DENTAL_CLEANING,
     "cleaning": DENTAL_CLEANING,
@@ -356,10 +430,15 @@ def string_ranges(r: Range) -> list[tuple[list[str], str, str, int]]:
 
 
 def ranges_for(normalized: str) -> list[Range]:
-    """Every range for the words in a search."""
+    """Every range for the words in a search. A word inside a longer matched
+    phrase doesn't count on its own ("physical" in "physical therapy")."""
     padded = f" {normalized.replace('-', ' ')} "
+    hits = [k for k in CODE_RANGES if f" {k.replace('-', ' ')} " in padded]
+    spaced = {k: f" {k.replace('-', ' ')} " for k in hits}
+    keep = [
+        k for k in hits if not any(spaced[k] != spaced[o] and spaced[k] in spaced[o] for o in hits)
+    ]
     out: list[Range] = []
-    for key, ranges in CODE_RANGES.items():
-        if f" {key.replace('-', ' ')} " in padded:
-            out.extend(r for r in ranges if r not in out)
+    for key in keep:
+        out.extend(r for r in CODE_RANGES[key] if r not in out)
     return out

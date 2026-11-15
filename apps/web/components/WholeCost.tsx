@@ -98,6 +98,8 @@ export function WholeCost({
                     <span>
                       {c.label}
                       {required && <span className="wc-req"> ({t.wcAlways})</span>}
+                      {/* billed by time: the published price may be a starting charge */}
+                      {c.role === "anesthesia" && <span className="wc-req"> ({t.anesthesiaShort})</span>}
                     </span>
                   </label>
                   <span className="wc-price">{lineText(c.component_id)}</span>

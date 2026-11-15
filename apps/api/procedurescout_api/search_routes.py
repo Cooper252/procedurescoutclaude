@@ -174,6 +174,7 @@ class SearchOut(BaseModel):
     note: str | None
     mode: str
     code_description: str | None = None
+    code_name: str | None = None  # a plain name for a searched code
     # insurer name when the person chose "not sure which plan" (prices are a
     # range across that insurer's work and individual plans)
     insurer_unsure: str | None = None
@@ -277,11 +278,12 @@ def services_options(
 
 
 def _options_out(conn: Connection, q: str) -> OptionsOut:
-    from procedurescout_core.code_search import GROUPS, find_options
+    from procedurescout_core.code_search import find_options
 
     found = find_options(conn, q, limit=400)
     groups = []
-    for g in GROUPS:
+    # in the order find_options ranked them (closest matches' groups first)
+    for g in dict.fromkeys(o.group for o in found):
         items = [o for o in found if o.group == g]
         if items:
             groups.append(
@@ -609,6 +611,7 @@ def search_endpoint(
         note=result.note,
         mode=result.mode,
         code_description=result.code_description,
+        code_name=result.code_name,
         insurer_unsure=result.insurer_unsure,
         typical=None
         if result.typical is None

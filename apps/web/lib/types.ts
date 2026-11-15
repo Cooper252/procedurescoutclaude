@@ -133,6 +133,7 @@ export interface SearchResult {
   note: string | null;
   mode: Mode;
   code_description?: string | null;
+  code_name?: string | null; // a plain name for a searched code
   // insurer name when searching "not sure which plan" (a range across its plans)
   insurer_unsure?: string | null;
   typical: { low: string; middle: string; high: string; count: number } | null;

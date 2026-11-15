@@ -2,6 +2,23 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-15 — Closest groups first; dental codes once; checkups; plain names for codes; joint and spine stays
+
+Live checks of the all-options list (commit 54) showed:
+- "x-ray" listed "Surgery" first (HCPCS 23350 "Injection for shoulder x-ray"), "ct scan" listed spinal injections first, "ultrasound" listed hospital stays first. Groups now come in order of their closest match (`code_search.py` `tier`: 0 the thing's own codes, 1 every typed word in the name or wording, 2 a wider word), so the X-rays, CT scans and ultrasounds (imaging) come first; each hospital's own item codes stay last. The API keeps that order (`search_routes.py`).
+- Among groups with equally close matches, the one whose closest match is most widely published comes first ("colonoscopy": the colonoscopies before the anesthesia for one). "blood test" no longer widens to the bare word "blood" (it listed blood-disorder hospital stays and epidural blood patches); it uses blood count, CBC, metabolic/lipid panel and the blood-test codes.
+- "emergency room" grouped "99283-XU" (an ER visit with a billing modifier) under lab tests because of the trailing U: a modifier after the code no longer changes its kind (`group_for`). "flu shot" found 1 option: flu vaccine codes (CPT 90630, 90653-90694, G0008, Q2034-Q2039), vaccines in general (CPT 90476-90759 and their giving, 90460-90474, G0008-G0010), shingles, tetanus/Tdap, HPV and pneumonia vaccines added (`code_ranges.py`), with influenza/vaccine/immunization wording (`code_search.py`).
+- "std test" found nothing and "eye exam" listed anesthesia first: code ranges added for Pap tests (CPT 88141-88175, P3000-P3001, Q0091, G0101, G0123-G0124), STD tests (chlamydia, gonorrhea, trichomonas, HIV, syphilis, herpes, hepatitis), eye exams (CPT 92002-92015), allergy tests (CPT 95004-95078), pregnancy, strep, flu and COVID tests, with the matching wording.
+- "teeth cleaning" listed D1110 twice (labeled HCPCS by some files, CDT by others): dental D-codes are one code (`_merge_spellings`, `same_code_spellings`).
+- "checkup" found only office visits: yearly preventive visits (CPT 99381-99397, Medicare wellness G0438/G0439, G0402) added for checkup, physical, annual, wellness, well child, well baby (`code_ranges.py`). A word inside a longer matched phrase no longer adds its own codes ("physical" in "physical therapy"; "knee" in "knee replacement").
+
+Also:
+- A searched code now has a plain name on its results page and price-list chips ("Neuraxial labor analgesia/anesthesia for planned vaginal delivery (CPT 01967)" instead of "CPT 01967"): `search.py` `_code_name` (official MS-DRG/HCPCS title written out, else the hospitals' wording with short forms written out), `code_name` in the API, `app/search/page.tsx`, `app/price-list/page.tsx`, `lib/types.ts`.
+- "Add up the whole cost" marks anesthesia parts as billed by time (`components/WholeCost.tsx`).
+- Same-stay codes (D-066) for "Hip or knee replacement" (APR-DRG 301/302 severity 1-2) and "Spinal fusion" (APR-DRG 304 severity 1-2) (`service_catalog.csv`).
+
+Tested: `test_closest_groups_first_and_dental_codes_once`, `test_a_word_inside_a_longer_phrase_does_not_add_its_codes`, `test_a_searched_code_gets_a_plain_name`. `make check`: `421 passed, 1 skipped`; website `npx tsc --noEmit` clean, `npm test` passed, `npx next build` compiled.
+
 ## 2026-11-14 — Live checks after commit 53; anesthesia prices labeled as time-billed
 
 Verified in production (commit 53, migration 0028): first-time all-options lists: knee 1.45 s (was 19.2 s), hernia 0.79 s (was 3.3 s), colonoscopy 1.08 s; search box: knee 0.54 s, birth 0.90 s. The price list page with real data near 89123 (vaginal birth stay, labor epidural, doctor's care, newborn stay) lists Sunrise, North Vista and UMC with each item's price or "Insurance rates only" / "Not published", and no total where an item is missing.
