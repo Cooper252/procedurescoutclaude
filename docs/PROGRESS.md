@@ -2,6 +2,10 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-15 — Replacement links for hospitals blocked by apps.para-hcfs.com (D-063)
+
+Looked for price files that the blocked hospitals also post on their own websites. Salina Regional Health Center's own "Health System Pricing Schedule" page (www.srhc.com/about-us/cdm.php) links CSV files for Salina Regional Health Center (CCN 170012) and Lindsborg Community Hospital (171358), both blocked in Kansas pass 1; added to `data/reference/price_file_sources_reviewed.csv` with the page as evidence (`reviewed_by = "Claude (delegated by Cooper, D-063)"`). They load on Kansas's next pass. Waverly Health Center's own "Cost of Services" page links only to apps.para-hcfs.com, as most of these small hospitals do; the rest stay blocked until the site owner fixes its certificate. `make check`: `433 passed, 1 skipped`.
+
 ## 2026-11-15 — Massachusetts, Nevada, Iowa, Kansas pass 1; Indiana pass 4
 
 Reports from Cooper's downloads:
