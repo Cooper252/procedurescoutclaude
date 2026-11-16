@@ -625,3 +625,20 @@ def test_windows_1252_text_is_read_and_does_not_hold_the_file() -> None:
     check = read_csv(io.BytesIO(data))
     assert check.problems == []
     assert any("Windows-1252" in n for n in check.notes)
+
+
+def test_a_version_written_with_a_v_is_that_version(conn: Connection, tmp_path: Path) -> None:
+    """Karmanos Cancer Center (Michigan pass 1) wrote its version as "V3.0.0"."""
+    setup_hospitals(conn)
+    load_websites(conn, websites_csv())
+    discover(conn, "NV", fake_fetcher)
+    data = JSON_FILE.read_bytes().replace(b'"3.0.0"', b'"V3.0.0"', 1)
+
+    def downloader(url: str, dest: Path) -> Download:
+        import hashlib
+
+        dest.write_bytes(data)
+        return Download(url, dest, hashlib.sha256(data).hexdigest(), len(data), 200, url)
+
+    stats = check_price_files(conn, "NV", downloader, tmp_path / "w", today=date(2026, 11, 6))
+    assert not any("version" in r.message for r in stats.rejects if r.rule == "file_problem")

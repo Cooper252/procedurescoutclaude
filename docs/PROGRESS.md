@@ -2,6 +2,18 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-15 — Michigan pass 1
+
+From Cooper's download (load-MI-pass1): 69 of 71 price files loaded (93.5 million prices). Holland Hospital failed on apps.para-hcfs.com's certificate (not bypassed); Lake Huron Medical Center's link answers HTTP 307 with nowhere to go (no replacement link found on its own site). Deckerville, Hills & Dales, Marlette and McKenzie posted out-of-date files (shown with their dates).
+
+Karmanos Cancer Center's file says version "V3.0.0"; it was refused as an unknown version. A leading "v" is now dropped before the version check (`price_files.py`). Test: `test_a_version_written_with_a_v_is_that_version`.
+
+Insurers (D-047), Michigan only unless noted: HAP (Health Alliance Plan), "Medicare Plus Blue" (BCBSM Medicare Advantage), "Wellcare Meridian" (Wellcare Medicare Advantage, any state), "Blue Cross PPO Traditional HMO Blue Care Network" (BCBSM, every plan). Re-running every earlier report's unmatched spellings against the GitHub version: no change. Test: `test_michigan_spellings`.
+
+Hospital policies (D-060), checked against the live names: the Corewell Health row now also covers hospitals still named Beaumont, Spectrum Health or Lakeland; the Munson row now matches "Charlevoix Hospital" as well as "Charlevoix Area Hospital". Fixed a quoting slip in the Corewell row's note that `test_committed_files_load` caught. Not added: Trinity Health Michigan (its discount sheet gives free care at or below 200% FPL but no clear amount for 201-400%) and MyMichigan (its page doesn't say which income gets which discount or which hospitals are covered); those hospitals keep the general message until a full policy is read.
+
+`make check`: `435 passed, 1 skipped`.
+
 ## 2026-11-15 — Replacement links for hospitals blocked by apps.para-hcfs.com (D-063)
 
 Looked for price files that the blocked hospitals also post on their own websites. Salina Regional Health Center's own "Health System Pricing Schedule" page (www.srhc.com/about-us/cdm.php) links CSV files for Salina Regional Health Center (CCN 170012) and Lindsborg Community Hospital (171358), both blocked in Kansas pass 1; added to `data/reference/price_file_sources_reviewed.csv` with the page as evidence (`reviewed_by = "Claude (delegated by Cooper, D-063)"`). They load on Kansas's next pass. Waverly Health Center's own "Cost of Services" page links only to apps.para-hcfs.com, as most of these small hospitals do; the rest stay blocked until the site owner fixes its certificate. `make check`: `433 passed, 1 skipped`.

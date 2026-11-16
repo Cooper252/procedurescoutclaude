@@ -958,6 +958,9 @@ def _record(
     who = f"ccn:{c.ccn}"
     problems = list(check.problems)
     version = check.version
+    if version is not None:
+        # "V3.0.0" (Karmanos Cancer Center, Michigan pass 1) is version 3.0.0
+        version = re.sub(r"^\s*v\s*", "", version, flags=re.IGNORECASE)
     if version is None:
         problems.append("no version in the header")
     elif version.strip().startswith(("4.", "5.")) and check.format in LOADABLE:

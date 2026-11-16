@@ -1522,3 +1522,29 @@ def test_massachusetts_and_kansas_spellings(conn: Connection, world: LocalStore)
         },
     )
     assert wrong == []
+
+
+def test_michigan_spellings(conn: Connection, world: LocalStore) -> None:
+    """Michigan pass 1 (2026-11-15)."""
+    bcbsm = "Blue Cross Blue Shield of Michigan"
+    wrong = _placed_by_state(
+        conn,
+        {
+            "MI": [
+                (
+                    "HAP (Health Alliance Plan)",
+                    "Medicare Advantage",
+                    "Health Alliance Plan (HAP) · Medicare Advantage",
+                ),
+                ("Medicare Plus Blue", "Medicare Advantage", f"{bcbsm} · Medicare Advantage"),
+                (
+                    "Blue Cross",
+                    "PPO/Traditional/HMO/Blue Care Network Commercial",
+                    f"{bcbsm} · All plans (one rate published for all)",
+                ),
+                ("Wellcare Meridian", "Medicare Advantage", "Wellcare · Medicare Advantage"),
+                ("Michigan Amish Medical Board", "Commercial", None),
+            ],
+        },
+    )
+    assert wrong == []

@@ -99,6 +99,9 @@ _TYPES: list[tuple[re.Pattern[str], str]] = [
             r"^(all|all plans|all products|commercial|comm|managed care|generic|default"
             r"|all commercial plans|all other plans|all payer|all payor|commercial all payer"
             r"|all payor commercial|hmo ppo|hmo pos ppo|commercial hmo ppo"
+            # Michigan: "PPO/Traditional/HMO/Blue Care Network Commercial" (one rate
+            # for Blue Cross Blue Shield of Michigan's PPO, traditional and HMO plans)
+            r"|ppo traditional hmo blue care network( commercial)?"
             # California: "HMO/POS/PPO/EPO", every kind of commercial plan
             r"|hmo pos ppo epo|hmo ppo pos epo|hmo ppo epo pos"
             # Colorado files: "Commercial|All Plans" (2026-11-13)
