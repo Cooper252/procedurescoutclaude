@@ -862,3 +862,7 @@ AmeriHealth Caritas Florida,Medicaid plan,other,medicaid_managed_care,"Claude (d
 AmeriHealth Caritas Florida,Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-14
 Vantage Health Plan,All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-15
 Vantage Health Plan,Medicare Advantage,other,medicare_advantage,"Claude (delegated by Cooper, D-047)",2026-11-15
+Mass General Brigham Health Plan,All plans (one rate published for all),unknown,commercial,"Claude (delegated by Cooper, D-047)",2026-11-15
+Mass General Brigham Health Plan,HMO,hmo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-15
+Mass General Brigham Health Plan,PPO,ppo,commercial,"Claude (delegated by Cooper, D-047)",2026-11-15
+Mass General Brigham Health Plan,Marketplace (exchange) plan,other,exchange,"Claude (delegated by Cooper, D-047)",2026-11-15

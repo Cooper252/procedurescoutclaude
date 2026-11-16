@@ -1478,3 +1478,47 @@ def test_maine_and_maryland_spellings(conn: Connection, world: LocalStore) -> No
         },
     )
     assert wrong == []
+
+
+def test_massachusetts_and_kansas_spellings(conn: Connection, world: LocalStore) -> None:
+    """Massachusetts and Kansas pass 1 (2026-11-15)."""
+    wrong = _placed_by_state(
+        conn,
+        {
+            "MA": [
+                ("AETNA [100001]", "HB XR AETNA PPO TMC", "Aetna · PPO"),
+                (
+                    "CIGNA [100009]",
+                    "HB XR CIGNA TMC",
+                    "Cigna · All plans (one rate published for all)",
+                ),
+                ("Wellsense", "Masshealth", "WellSense Health Plan · Medicaid plan"),
+                (
+                    "Wellsense",
+                    "Qualified Health Plan",
+                    "WellSense Health Plan · Marketplace (exchange) plan",
+                ),
+                (
+                    "MASS GENERAL BRIGHAM HEALTH PLAN [100254]",
+                    "HB XR MGBHP PPO TMC",
+                    "Mass General Brigham Health Plan · PPO",
+                ),
+            ],
+            "KS": [
+                (
+                    "Kansas BCBS",
+                    "Commercial|All Plans",
+                    "Blue Cross and Blue Shield of Kansas · All plans (one rate published for all)",
+                ),
+                ("Aetna", "IVLHIX", "Aetna · Marketplace (exchange) plan"),
+                (
+                    "AETNA MEDICAID REPLACEMENT [3510]",
+                    "AETNA BETTER HEALTH [351001]",
+                    "Aetna · Medicaid plan",
+                ),
+            ],
+            # "TMC" is taken off only after Tufts Medical Center's "HB XR" prefix
+            "RI": [("Tufts Health Plan", "Tufts TMC", None)],
+        },
+    )
+    assert wrong == []

@@ -1107,6 +1107,29 @@ def wait_for_db(engine: Engine) -> bool:
     return False
 
 
+def _report_safely(state: str, engine: Engine) -> None:
+    """The load report, never failing the run (it is also written at the end)."""
+    try:
+        cmd_report(argparse.Namespace(state=state), engine)
+        sys.stdout.flush()
+    except Exception as exc:
+        print(f"report failed: {type(exc).__name__}: {exc}", file=sys.stderr)
+
+
+def _stop_as_interrupt() -> None:
+    """GitHub stops a step that runs too long with SIGINT, then SIGTERM; both
+    become KeyboardInterrupt so the report so far can be written."""
+    import signal
+
+    def _raise(_signum: int, _frame: object) -> None:
+        raise KeyboardInterrupt
+
+    try:
+        signal.signal(signal.SIGTERM, _raise)
+    except ValueError:  # not the main thread (tests)
+        pass
+
+
 def cmd_nv_all(args: argparse.Namespace, engine: Engine) -> None:
     """Run every step even if one fails, so one run shows every problem;
     exit non-zero at the end if any step failed."""
@@ -1203,7 +1226,19 @@ def cmd_nv_all(args: argparse.Namespace, engine: Engine) -> None:
     step("probe", lambda: cmd_probe(ns(state=st), engine))
     if os.environ.get("PRICE_FILE_DOWNLOADS") == "1":
         # Large downloads (about 5 GB for Nevada): only when the run asks for it.
-        step("price_files", lambda: cmd_price_files(ns(state=st), engine))
+        # Indiana passes 1, 2 and 4 (2026-11-13..15) left a one-line report: a
+        # huge file ran past the step's time limit and GitHub stopped the run
+        # before the report at the end. The report so far is written first,
+        # and again if the run is stopped while price files load.
+        print("report before price files:", file=sys.stderr)
+        _report_safely(st, engine)
+        _stop_as_interrupt()
+        try:
+            step("price_files", lambda: cmd_price_files(ns(state=st), engine))
+        except KeyboardInterrupt:
+            print("STOPPED while loading price files: report so far", file=sys.stderr)
+            _report_safely(st, engine)
+            raise
         if os.environ.get("PRICE_LOAD") == "1":
             step("resolve_plans", lambda: cmd_resolve_plans(ns(), engine))
         if os.environ.get("PRICE_LOAD") == "1" and os.environ.get("PUBLISH_AS_YOU_GO") != "1":

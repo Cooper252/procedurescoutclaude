@@ -197,7 +197,9 @@ jobs:
           STATE: ${{ steps.pick.outputs.state }}
         run: |
           set -o pipefail
-          python -m procedurescout_ingest.reference.cli nv-all --state "$STATE" 2>&1 | tee load-report.txt
+          # tee -i: keep writing the report when GitHub stops a step that ran too
+          # long (it sends an interrupt first; the load then writes its report so far)
+          python -m procedurescout_ingest.reference.cli nv-all --state "$STATE" 2>&1 | tee -i load-report.txt
       - name: Reuse the national provider list from an earlier state
         id: nppes_cache
         if: ${{ env.OFFICES == '1' && env.OFFICES_DONE != '1' && !cancelled() && steps.version.outcome == 'success' }}

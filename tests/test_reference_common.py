@@ -391,3 +391,32 @@ def test_db_down_only_for_lost_connections() -> None:
     assert not cli.db_down(OperationalError("x", {}, Exception('relation "x" does not exist')))
     assert not cli.db_down(IntegrityError("x", {}, Exception("duplicate key")))
     assert not cli.db_down(ValueError("service temporarily unavailable"))
+
+
+def test_a_stopped_price_file_step_still_writes_the_report(
+    engine: Engine, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Indiana passes 1, 2 and 4: GitHub stopped the run during a huge price file
+    and the report, written only at the end, was lost. It is now written before
+    price files load and again when the run is stopped."""
+    reports: list[str] = []
+
+    def nothing(*_a: object, **_k: object) -> None:
+        return None
+
+    monkeypatch.setattr(cli, "cmd_pdc", lambda a, e, kind: None)
+    for name in ("census", "nppes", "geocode", "relationships", "hcpcs", "msdrg"):
+        monkeypatch.setattr(cli, f"cmd_{name}", nothing)
+    for name in OFFLINE_STEPS:
+        monkeypatch.setattr(cli, f"cmd_{name}", nothing)
+    monkeypatch.setattr(cli, "cmd_report", lambda a, e: reports.append(a.state))
+
+    def stopped(*_a: object, **_k: object) -> None:
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(cli, "cmd_price_files", stopped)
+    monkeypatch.setenv("PRICE_FILE_DOWNLOADS", "1")
+    args = cli.build_parser().parse_args(["nv-all", "--state", "IN"])
+    with pytest.raises(KeyboardInterrupt):
+        cli.cmd_nv_all(args, engine)
+    assert reports == ["IN", "IN"]  # before price files, and when stopped

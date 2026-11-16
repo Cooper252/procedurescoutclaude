@@ -71,6 +71,8 @@ _TYPES: list[tuple[re.Pattern[str], str]] = [
             r"medicaid|\bmcd\b|\bmcaid\b|rite ?care|\bchip\b|\bahcccs\b"
             r"|health care cost containment|community plan|\bpasse\b|\bmedi cal\b"
             r"|healthy families|^star( plus| kids| health)?$|\bstar ?plus\b|\bstar kids\b"
+            # Massachusetts Medicaid is called MassHealth (2026-11-15)
+            r"|\bmass ?health\b"
         ),
         "Medicaid plan",
     ),
@@ -78,6 +80,9 @@ _TYPES: list[tuple[re.Pattern[str], str]] = [
         re.compile(
             r"marketplace|exchange|\bhix\b|\bqhp\b|\bifp\b|\biex\b|health connect|\baca\b"
             r"|covered calif(ornia)?\b|\bcovered ca\b"
+            # "Qualified Health Plan" spelled out (Massachusetts); "IVLHIX" (individual
+            # plan on the exchange, Kansas) (2026-11-15)
+            r"|qualified health plan|\bivl ?hix\b"
             # Anthem's individual-plan network: "Enhanced Pathways", "Pathway X"
             r"|\bpathways?( x)?( enhanced)?\b|\benhanced pathways?\b"
         ),
@@ -201,7 +206,12 @@ _LOCATION_PREFIX = re.compile(
     r"|twin falls|fruitland) "
     # Northwestern Medicine Lake Forest Hospital: "NLFH BCBS PPO" (Illinois, 2026-11-14)
     r"|^nlfh "
+    # Tufts Medical Center: "HB XR AETNA PPO TMC" (Massachusetts, 2026-11-15)
+    r"|^hb xr "
 )
+# Tufts Medical Center's plan texts also end with its initials ("... TMC");
+# taken off only after its "HB XR" prefix ("Tufts TMC" alone is left as is)
+_LOCATION_SUFFIX = re.compile(r"^(hb xr .*) tmc$")
 
 
 # insurer slots that name no insurer: "COMMERCIAL [1028] | HB NAMPA CIGNA",
@@ -253,7 +263,8 @@ def _only_repeats_insurer(plan_raw: str, payer_raw: str, insurer_name: str) -> b
     own = set(loosen(payer_raw).split()) | set(loosen(insurer_name).split())
     own.discard("")
     own |= _initials(insurer_name)
-    plan = _LOCATION_PREFIX.sub("", re.sub(r"[_/-]", " ", normalize_name(plan_raw)) + " ")
+    plan = _LOCATION_SUFFIX.sub(r"\1", re.sub(r"[_/-]", " ", normalize_name(plan_raw)).strip())
+    plan = _LOCATION_PREFIX.sub("", plan + " ")
     plan = re.sub(r"^\s*\d+ (?=[a-z])", "", plan)  # a plan number in front
     rest = [
         w
@@ -318,7 +329,8 @@ def _pick_plan(
     conn: Connection, insurer: str, payer_raw: str, plan_raw: str, rule_plan: str = ""
 ) -> tuple[str | None, str]:
     """(plan id, label) for one spelling of a known insurer, or (None, '')."""
-    p = _LOCATION_PREFIX.sub("", normalize_name(plan_raw).replace("_", " ") + " ").strip()
+    p = _LOCATION_SUFFIX.sub(r"\1", normalize_name(plan_raw).replace("_", " ").strip())
+    p = _LOCATION_PREFIX.sub("", p + " ").strip()
     # billing numbers after a name ("AETNA COMMERCIAL [100112]", Louisiana
     # files, 2026-11-15) say nothing about the plan
     p = " ".join(w for w in p.split() if not _billing_number(w))

@@ -137,7 +137,7 @@ jobs:
         run: |
           set -o pipefail
           STATE=$(printf '%s' "$STATE_IN" | tr '[:lower:]' '[:upper:]' | tr -cd 'A-Z' | cut -c1-2)
-          python -m procedurescout_ingest.reference.cli nv-all --state "$STATE" 2>&1 | tee load-report.txt
+          python -m procedurescout_ingest.reference.cli nv-all --state "$STATE" 2>&1 | tee -i load-report.txt
       - name: Load offices from the national provider list
         if: ${{ inputs.load_offices && !cancelled() }}
         timeout-minutes: 65

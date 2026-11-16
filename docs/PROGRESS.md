@@ -2,6 +2,23 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-15 — Massachusetts, Nevada, Iowa, Kansas pass 1; Indiana pass 4
+
+Reports from Cooper's downloads:
+- Massachusetts: 31 of 32 price files loaded (21.9 million prices). Baystate Noble flagged for non-UTF-8 bytes (now read as Windows-1252, D-067 follow-up); Taravista Behavioral is not a CMS template.
+- Nevada (monthly refresh): 5 files loaded (10.7 million prices), 21 unchanged or same content. Grover C. Dils (the host name no longer exists) and Mesa View (certificate) failed; Pershing General's file is dated 2024; South Lyon's file isn't a CMS template.
+- Iowa: 38 of 50 loaded (35.5 million prices). 10 downloads failed on apps.para-hcfs.com's certificate; Montgomery County Memorial timed out.
+- Kansas: 37 of 61 loaded (32.3 million prices). 18 downloads failed on apps.para-hcfs.com's certificate; three University of Kansas Health System files (Kansas City, Olathe, Miami County) were over the old 4 GiB limit (16 GiB since D-068); Southwest Medical Center's link returns 404.
+- Indiana pass 4: the report holds one line again (like passes 1 and 2), so the run most likely ran out of time before writing it. The report was written only at the very end of the load, so a run that GitHub stops during a huge price file (the price step has a 180-minute limit) left nothing. Now (`reference/cli.py`): the report so far is written before price files load, and again when the run is stopped (GitHub's interrupt and SIGTERM become `KeyboardInterrupt`, the report is written, the run still ends as stopped). The load workflows' `tee` now has `-i`, so the report keeps reaching the file after the interrupt (protected workflow files: Cooper copies them in). Test: `test_a_stopped_price_file_step_still_writes_the_report`.
+
+apps.para-hcfs.com (a price-file host used by small hospitals): now 31 hospitals fail there (Kansas 18, Iowa 10, Illinois 8 earlier, Louisiana 2, Nevada 1). Checked in the built-in browser on Cooper's computer: Chrome also refuses the site ("ERR_CERT_AUTHORITY_INVALID": its certificate is not from an authority computers trust). The site owner has to fix it; certificate checks are never turned off.
+
+Insurers (D-047): Tufts Medical Center's plan texts ("HB XR AETNA PPO TMC": the "HB XR" prefix, and "TMC" only after it), MassHealth (Massachusetts Medicaid) and "Qualified Health Plan" spelled out, Mass General Brigham Health Plan added (Massachusetts only), "Kansas BCBS", "IVLHIX" (individual exchange plan), Aetna "Medicaid/Medicare replacement" slots. Re-running every earlier report's unmatched spellings against the GitHub version: no change. Test: `test_massachusetts_and_kansas_spellings`.
+
+Hospital policies (D-060), checked against the live names: Massachusetts (Mass General Brigham 9, Beth Israel Lahey 9), Kansas (AdventHealth 3, Ascension 3, Saint Luke's 1, Stormont Vail 2) and Iowa (MercyOne 12, CHI 3, Avera 2, Sanford 1) matched as written; no hospital matched two rows. UnityPoint matched only 2 Iowa hospitals because most keep their own names; from Schedule D of UnityPoint's own policy, its row now also covers Allen, Finley, St. Luke's (Cedar Rapids), St. Luke's Regional (Sioux City), Trinity Regional, Trinity Bettendorf, Trinity Muscatine, Grinnell Regional and Jones Regional.
+
+`make check`: `433 passed, 1 skipped`.
+
 ## 2026-11-15 — Live check (commit 59)
 
 Verified in production: the birth price list near 89123 shows "Epidural for labor (CPT 01967)" with the anesthesia time-billing note, the "only insurance rates" notice with "See prices with my insurance", and no total where an item is missing. New words work: "birth control" (IUDs and the implant, no birth stays), "bone density" (DEXA first), "mole removal", "kidney stone" (stays and lithotripsy). "Iron infusion" listed only the iron drugs (5); it now also lists giving it by IV (CPT 96360-96379) (`code_ranges.py`). `make check`: `431 passed, 1 skipped`.
