@@ -1548,3 +1548,69 @@ def test_michigan_spellings(conn: Connection, world: LocalStore) -> None:
         },
     )
     assert wrong == []
+
+
+def test_mississippi_and_minnesota_spellings(conn: Connection, world: LocalStore) -> None:
+    """Mississippi, Nebraska, New Hampshire, Montana pass 1; Minnesota pass 2 (2026-11-16)."""
+    all_plans = "All plans (one rate published for all)"
+    wrong = _placed_by_state(
+        conn,
+        {
+            "MS": [
+                ("Molina MSCAN", "Medicaid", "Molina Healthcare · Medicaid plan"),
+                ("Cigna Connect", "Commercial", "Cigna · Marketplace (exchange) plan"),
+                ("CIGNA HEALTHCARE \u2013 COMMERCIAL", "ALL PAYOR", f"Cigna · {all_plans}"),
+                ("AETNA HEALTH INC. PPO/POS", "ALL PAYOR", "Aetna · PPO"),
+                (
+                    "CLARITEV D/B/A MULTIPLAN/PHCS/AMERICAN LIFE CARE",
+                    "ALL PAYOR",
+                    "MultiPlan · Network on your card",
+                ),
+                ("ZELIS", "ALL PAYOR", None),
+            ],
+            "MN": [
+                ("CIGNA [91160100]", "CIGNA [41]", f"Cigna · {all_plans}"),
+                (
+                    "UNITEDHEALTHCARE [91160438]",
+                    "UNITED HEALTHCARE [1041]",
+                    f"UnitedHealthcare · {all_plans}",
+                ),
+                (
+                    "Blue Cross Blue Shield of Minnesota",
+                    "PMAP",
+                    "Blue Cross and Blue Shield of Minnesota · Medicaid plan",
+                ),
+                ("Medica", "Choice", None),
+            ],
+            "NE": [
+                ("Molina NE", "Medicaid|All Plans", "Molina Healthcare · Medicaid plan"),
+                ("AETNA MANAGED CARE", "All_Plans", f"Aetna · {all_plans}"),
+            ],
+            "KY": [
+                ("Passport Molina", "Medicaid", "Passport Health Plan · Medicaid plan"),
+                (
+                    "Anthem",
+                    "Traditional/HMO/PPO",
+                    f"Anthem Blue Cross Blue Shield (Kentucky) · {all_plans}",
+                ),
+                ("Aetna PPO", "Commercial", "Aetna · PPO"),
+            ],
+            "NJ": [
+                ("Wellpoint", "NJ Family Care", "Wellpoint (Amerigroup) · Medicaid plan"),
+                ("OXFORD", "ALL PRODUCTS", "UnitedHealthcare · Oxford Health"),
+                ("QUALCARE", "PPO", None),
+            ],
+            "NH": [
+                ("Harvard Pilgrim", "HMO", "Harvard Pilgrim Health Care · HMO"),
+                ("Medicaid", "Medicaid-Trad", None),
+            ],
+            "MT": [
+                (
+                    "Blue Cross Blue Shield",
+                    "Health Montana Kids",
+                    "Blue Cross and Blue Shield of Montana · Medicaid plan",
+                ),
+            ],
+        },
+    )
+    assert wrong == []

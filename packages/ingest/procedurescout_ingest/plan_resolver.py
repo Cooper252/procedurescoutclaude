@@ -73,6 +73,15 @@ _TYPES: list[tuple[re.Pattern[str], str]] = [
             r"|healthy families|^star( plus| kids| health)?$|\bstar ?plus\b|\bstar kids\b"
             # Massachusetts Medicaid is called MassHealth (2026-11-15)
             r"|\bmass ?health\b"
+            # Minnesota's Medicaid managed care is the Prepaid Medical Assistance
+            # Program, "PMAP" (https://mn.gov/dhs/; Minnesota pass 2, 2026-11-16)
+            r"|\bpmap\b"
+            # Healthy Montana Kids, Montana's CHIP ("Health Montana Kids" in Montana
+            # pass 1; https://dphhs.mt.gov/hmk)
+            r"|\bhealthy? montana kids\b"
+            # NJ FamilyCare is New Jersey's Medicaid and CHIP (https://njfamilycare.org;
+            # "Wellpoint | NJ Family Care", New Jersey pass 1)
+            r"|\bnj ?family ?care\b"
         ),
         "Medicaid plan",
     ),
@@ -85,6 +94,8 @@ _TYPES: list[tuple[re.Pattern[str], str]] = [
             r"|qualified health plan|\bivl ?hix\b"
             # Anthem's individual-plan network: "Enhanced Pathways", "Pathway X"
             r"|\bpathways?( x)?( enhanced)?\b|\benhanced pathways?\b"
+            # "Anthem | PathwayHMO" (Kentucky pass 1)
+            r"|\bpathway(hmo|ppo)\b"
         ),
         "Marketplace (exchange) plan",
     ),
@@ -105,7 +116,13 @@ _TYPES: list[tuple[re.Pattern[str], str]] = [
             # California: "HMO/POS/PPO/EPO", every kind of commercial plan
             r"|hmo pos ppo epo|hmo ppo pos epo|hmo ppo epo pos"
             # Colorado files: "Commercial|All Plans" (2026-11-13)
-            r"|commercial all plans|all plans commercial)$"
+            r"|commercial all plans|all plans commercial"
+            # Minnesota: "Blue Cross Blue Shield of Minnesota | Commercial/Federal"
+            # (one rate for its commercial and federal employee plans, 2026-11-16)
+            r"|commercial federal"
+            # Kentucky: "Anthem | Traditional/HMO/PPO", "Anthem | PPO/HMO" (one rate for
+            # its traditional, HMO and PPO plans, 2026-11-16)
+            r"|traditional hmo ppo|traditional ppo hmo|ppo hmo)$"
         ),
         ALL_PLANS,
     ),
@@ -259,6 +276,12 @@ def _billing_number(word: str) -> bool:
     return word.isdigit() and len(word) >= 4
 
 
+def _drop_bracket_ids(raw: str) -> str:
+    """Numbers in square brackets are a hospital system's own ids, of any length:
+    "CIGNA [41]", "UNITED HEALTHCARE [1041]" (Minnesota pass 2, 2026-11-16)."""
+    return re.sub(r"\[\s*\d+\s*\]", " ", raw)
+
+
 def _only_repeats_insurer(plan_raw: str, payer_raw: str, insurer_name: str) -> bool:
     """'AETNA | AETNA', 'Aetna | Aetna Commercial', 'BCBS | BCBS AL Commercial':
     the plan text adds nothing but the insurer's name, so it is one rate for all
@@ -266,6 +289,7 @@ def _only_repeats_insurer(plan_raw: str, payer_raw: str, insurer_name: str) -> b
     own = set(loosen(payer_raw).split()) | set(loosen(insurer_name).split())
     own.discard("")
     own |= _initials(insurer_name)
+    plan_raw = _drop_bracket_ids(plan_raw)
     plan = _LOCATION_SUFFIX.sub(r"\1", re.sub(r"[_/-]", " ", normalize_name(plan_raw)).strip())
     plan = _LOCATION_PREFIX.sub("", plan + " ")
     plan = re.sub(r"^\s*\d+ (?=[a-z])", "", plan)  # a plan number in front
@@ -274,7 +298,10 @@ def _only_repeats_insurer(plan_raw: str, payer_raw: str, insurer_name: str) -> b
         for w in plan.split()
         if w not in own and w not in _FILLER and w not in _STATES and not _billing_number(w)
     ]
-    return not rest
+    # "UNITEDHEALTHCARE | UNITED HEALTHCARE" (Minnesota pass 2): the same name
+    # written as two words
+    joined = "".join(w for w in plan.split() if w not in _STATES and not _billing_number(w))
+    return not rest or joined in own
 
 
 def _beyond_name(raw: str, insurer_name: str, also: str = "") -> str:
@@ -332,6 +359,7 @@ def _pick_plan(
     conn: Connection, insurer: str, payer_raw: str, plan_raw: str, rule_plan: str = ""
 ) -> tuple[str | None, str]:
     """(plan id, label) for one spelling of a known insurer, or (None, '')."""
+    plan_raw = _drop_bracket_ids(plan_raw)
     p = _LOCATION_SUFFIX.sub(r"\1", normalize_name(plan_raw).replace("_", " ").strip())
     p = _LOCATION_PREFIX.sub("", p + " ").strip()
     # billing numbers after a name ("AETNA COMMERCIAL [100112]", Louisiana

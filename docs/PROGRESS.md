@@ -2,6 +2,39 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-16 — Kentucky and New Jersey pass 1
+
+- Kentucky: 37 of 47 loaded (8.5 million prices). 9 failed on apps.para-hcfs.com, including 7 Baptist Health hospitals (Baptist Health's own price page links only there, so there is no other link). Eastern State Hospital's link returned 404; UK HealthCare's own page now links the file under /sites/ukhc/files/, added to `price_file_sources_reviewed.csv` (CCN 184004, D-063).
+- New Jersey: 50 files done (136 million prices) before the time limit; a rerun continues. Jefferson Stratford Hospital's file failed to load because its text has NUL bytes, which PostgreSQL refuses. NUL bytes are now dropped from text (never from amounts, so an amount with one is still refused; `price_parser._text`). Test: `test_nul_bytes_in_text_are_dropped`.
+- Louisiana pass 1's report (an earlier run than pass 2, already read) has nothing new.
+- Still no report seen for Hawaii; New Mexico has hospitals on the live site but no report yet.
+
+Insurers (D-047): Passport by Molina (Kentucky Medicaid), "Aetna PPO/POS | Commercial", "United Healthcare HMO", Anthem's "Traditional/HMO/PPO" and "PPO/HMO" (all plans) and "PathwayHMO" (marketplace), CareSource Kentucky (misspelled), NJ FamilyCare (New Jersey Medicaid), Oxford Health Plans (UnitedHealthcare) and AmeriChoice (UnitedHealthcare Community Plan's former name). Re-running every earlier report's unmatched spellings against the previous version: one more placed (Connecticut "OXFORD [100103]"), nothing else changed. Test: `test_mississippi_and_minnesota_spellings` (now also Kentucky and New Jersey).
+
+Hospital policies (D-060): the CommonSpirit row for Kentucky now also covers CHI Saint Joseph Health's hospitals, whose live names drop "CHI" (Saint Joseph Hospital, East, London, Mount Sterling), as CommonSpirit's own Kentucky page lists them. Not added: Appalachian Regional Healthcare (its posted policy leaves out the sliding fee scale). New Jersey hospitals already show New Jersey's charity care law.
+
+New Jersey joins the rerun list (time limit).
+
+`make check`: `437 passed, 1 skipped`.
+
+## 2026-11-16 — Minnesota, Mississippi, Missouri, Montana, Nebraska, New Hampshire
+
+Reports from Cooper's downloads:
+- Minnesota pass 1 stopped before price files (its report now still shows everything up to that point, as fixed on 2026-11-15); pass 2: 24 of 57 files loaded or refreshed, 29 unchanged. Failed: Appleton Area Health and Lakewood (apps.para-hcfs.com certificate), St. Francis Regional (Allina's own cms-hpt.txt still lists the link that now returns 404), United Hospital District (404; its own page links only a price-search site, no file). Winona Health's file has no CMS header or payer columns. Carris Health and CentraCare Surgery Center files are dated 2024.
+- Mississippi: 41 of 42 loaded (23.5 million prices). Wayne General failed on apps.para-hcfs.com. Six Merit Health hospitals and Noxubee General post files more than a year old.
+- Missouri: 71 of 72 loaded (137 million prices). Hermann Area failed on apps.para-hcfs.com. Six hospitals post old files.
+- Montana: 17 of 24 loaded. 7 failed on apps.para-hcfs.com. Billings Clinic Broadwater and Stillwater Billings Clinic also post a non-CMS file.
+- Nebraska: 23 of 31 loaded. 6 failed on apps.para-hcfs.com, Henderson Community Hospital's own site has a certificate computers don't trust (not bypassed), and Antelope Memorial's link returns 403.
+- New Hampshire: all 14 loaded (12.4 million prices).
+
+Live check of every state (2026-11-16, procedurescout.com): 26 states and DC had hospitals; 24 had none yet (MS, MO, MT, NE, NH loaded since). Rerun list for the end, in order: IN (empty reports, time limit), CA (pass 2 stopped early, 91 of 152 files), KS (University of Kansas files over the old size limit; Salina and Lindsborg links), LA, IL, MD, MI (Karmanos), MA (Baystate Noble), FL, GA, CO, CT, DE, DC (website step failed on an old bug), AL, ID; optional: AK, AR, AZ, RI, VT (first states, before most fixes).
+
+Insurers (D-047): numbers in square brackets are now always a hospital's own ids ("CIGNA [41]"), and "UNITEDHEALTHCARE | UNITED HEALTHCARE" counts as the same name. New: MississippiCAN plans (Molina, Magnolia, TrueCare and their CHIP plans), Ambetter from Magnolia, Cigna Connect (marketplace), Cigna True Choice and HealthSpring (Medicare Advantage), Claritev (MultiPlan's new name), "AETNA HEALTH INC. PPO/POS", UnitedHealthcare's commercial and exchange slots, UMR spelled out, First Health with network letters, Minnesota's PMAP (Medicaid) and "Commercial/Federal", Healthy Montana Kids (CHIP), Nebraska's "managed care" slots and Molina Nebraska/Iowa. Harvard Pilgrim and Tufts Health Plan now have HMO, POS and PPO plans, Anthem New Hampshire a POS plan. Re-running every earlier report's unmatched spellings against the GitHub version: two more placed (Arkansas "UNITED HEALTHCARE | UNITED HEALTH CARE", Louisiana "AETNA HEALTH INC. PPO/POS"), nothing else changed. Test: `test_mississippi_and_minnesota_spellings`.
+
+Hospital policies (D-060), from each system's own documents and checked against the live names (no hospital matched two rows): Allina Health (Partners Care, 275% of FPL), CentraCare (discounts under 250%), Bozeman Health (free to 150%, sliding to 40% at 250%), Benefis (free under 200%, a discount under 400%). Fixed: Methodist Olive Branch (its live name is "Methodist Healthcare - Olive Branch Hospital") and Saint Luke's Hospital of Kansas City ("ST LUKES ..."). Not added: Mercy (its policy's income table, Exhibit A, is blank in the posted copy), Baptist Memorial (its summary gives 50-100% with no income levels).
+
+`make check`: `436 passed, 1 skipped`.
+
 ## 2026-11-15 — Michigan pass 1
 
 From Cooper's download (load-MI-pass1): 69 of 71 price files loaded (93.5 million prices). Holland Hospital failed on apps.para-hcfs.com's certificate (not bypassed); Lake Huron Medical Center's link answers HTTP 307 with nowhere to go (no replacement link found on its own site). Deckerville, Hills & Dales, Marlette and McKenzie posted out-of-date files (shown with their dates).

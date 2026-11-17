@@ -85,7 +85,10 @@ MAX_EXAMPLES = 5
 def _text(value: object) -> str | None:
     if value is None:
         return None
-    s = str(value).strip()
+    # NUL bytes are never text, and PostgreSQL refuses them: Jefferson Stratford
+    # Hospital's file (New Jersey pass 1) failed to load whole because of them.
+    # Amounts don't pass through here, so a NUL inside an amount still refuses it.
+    s = str(value).replace("\x00", "").strip()
     return s or None
 
 

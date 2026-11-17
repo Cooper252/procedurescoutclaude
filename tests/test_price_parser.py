@@ -213,3 +213,21 @@ def test_likely_file_errors_are_flagged_not_dropped() -> None:
     assert rejects == []
     flags = {p.code: p.quality_flags for p in prices}
     assert "under_one_dollar" in flags["11118"] and "over_ten_million" in flags["11119"]
+
+
+def test_nul_bytes_in_text_are_dropped() -> None:
+    """Jefferson Stratford Hospital (New Jersey pass 1): NUL bytes in its text
+    made the whole file fail to load; they are dropped from text, never amounts."""
+    data = (FIX / "synthetic_standardcharges_tall.csv").read_bytes()
+    lines = data.split(b"\n")
+    i = next(n for n, line in enumerate(lines) if n > 2 and line.strip())
+    lines[i] = lines[i].replace(b",", b"\x00,", 1)
+    prices, rejects = run(b"\n".join(lines), FileFormat.CSV_TALL)
+    clean, _ = run("synthetic_standardcharges_tall.csv", FileFormat.CSV_TALL)
+    assert rejects == [] and len(prices) == len(clean)
+    assert not any(
+        "\x00" in (v or "")
+        for p in prices
+        for v in (p.description_raw, p.payer_name_raw, p.plan_name_raw, p.code)
+    )
+    assert [p.description_raw for p in prices] == [p.description_raw for p in clean]
