@@ -2,6 +2,17 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-17 — Alaska, Arkansas, Arizona reruns
+
+Cooper is now running the remaining states and the reruns back to back (list in the 2026-11-16 entries).
+- Alaska: 5 of 15 files loaded or refreshed. 8 failed on apps.para-hcfs.com (Alaska Native Medical Center, Bartlett, Central Peninsula, Fairbanks Memorial: they loaded in pass 1, before that site's certificate broke, so their earlier prices stay). Mat-Su's file is dated 2024.
+- Arkansas: 21 of 54 loaded or refreshed, 31 unchanged. Chambers Memorial failed on apps.para-hcfs.com; CHI St. Vincent Hot Springs' link now returns 404 (CommonSpirit's price page needs a site approval to read; left for later).
+- Arizona: 27 of 62 loaded or refreshed. Mayo Clinic Arizona's file is over the 16 GiB per-file limit (D-068); Destiny Springs' link returns 404; Kingman failed on apps.para-hcfs.com; several files are dated 2024.
+
+Insurers (D-047): an insurer's name followed by "all plans" ("UHC - ALL PLANS", "CIGNA - ALL PLANS", "MULTIPLAN-ALL PLANS") is now that insurer, by rule or by its own name (`plan_resolver._ALL_PLANS_SUFFIX`). New rules: UMR and Meritain Health by name, Moda "Health Plans", QualChoice of Arkansas, Arkansas "BLUE CROSS EXCHANGE" (marketplace). Re-running every earlier report's unmatched spellings against the GitHub version: 16 more placed (14 above, plus Louisiana "UMR [1070] | LCMC HEALTH NETWORK (UMR)" and Massachusetts "MERITAIN [100063] | HB XR AETNA HMO POS TMC", both one-rate plan administrators), nothing else changed. Test: `test_mississippi_and_minnesota_spellings` (now also Alaska and Arkansas).
+
+`make check`: `437 passed, 1 skipped`.
+
 ## 2026-11-16 — New Mexico and Hawaii pass 1
 
 - New Mexico: all 29 price files loaded (19.6 million prices). Carlsbad, Eastern New Mexico and Mountain View post files dated 2024; Memorial Medical Center's ZIP holds two files (the larger is read).

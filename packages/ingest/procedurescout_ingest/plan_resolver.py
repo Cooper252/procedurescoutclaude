@@ -197,6 +197,9 @@ def load_name_rules(csv_text: str) -> list[NameRule]:
     return out
 
 
+_ALL_PLANS_SUFFIX = re.compile(r" all( other)? (plans?|products|payers?|payors?)$")
+
+
 def _rule_insurer(
     conn: Connection,
     rules: list[NameRule],
@@ -213,6 +216,17 @@ def _rule_insurer(
         for r in rules
         if r.pattern.fullmatch(key) and allowed(r.payer) and (not r.states or state in r.states)
     }
+    # "UHC - ALL PLANS", "CIGNA - ALL PLANS", "MULTIPLAN PRIMARY - ALL OTHER PLANS"
+    # (Alaska pass 2, 2026-11-17): the insurer name with "all plans" after it
+    bare = _ALL_PLANS_SUFFIX.sub("", key)
+    if not hits and bare != key:
+        hits = {
+            (r.payer, r.plan)
+            for r in rules
+            if r.pattern.fullmatch(bare)
+            and allowed(r.payer)
+            and (not r.states or state in r.states)
+        }
     if len(hits) != 1:
         return None
     name, plan = hits.pop()
@@ -532,6 +546,11 @@ def resolve_new_spellings(
         # of the same slot with other plan texts say nothing about this one
         generic = bool(_GENERIC_PAYER.match(loosen(payer_raw)))
         insurer = None if generic else _insurer_for(conn, pk, state)
+        if insurer is None and not generic:
+            # "UMR-ALL PLANS", "GEHA - ALL PLANS" (Alaska pass 2): the insurer's own name
+            bare = _ALL_PLANS_SUFFIX.sub("", loosen(payer_raw))
+            if bare != loosen(payer_raw):
+                insurer = _insurer_for(conn, bare, state)
         if insurer is not None and not allowed(_insurer_name(conn, insurer)):
             insurer = None
         by_rule = False

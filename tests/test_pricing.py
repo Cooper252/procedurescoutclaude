@@ -1586,6 +1586,19 @@ def test_mississippi_and_minnesota_spellings(conn: Connection, world: LocalStore
                 ("Molina NE", "Medicaid|All Plans", "Molina Healthcare · Medicaid plan"),
                 ("AETNA MANAGED CARE", "All_Plans", f"Aetna · {all_plans}"),
             ],
+            "AK": [
+                ("UHC - ALL PLANS", "UHC - ALL PLANS", f"UnitedHealthcare · {all_plans}"),
+                ("UMR-ALL PLANS", "UMR-ALL PLANS", f"UMR (UnitedHealthcare) · {all_plans}"),
+                ("MULTIPLAN-ALL PLANS", "MULTIPLAN-ALL PLANS", "MultiPlan · Network on your card"),
+                ("MODA NON-CPH", "MODA NON-CPH", None),
+            ],
+            "AR": [
+                (
+                    "BLUE CROSS EXCHANGE",
+                    "BLUE CROSS EXCHANGE",
+                    "Arkansas Blue Cross and Blue Shield · Marketplace (exchange) plan",
+                ),
+            ],
             "HI": [
                 ("HMSA", "QUEST ABD", "HMSA (Blue Cross Blue Shield of Hawaii) · Medicaid plan"),
                 ("Kaiser", "QUEST", "Kaiser Permanente · Medicaid plan"),
