@@ -2,6 +2,12 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-17 — Per-file limit 32 GiB (D-069)
+
+Cooper approved raising the per-file download limit to 32 GiB so Mayo Clinic Arizona's file (over 16 GiB) loads; one download may now take 60 minutes. `price_files.DEFAULT_MAX_BYTES`, `DEFAULT_MAX_DOWNLOAD_SECONDS`. Arizona goes back on the rerun list.
+
+`make check`: `437 passed, 1 skipped`.
+
 ## 2026-11-17 — Alaska, Arkansas, Arizona reruns
 
 Cooper is now running the remaining states and the reruns back to back (list in the 2026-11-16 entries).

@@ -2,6 +2,9 @@
 
 Newest first. Each entry: decision, reason, consequences.
 
+## 2026-11-17 — D-069: Per-file download limit raised to 32 GiB
+Cooper (2026-11-17: "Yes. I want every hospital so if that's what it takes then we need to do it.") for Mayo Clinic Arizona, whose price file is over 16 GiB (Arizona rerun). `price_files.DEFAULT_MAX_BYTES` is now 32 GiB and one download may take up to 60 minutes (was 40); `PRICE_FILE_MAX_BYTES` still overrides the size. Files are still streamed to a temporary file on GitHub's free runner (about 40 GB free after cleanup), read piece by piece and deleted; no paid service is involved. If a file ever fills the runner's disk, that file fails and is named in the report; the run goes on.
+
 ## 2026-11-15 — D-068: Per-file download limit raised to 16 GiB
 Cooper (2026-11-15: "Yes, raise the limit") for Northwestern Memorial, whose price file is over the 4 GiB limit set with the first download approval (D-025). `price_files.DEFAULT_MAX_BYTES` is now 16 GiB; `PRICE_FILE_MAX_BYTES` still overrides it. Files are still streamed, read piece by piece and deleted on GitHub's free runner; nothing is kept and no paid service is involved.
 

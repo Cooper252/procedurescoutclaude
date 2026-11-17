@@ -49,11 +49,14 @@ from procedurescout_core.enums import FileFormat, Severity
 from .discovery import RATE_LIMIT_WAITS, RETRY_STATUSES
 from .reference.common import LoadStats
 
-# 16 GiB per file: Cooper raised it on 2026-11-15 ("Yes, raise the limit") for
-# Northwestern Memorial, whose file is over 4 GiB. Files are streamed and read
-# piece by piece, then deleted; the runner has about 40 GB free after cleanup.
-DEFAULT_MAX_BYTES = 16 * 1024 * 1024 * 1024
-DEFAULT_MAX_DOWNLOAD_SECONDS = 40 * 60  # one slow server can't use up a run
+# 32 GiB per file (D-069): Cooper raised it to 16 GiB on 2026-11-15 for
+# Northwestern Memorial, then to 32 GiB on 2026-11-17 for Mayo Clinic Arizona
+# ("I want every hospital"). Files are streamed to a temporary file, read piece
+# by piece, then deleted; the runner has about 40 GB free after cleanup.
+DEFAULT_MAX_BYTES = 32 * 1024 * 1024 * 1024
+# one slow server can't use up a run; 60 minutes lets a 32 GiB file arrive at
+# about 9 MB/s
+DEFAULT_MAX_DOWNLOAD_SECONDS = 60 * 60
 FAILURE_WAITS = (30, 60, 120, 300, 600)  # after 3, 4, 5... files fail in a row
 MAX_FAILURES_IN_A_ROW = 8  # then the run stops cleanly and the next run carries on
 CHUNK = 1024 * 1024

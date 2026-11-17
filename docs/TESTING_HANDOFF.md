@@ -25,7 +25,7 @@ Cooper wants every piece of ProcedureScout tested, back end and front end. Read 
 - À la carte price list (`/price-list`, `components/OptionPicker.tsx`, `lib/priceList.ts`): stays are pick-one, totals only when every item has a dollar price, exact decimal sums, "Not published" / "Insurance rates only" lines, labels for other-system codes and anesthesia.
 - Same stay in another coding system (D-066): `~` codes in `service_catalog.csv` are used at a place only when it published none of the service's own codes, never mixed, and labeled (`priced_as`).
 - A searched code's plain name (`code_name`), anesthesia time-billing notes, copay-first estimate panel (no estimate until something is typed), estimates for rate ranges, insurance list under its box, doctor's care optional in the birth bundles.
-- Price files (D-067): rows with values past the last column are refused (`wider_than_header`); rows that only differ by empty cells are read and don't hold a file. Per-file limit 16 GiB (D-068).
+- Price files (D-067): rows with values past the last column are refused (`wider_than_header`); rows that only differ by empty cells are read and don't hold a file. Per-file limit 32 GiB (D-068, D-069).
 - Insurer matching: billing numbers of 4+ digits ignored in plan text; Louisiana rules (Vantage, plain Medicaid).
 
 ## Constraints
