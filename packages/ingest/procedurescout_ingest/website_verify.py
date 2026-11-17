@@ -304,3 +304,177 @@ def guessed_candidates(
         for ccn in wanted.get(url, []):
             w.writerow([ccn, url.removesuffix("/cms-hpt.txt"), "guessed from the hospital's name"])
     return out.getvalue()
+
+
+def listed_candidates(conn: Connection, listed_csv: str, state_code: str) -> str:
+    """ccn,url,source CSV from `data/reference/website_candidates.csv` (state,
+    name as CMS writes it or "*" for a health system's site, url, evidence) for
+    this state's hospitals that still
+    have no website (Arizona, 2026-11-17: Abrazo, St. Joseph's, Valleywise and
+    others had no website on any list, so their price files were never found).
+    A listed site is only a hint: `verify` accepts it by the same automatic
+    checks as every other candidate (its cms-hpt.txt names the hospital, or a
+    listed price file's header gives the hospital's address)."""
+    out = io.StringIO()
+    w = csv.writer(out)
+    w.writerow(["ccn", "url", "source"])
+    for row in csv.DictReader(io.StringIO(listed_csv)):
+        if (row.get("state") or "").strip().upper() != state_code:
+            continue
+        name = " ".join((row.get("name") or "").split()).upper()
+        url = (row.get("url") or "").strip()
+        if not name or not url:
+            continue
+        if name == "*":  # a health system's site: see system_sites / sibling_sites
+            continue
+        ccns = (
+            conn.execute(
+                text(
+                    "SELECT ccn FROM ref.facility WHERE state_code = :s AND ccn IS NOT NULL "
+                    "AND website IS NULL AND status = 'active' "
+                    "AND upper(regexp_replace(name, '\\s+', ' ', 'g')) = :n"
+                ),
+                {"s": state_code, "n": name},
+            )
+            .scalars()
+            .all()
+        )
+        for ccn in ccns:
+            w.writerow([ccn, url, "researched list (website_candidates.csv)"])
+    return out.getvalue()
+
+
+def system_sites(listed_csv: str, state_code: str) -> list[str]:
+    """Health systems' sites listed with name "*" for this state in
+    `website_candidates.csv`: each is read once by `sibling_sites` for all of
+    the state's hospitals that have no price file yet."""
+    out = []
+    for row in csv.DictReader(io.StringIO(listed_csv)):
+        if (row.get("state") or "").strip().upper() != state_code:
+            continue
+        if (row.get("name") or "").strip() != "*":
+            continue
+        origin = _origin(row.get("url") or "")
+        if origin and origin not in out:
+            out.append(origin)
+    return out
+
+
+def sibling_sites(
+    conn: Connection,
+    state_code: str,
+    fetch: Fetch,
+    stats: LoadStats,
+    head: Head | None = None,
+    extra_sites: list[str] | None = None,
+) -> LoadStats:
+    """Hospitals with no price file yet, found on a health system's site that is
+    already verified for another hospital in the state (Arizona, 2026-11-17:
+    St. Joseph's, Chandler Regional and others are on Dignity Health's site,
+    verified for Dignity's Arizona General, under names CMS writes differently).
+    Each site's cms-hpt.txt is read once. A listed name that resolves to such a
+    hospital gives it the site (D-048). A listed name that resolves to nothing is
+    linked by its price file's header address (D-058), only when that address
+    belongs to exactly one hospital in the state. `extra_sites`: health systems'
+    sites from `website_candidates.csv` (name "*"), checked the same way."""
+    sites = list(
+        conn.execute(
+            text(
+                "SELECT DISTINCT website FROM ref.facility WHERE state_code = :s "
+                "AND website IS NOT NULL AND facility_type::text LIKE '%hospital' ORDER BY 1"
+            ),
+            {"s": state_code},
+        )
+        .scalars()
+        .all()
+    )
+    sites += [x for x in (extra_sites or []) if x not in sites]
+    rows = conn.execute(
+        text(
+            """
+            SELECT f.id, f.website, f.address_line1, f.zip5 FROM ref.facility f
+            WHERE f.state_code = :s AND f.status = 'active' AND f.ccn IS NOT NULL
+              AND f.facility_type::text LIKE '%hospital'
+              AND NOT EXISTS (SELECT 1 FROM src.transparency_source t WHERE t.facility_id = f.id)
+            """
+        ),
+        {"s": state_code},
+    ).all()
+    wanted = {r[0]: r for r in rows}
+    all_keys: dict[str, list[Any]] = {}
+    for fid, _w, street, zip5 in conn.execute(
+        text(
+            "SELECT id, website, address_line1, zip5 FROM ref.facility WHERE state_code = :s "
+            "AND status = 'active' AND facility_type::text LIKE '%hospital'"
+        ),
+        {"s": state_code},
+    ).all():
+        k = address_key(street, zip5)
+        if k is not None:
+            all_keys.setdefault(k, []).append(fid)
+    heads: dict[str, set[str]] = {}
+
+    def give_site(fid: Any, origin: str, reviewer: str, evidence: str) -> None:
+        if wanted[fid][1] is None:
+            conn.execute(
+                text(
+                    "UPDATE ref.facility SET website = :w, website_evidence_url = :e, "
+                    "website_reviewed_by = :r, website_reviewed_at = now() "
+                    "WHERE id = :f AND website IS NULL"
+                ),
+                {"w": origin, "e": evidence, "r": reviewer, "f": fid},
+            )
+
+    for origin in sites:
+        if not wanted:
+            break
+        hpt = f"{origin}/cms-hpt.txt"
+        try:
+            status, body = fetch(hpt)
+        except Exception as exc:  # network trouble: report and move on
+            stats.reject(origin, "fetch_failed", f"{hpt}: {type(exc).__name__}")
+            continue
+        if status != 200:
+            continue
+        reads = 0
+        for e in parse_hpt_txt(body):
+            name, mrf = e.get("location-name"), e.get("mrf-url")
+            if not name:
+                continue
+            stats.rows_in += 1
+            hit = resolve_facility_by_name(conn, name, state_code)
+            if hit.facility_id is not None:
+                if hit.facility_id in wanted:
+                    give_site(hit.facility_id, origin, AUTO_REVIEWER, hpt)
+                    stats.count("named_on_system_site")
+                    stats.rows_loaded += 1
+                continue
+            if hit.status != "unmatched" or not mrf or head is None:
+                continue
+            if mrf not in heads:
+                if reads >= MAX_FILES_PER_SITE:
+                    continue
+                reads += 1
+                try:
+                    heads[mrf] = header_address_keys(head(mrf))
+                except Exception:  # this file just can't vouch
+                    heads[mrf] = set()
+            owners = {fid for k in heads[mrf] for fid in all_keys.get(k, [])}
+            if len(owners) != 1:
+                continue
+            (fid,) = owners
+            if fid not in wanted:
+                continue
+            add_alias(
+                conn,
+                fid,
+                name,
+                alias_type="mrf_name",
+                source=mrf[:500],
+                match_basis="manual",
+                reviewed_by=ADDRESS_REVIEWER,
+            )
+            give_site(fid, origin, ADDRESS_REVIEWER, mrf)
+            stats.count("linked_by_price_file_address")
+            stats.rows_loaded += 1
+    return stats

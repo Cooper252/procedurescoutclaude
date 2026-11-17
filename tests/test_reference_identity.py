@@ -43,6 +43,27 @@ def test_name_resolves_only_exactly(conn: Connection) -> None:
     )
 
 
+def test_an_apostrophe_is_punctuation(conn: Connection) -> None:
+    """Arizona (2026-11-17, D-070): Dignity Health's own file writes "St. Joseph's
+    Hospital and Medical Center"; CMS writes "ST JOSEPHS HOSPITAL AND MEDICAL
+    CENTER". Same name; other words still have to match exactly."""
+    fid = make_facility(conn, "ST JOSEPHS HOSPITAL AND MEDICAL CENTER")
+    add_alias(
+        conn,
+        fid,
+        "ST JOSEPHS HOSPITAL AND MEDICAL CENTER",
+        alias_type="cms_name",
+        source="test",
+        match_basis="ccn",
+    )
+    hit = resolve_facility_by_name(conn, "St. Joseph's Hospital and Medical Center", "NV")
+    assert (hit.status, hit.facility_id) == (FacilityMatchStatus.MATCHED, fid)
+    assert resolve_facility_by_name(conn, "St. Joseph's Hospital", "NV").status == "unmatched"
+    assert resolve_facility_by_name(
+        conn, "St. Joseph's Hospital and Medical Center", "AZ"
+    ).status == ("unmatched")
+
+
 def test_shared_name_is_ambiguous_not_merged(conn: Connection) -> None:
     a = make_facility(conn, "Synthetic Community Hospital A")
     b = make_facility(conn, "Synthetic Community Hospital B")

@@ -53,6 +53,7 @@ HCPCS_OCT_2026_URL = "https://www.cms.gov/files/zip/october-2026-alpha-numeric-h
 MSDRG_FY2027_TABLE5_URL = "https://www.cms.gov/files/zip/fy2027-ipps-fr-table-5.zip"
 RELATIONSHIPS_CSV = "data/reference/facility_relationships_reviewed.csv"
 WEBSITES_CSV = "data/reference/facility_websites.csv"
+WEBSITE_CANDIDATES_CSV = "data/reference/website_candidates.csv"
 ALIASES_CSV = "data/reference/facility_aliases_reviewed.csv"
 CAPTURED_DIR = "data/reference/hpt_captured"
 MANUAL_SOURCES_CSV = "data/reference/price_file_sources_reviewed.csv"
@@ -714,10 +715,33 @@ def cmd_find_websites(args: argparse.Namespace, engine: Engine) -> None:
             r.raise_for_status()
             return r.json()
 
-        def fetch(url: str) -> tuple[int, str]:
-            r = client.get(url, timeout=30)
-            return r.status_code, r.text[:2_000_000]
+        fetched: dict[str, tuple[int, str]] = {}
 
+        def fetch(url: str) -> tuple[int, str]:
+            # one fetch per site even when a health system's site is tried for
+            # many hospitals
+            if url not in fetched:
+                r = client.get(url, timeout=30)
+                fetched[url] = (r.status_code, r.text[:2_000_000])
+            return fetched[url]
+
+        # researched sites for hospitals on no list (2026-11-17), checked the same way
+        listed_csv = ""
+        if os.path.exists(WEBSITE_CANDIDATES_CSV):
+            with open(WEBSITE_CANDIDATES_CSV, encoding="utf-8") as f:
+                listed_csv = f.read()
+            with engine.connect() as c:
+                listed = website_verify.listed_candidates(c, listed_csv, args.state)
+            if listed.count("\n") > 1:
+                _run(
+                    engine,
+                    "facility_websites",
+                    lambda c: website_verify.verify(
+                        c, listed, fetch, LoadStats(), head=_head_reader(client)
+                    ),
+                    source_file=WEBSITE_CANDIDATES_CSV,
+                    parameters={"state": args.state, "listed": listed.count("\n") - 1},
+                )
         try:
             candidates = website_verify.dolthub_candidates(get_json, args.state)
         except (httpx.HTTPError, ValueError) as exc:  # the list being down never stops guesses
@@ -733,6 +757,23 @@ def cmd_find_websites(args: argparse.Namespace, engine: Engine) -> None:
                 source_url=website_verify.DOLTHUB_SQL,
                 parameters={"state": args.state, "candidates": candidates.count("\n") - 1},
             )
+
+        # hospitals listed on a health system's site already verified for another
+        # hospital in the state, under a name CMS writes differently (2026-11-17)
+        _run(
+            engine,
+            "facility_websites",
+            lambda c: website_verify.sibling_sites(
+                c,
+                args.state,
+                fetch,
+                LoadStats(),
+                head=_head_reader(client),
+                extra_sites=website_verify.system_sites(listed_csv, args.state),
+            ),
+            source_file="health system sites already verified in this state",
+            parameters={"state": args.state, "sibling_sites": True},
+        )
 
         # hospitals on no list: likely domains from their names (2026-11-12),
         # accepted only by the same checks as every other candidate

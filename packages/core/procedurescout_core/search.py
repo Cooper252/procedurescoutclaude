@@ -362,7 +362,23 @@ def search(
     unit: str | None = None
     if service_slug is not None:
         name, unit, codes = _codes_for_service(conn, service_slug)
+        kinds_from_service = not kinds
+        if not kinds:
+            # only the kinds of place that offer this service (Cooper, 2026-11-17:
+            # a birth search near Phoenix listed chiropractors and pharmacies as
+            # "doesn't post prices", and they took places in the first 50)
+            kinds = sorted(
+                str(t)
+                for t in conn.execute(
+                    text(
+                        "SELECT t.provider_type FROM ref.procedure_provider_type t "
+                        "JOIN ref.procedure p ON p.id = t.procedure_id WHERE p.slug = :s"
+                    ),
+                    {"s": service_slug},
+                ).scalars()
+            )
     else:
+        kinds_from_service = False
         codes = [_check_code(conn, code_system or "", code or "")]
     # the same number written another way ("1967" for 01967) is the same code
     variants: set[tuple[str, str]] = set()
@@ -401,13 +417,16 @@ def search(
             WITH p AS (
                 SELECT CAST(ST_SetSRID(ST_MakePoint(:lng, :lat), 4326) AS geography) AS pt
             ),
+            listed AS (
+                SELECT pl.facility_id AS id FROM prov.published_listing pl
+                WHERE pl.service_slug = CAST(:slug AS text)
+                   OR pl.code_system || ':' || pl.code = ANY(:codes)
+            ),
             answers AS (
                 SELECT pf.facility_id AS id FROM price.published_file pf
                 WHERE CAST(:ostate AS text) IS NULL
                 UNION
-                SELECT pl.facility_id FROM prov.published_listing pl
-                WHERE pl.service_slug = CAST(:slug AS text)
-                   OR pl.code_system || ':' || pl.code = ANY(:codes)
+                SELECT id FROM listed
             ),
             cand AS (
                 (SELECT f.id FROM ref.facility f, p
@@ -416,7 +435,13 @@ def search(
                    AND (CASE WHEN CAST(:ostate AS text) IS NULL
                              THEN ST_DWithin(f.geom, p.pt, :meters)
                              ELSE f.state_code = CAST(:ostate AS text) END)
-                   AND (cardinality(CAST(:kinds AS text[])) = 0 OR EXISTS (
+                   -- a practice that priced this very service always counts
+                   AND (cardinality(CAST(:kinds AS text[])) = 0
+                        OR (CAST(:kinds_from_service AS boolean) AND (
+                            f.id IN (SELECT id FROM listed)
+                            OR NOT EXISTS (SELECT 1 FROM ref.facility_provider_type y
+                                           WHERE y.facility_id = f.id)))
+                        OR EXISTS (
                         SELECT 1 FROM ref.facility_provider_type x
                         WHERE x.facility_id = f.id
                           AND x.provider_type = ANY(CAST(:kinds AS text[])))))
@@ -425,7 +450,12 @@ def search(
                  WHERE CAST(:ostate AS text) IS NULL
                    AND f.geom IS NOT NULL AND f.status = 'active'
                    AND ST_DWithin(f.geom, p.pt, :meters)
-                   AND (cardinality(CAST(:kinds AS text[])) = 0 OR EXISTS (
+                   -- a place whose kind isn't known yet is not left out
+                   AND (cardinality(CAST(:kinds AS text[])) = 0
+                        OR (CAST(:kinds_from_service AS boolean) AND NOT EXISTS (
+                            SELECT 1 FROM ref.facility_provider_type y
+                            WHERE y.facility_id = f.id))
+                        OR EXISTS (
                         SELECT 1 FROM ref.facility_provider_type x
                         WHERE x.facility_id = f.id
                           AND x.provider_type = ANY(CAST(:kinds AS text[]))))
@@ -454,6 +484,7 @@ def search(
             "meters": radius_miles * METERS_PER_MILE,
             "mpm": METERS_PER_MILE,
             "kinds": kinds,
+            "kinds_from_service": kinds_from_service,
             "n": max_facilities,
             "slug": service_slug,
             "codes": [f"{sys_}:{c}" for sys_, c in codes],

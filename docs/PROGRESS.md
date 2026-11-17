@@ -2,6 +2,20 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-17 — Why most Phoenix hospitals showed no birth price (D-070)
+
+Cooper searched "Vaginal birth (hospital stay)" within 25 miles of 85053 with BCBS Federal Employee Program and got 7 priced places of 50. Checked on the live site:
+- The 7 are all Banner. The same 7 show with no insurance at all, so the insurer was not the cause.
+- 16 of the 40 hospitals nearby have no price file at all: Abrazo (4), St. Joseph's, Valleywise, HonorHealth Tempe, City of Hope and others. They had no website on any list, or their health system's cms-hpt.txt names them differently from CMS ("St. Joseph's" vs "ST JOSEPHS"), so their price files were never linked.
+- Others (HonorHealth, Phoenix Children's, psychiatric hospitals) have files; the psychiatric ones don't do births, and HonorHealth's prices for the birth codes are being checked next.
+- The other 10 of the 50 places were not hospitals (chiropractors, pharmacies, home health): a service search listed every kind of place nearby, and they pushed farther hospitals out of the first 50. Fixed: a service search now lists only the kinds of place that offer the service (its `provider_types`; a birth is hospitals and birth centers), plus any practice that priced that very service and places whose kind isn't known yet (`search.py`). Test: `test_a_service_search_lists_only_places_that_offer_it`.
+
+Fixed now (D-070): apostrophes no longer stop a name match; health system sites already verified for one hospital in a state are read for the state's hospitals with no price file, linking listed locations by name or by their file's header address (`website_verify.sibling_sites`); `data/reference/website_candidates.csv` adds researched sites (Abrazo, Valleywise, Dignity Health in Arizona), accepted only by the usual automatic checks. Tests: `test_an_apostrophe_is_punctuation`, `test_hospitals_on_a_system_site_verified_for_another_hospital`, `test_researched_sites_are_checked_like_every_candidate`.
+
+These take effect as each state is loaded again; Arizona and every rerun state pick them up.
+
+`make check`: `441 passed, 1 skipped`.
+
 ## 2026-11-17 — Rhode Island rerun
 
 All 9 Rhode Island files were unchanged since pass 1, so nothing reloaded. One insurer rule: "Multiplan, Inc" is MultiPlan. The rest of its unmatched names stay as written: Harvard Pilgrim is placed only in the states it sells in (CT, MA, ME, NH), ConnectiCare only in Connecticut, and plan names such as "RI Preferred", "Nexus" or "Tufts CareLink" don't say which kind of plan they are.

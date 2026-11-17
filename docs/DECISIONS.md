@@ -2,6 +2,12 @@
 
 Newest first. Each entry: decision, reason, consequences.
 
+## 2026-11-17 — D-070: Finding the price files of hospitals on a health system's site
+Cooper (2026-11-17) searched a vaginal birth near Phoenix and got prices from 7 of the 40 hospitals nearby, all Banner. The prices weren't missing from the hospitals' files: Abrazo, St. Joseph's, Valleywise and others had no price file at all, because their website was on no list or their health system's cms-hpt.txt names them differently from CMS. Three changes, all under the existing automatic rules (D-048, D-058); nothing is approved by guesswork:
+1. An apostrophe is punctuation: "St. Joseph's Hospital and Medical Center" (Dignity Health's file) is "ST JOSEPHS HOSPITAL AND MEDICAL CENTER" (CMS). Name matching compares both with a lone "s" joined back to the word before it (`facility_repo.resolve_facility_by_name`); every other word must still match exactly.
+2. A health system's site that is already verified for one hospital in a state is read for the state's hospitals that have no price file (`website_verify.sibling_sites`): a listed name that resolves to one of them gives it the site; a listed name that resolves to nothing is linked by its price file's header address, only when that address belongs to exactly one hospital in the state.
+3. `data/reference/website_candidates.csv` lists sites found by research (state, the name as CMS writes it or "*" for a health system's site, url, evidence). They are hints only: each is accepted by the same checks.
+
 ## 2026-11-17 — D-069: Per-file download limit raised to 32 GiB
 Cooper (2026-11-17: "Yes. I want every hospital so if that's what it takes then we need to do it.") for Mayo Clinic Arizona, whose price file is over 16 GiB (Arizona rerun). `price_files.DEFAULT_MAX_BYTES` is now 32 GiB and one download may take up to 60 minutes (was 40); `PRICE_FILE_MAX_BYTES` still overrides the size. Files are still streamed to a temporary file on GitHub's free runner (about 40 GB free after cleanup), read piece by piece and deleted; no paid service is involved. If a file ever fills the runner's disk, that file fails and is named in the report; the run goes on.
 

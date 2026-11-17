@@ -1,0 +1,4 @@
+state,name,url,evidence,proposed_by,proposed_at
+AZ,*,https://www.abrazohealth.com,"Abrazo Health (Tenet) site for its Phoenix-area hospitals (abrazohealth.com, found by web search 2026-11-17); none of its hospitals had a website on any list",Claude,2026-11-17
+AZ,VALLEYWISE HEALTH MEDICAL CENTER,https://valleywisehealth.org,"Valleywise Health's own site has a hospital price transparency page (valleywisehealth.org/hospital-price-transparency/, web search 2026-11-17)",Claude,2026-11-17
+AZ,*,https://www.dignityhealth.org,"Dignity Health's standard charges pages for its Arizona hospitals are on dignityhealth.org (e.g. /arizona/locations/stjosephs/.../standard-charges, web search 2026-11-17)",Claude,2026-11-17

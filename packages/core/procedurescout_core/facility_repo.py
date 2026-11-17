@@ -10,6 +10,7 @@ Rules (docs/DATA_NORMALIZATION.md, "Facilities"):
 
 from __future__ import annotations
 
+import re
 import uuid
 from dataclasses import dataclass, field
 from enum import StrEnum
@@ -36,6 +37,12 @@ def _uuid(value: object) -> uuid.UUID:
     return value if isinstance(value, uuid.UUID) else uuid.UUID(str(value))
 
 
+def _join_possessive(key: str) -> str:
+    """'st joseph s hospital' -> 'st josephs hospital' (normalize_name turns an
+    apostrophe into a space)."""
+    return re.sub(r"(\w) s(\s|$)", r"\1s\2", key)
+
+
 USABLE_ALIAS_SQL = """
     a.review_state = 'approved'
     AND (a.match_basis IN ('ccn', 'npi')
@@ -58,6 +65,30 @@ def resolve_facility_by_name(conn: Connection, raw_name: str, state_code: str) -
         {"key": normalize_name(raw_name), "st": state_code},
     ).all()
     ids = tuple(_uuid(r[0]) for r in rows)
+    if not ids:
+        # an apostrophe is punctuation too (D-070): "St. Joseph's Hospital" is
+        # "ST JOSEPHS HOSPITAL" (Arizona, 2026-11-17: Dignity Health's own file
+        # names it with the apostrophe, CMS without). Both sides are compared
+        # with a lone "s" joined back to the word before it.
+        key = normalize_name(raw_name)
+        joined = _join_possessive(key)
+        if joined != key:
+            rows = conn.execute(
+                text(
+                    f"""
+                    SELECT DISTINCT a.facility_id
+                    FROM ref.facility_alias a
+                    JOIN ref.facility f ON f.id = a.facility_id
+                    WHERE f.state_code = :st AND {USABLE_ALIAS_SQL}
+                      AND a.alias_normalized LIKE :first
+                      AND regexp_replace(a.alias_normalized, '(\\w) s(\\s|$)', '\\1s\\2', 'g')
+                          = :key
+                    ORDER BY a.facility_id
+                    """  # noqa: S608 - fixed SQL fragment, values are bound
+                ),
+                {"key": joined, "st": state_code, "first": key.split(" ")[0] + "%"},
+            ).all()
+            ids = tuple(_uuid(r[0]) for r in rows)
     if not ids:
         return FacilityMatch(FacilityMatchStatus.UNMATCHED)
     if len(ids) > 1:

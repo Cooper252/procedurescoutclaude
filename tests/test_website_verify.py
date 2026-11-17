@@ -164,3 +164,93 @@ def test_hospitals_on_no_list_are_found_by_likely_domains(conn: Connection) -> N
     assert stats.summary.get("verified") == 1
     site = conn.execute(text("SELECT website FROM ref.facility WHERE ccn = 'SYN503'")).scalar()
     assert site == "https://www.syntheticdesert.org"
+
+
+def test_researched_sites_are_checked_like_every_candidate(conn: Connection) -> None:
+    """Arizona (2026-11-17): large hospitals were on no website list. A
+    researched list (state, name as CMS writes it, url) only supplies hints;
+    each is still accepted only when its cms-hpt.txt names the hospital."""
+    setup_hospitals(conn)
+    conn.execute(text("UPDATE ref.facility SET website = NULL WHERE ccn IN ('SYN501','SYN503')"))
+    listed = (
+        "state,name,url,evidence\n"
+        "NV,Synthetic  Valley Medical Center,https://valley.example,own site\n"
+        "NV,SYNTHETIC DESERT HOSPITAL,https://other.example,own site\n"
+        "AZ,SYNTHETIC VALLEY MEDICAL CENTER,https://valley.example,other state\n"
+    )
+    got = wv.listed_candidates(conn, listed, "NV")
+    assert "SYN501,https://valley.example" in got and "SYN503,https://other.example" in got
+    assert got.count("\n") == 3  # header + the two Nevada hospitals
+    stats = wv.verify(conn, got, fetch, LoadStats())
+    assert stats.rows_loaded == 1  # other.example names someone else
+    assert [r.rule for r in stats.rejects] == ["hospital_not_named"]
+    site = conn.execute(text("SELECT website FROM ref.facility WHERE ccn = 'SYN501'")).scalar()
+    assert site == "https://valley.example"
+    # "*": a health system's site, read once for all the state's hospitals
+    conn.execute(text("UPDATE ref.facility SET website = NULL WHERE ccn = 'SYN501'"))
+    sites = "state,name,url\nNV,*,valley.example\nAZ,*,https://az.example\n"
+    assert wv.listed_candidates(conn, sites, "NV").count("\n") == 1  # header only
+    assert wv.system_sites(sites, "NV") == ["https://valley.example"]
+    stats = wv.sibling_sites(conn, "NV", fetch, LoadStats(), extra_sites=["https://valley.example"])
+    assert stats.summary.get("named_on_system_site") == 1  # only the hospital it names
+    site = conn.execute(text("SELECT website FROM ref.facility WHERE ccn = 'SYN501'")).scalar()
+    assert site == "https://valley.example"
+
+
+def test_hospitals_on_a_system_site_verified_for_another_hospital(conn: Connection) -> None:
+    """Arizona (2026-11-17): Dignity Health's site, verified for one Arizona
+    hospital, lists others under names CMS writes differently. They are linked by
+    their price file's header address, only when it is one hospital's address."""
+    setup_hospitals(conn)
+    conn.execute(
+        text(
+            "UPDATE ref.facility SET website = NULL, address_line1 = '2700 DOLBEER ST', "
+            "zip5 = '95501' WHERE ccn = 'SYN503'"
+        )
+    )
+    conn.execute(text("UPDATE ref.facility SET website = NULL WHERE ccn <> 'SYN501'"))
+    conn.execute(
+        text(
+            "UPDATE ref.facility SET website = 'https://system.example', "
+            "website_evidence_url = 'https://system.example/cms-hpt.txt', "
+            "website_reviewed_by = 'test', website_reviewed_at = now() WHERE ccn = 'SYN501'"
+        )
+    )
+    system_txt = (
+        "location-name: Synthetic Health Desert Campus\n"
+        "mrf-url: https://system.example/desert.json\n\n"
+        "location-name: Synthetic Health Shared Address\n"
+        "mrf-url: https://system.example/shared.json\n"
+    )
+    heads = {
+        "https://system.example/desert.json": (
+            b'{"hospital_address":["2700 Dolbeer St, X, NV 95501"]}'
+        ),
+        # the other synthetic hospitals all share "1 TEST WAY 89990": not one hospital
+        "https://system.example/shared.json": b'{"hospital_address":["1 Test Way, X, NV 89990"]}',
+    }
+
+    def fetch2(url: str) -> tuple[int, str]:
+        return (200, system_txt) if url == "https://system.example/cms-hpt.txt" else (404, "")
+
+    stats = wv.sibling_sites(conn, "NV", fetch2, LoadStats(), head=lambda u: heads[u])
+    assert stats.rows_loaded == 1 and stats.summary["linked_by_price_file_address"] == 1
+    row = conn.execute(
+        text(
+            "SELECT f.website, f.website_reviewed_by, a.alias FROM ref.facility f "
+            "JOIN ref.facility_alias a ON a.facility_id = f.id AND a.alias_type = 'mrf_name' "
+            "WHERE f.ccn = 'SYN503'"
+        )
+    ).one()
+    assert tuple(row) == (
+        "https://system.example",
+        wv.ADDRESS_REVIEWER,
+        "Synthetic Health Desert Campus",
+    )
+    shared = conn.execute(
+        text(
+            "SELECT count(*) FROM ref.facility_alias "
+            "WHERE alias = 'Synthetic Health Shared Address'"
+        )
+    ).scalar()
+    assert shared == 0

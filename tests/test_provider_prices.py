@@ -270,3 +270,34 @@ def test_online_visits_are_found_anywhere_in_the_state(
     assert [f.facility_id for f in online.facilities] == [fac]
     in_person = _search(conn, tmp_path, service_slug=slug)
     assert fac not in [f.facility_id for f in in_person.facilities]
+
+
+def test_a_service_search_lists_only_places_that_offer_it(
+    conn: Connection, fac: str, tmp_path: Path
+) -> None:
+    """Cooper (2026-11-17): a birth search near Phoenix listed chiropractors and
+    pharmacies as "doesn't post prices". A service search now lists only the
+    kinds of place that offer it; a place whose kind isn't known is kept."""
+    from tests.conftest import make_facility
+
+    near = "CAST(ST_SetSRID(ST_MakePoint(-115.141, 36.171), 4326) AS geography)"
+    chiro = str(make_facility(conn, "Synthetic Chiropractic"))
+    conn.execute(
+        text(
+            f"UPDATE ref.facility SET geom = {near}, status = 'active', "
+            "geocode_source = 'synthetic', geocode_precision = 'address' WHERE id = :f"
+        ),
+        {"f": chiro},
+    )
+    conn.execute(
+        text(
+            "INSERT INTO ref.facility_provider_type (facility_id, provider_type, source) "
+            "SELECT :f, code, 'reviewer' FROM ref.provider_type WHERE code = 'chiropractic_office'"
+        ),
+        {"f": chiro},
+    )
+    ids = {f.facility_id for f in _search(conn, tmp_path, service_slug=SLUG).facilities}
+    assert fac in ids  # its kind isn't known in this test: kept
+    assert chiro not in ids  # a chiropractor doesn't clean teeth
+    every = _search(conn, tmp_path, service_slug=SLUG, provider_type="chiropractic_office")
+    assert chiro in {f.facility_id for f in every.facilities}  # asked for by name
