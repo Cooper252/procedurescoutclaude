@@ -2,6 +2,10 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-17 — Rhode Island rerun
+
+All 9 Rhode Island files were unchanged since pass 1, so nothing reloaded. One insurer rule: "Multiplan, Inc" is MultiPlan. The rest of its unmatched names stay as written: Harvard Pilgrim is placed only in the states it sells in (CT, MA, ME, NH), ConnectiCare only in Connecticut, and plan names such as "RI Preferred", "Nexus" or "Tufts CareLink" don't say which kind of plan they are.
+
 ## 2026-11-17 — Per-file limit 32 GiB (D-069)
 
 Cooper approved raising the per-file download limit to 32 GiB so Mayo Clinic Arizona's file (over 16 GiB) loads; one download may now take 60 minutes. `price_files.DEFAULT_MAX_BYTES`, `DEFAULT_MAX_DOWNLOAD_SECONDS`. Arizona goes back on the rerun list.

@@ -388,3 +388,4 @@ united community americhoice,UnitedHealthcare,,,"""UNITED COMMUNITY/AMERICHOICE 
 coventry( health ?care)?,Coventry (Aetna),,,"""COVENTRY HEALTHCARE [1320] | COVENTRY HEALTH CARE [132000]"" in New Mexico pass 1: Coventry Health Care is part of Aetna; https://www.aetna.com","Claude (delegated by Cooper, D-047)",2026-11-16
 meritain( health)?,Meritain Health,,,"""MERITAIN-ALL PLANS"" in Alaska pass 2: Meritain Health, a plan administrator (part of Aetna); https://www.meritain.com","Claude (delegated by Cooper, D-047)",2026-11-17
 blue cross exchange,Arkansas Blue Cross and Blue Shield,Marketplace (exchange) plan,AR,"""BLUE CROSS EXCHANGE"" in Arkansas pass 2: plain ""Blue Cross"" in Arkansas is Arkansas Blue Cross and Blue Shield; its marketplace plans","Claude (delegated by Cooper, D-047)",2026-11-17
+multiplan,MultiPlan,,,"""Multiplan, Inc | Commercial"" in Rhode Island pass 2: MultiPlan written with ""Inc""","Claude (delegated by Cooper, D-047)",2026-11-17
