@@ -312,6 +312,15 @@ def test_report_lists_which_price_files_failed(engine: Engine) -> None:
     )
     stats.reject("Synthetic Hospital B", "file_problem", "b.csv | no prices found")
     stats.reject("Synthetic Hospital C", "other_rule", "not shown")
+    # a file that loaded but refused many rows is named, with the reasons
+    stats.reject(
+        "Synthetic Hospital D",
+        "prices_loaded",
+        "d.csv | 10 prices staged | 5000 refused {'bad_amount': 5000} | 3s",
+    )
+    stats.reject(
+        "Synthetic Hospital E", "prices_loaded", "e.csv | 10 prices staged | 2 refused {} | 1s"
+    )
     params = {"test": "synthetic_pf", "state": "ZZ"}
     try:
         cli._run(
@@ -333,6 +342,7 @@ def test_report_lists_which_price_files_failed(engine: Engine) -> None:
         assert got == [
             "download_failed: a.json | https://example.test/a (status 404)",
             "file_problem: b.csv | no prices found",
+            "many_refused: d.csv | 10 prices staged | 5000 refused {'bad_amount': 5000} | 3s",
         ]
     finally:
         with engine.begin() as c:

@@ -66,3 +66,4 @@ Search, provider pages, accounts with the authenticator app, reviews, provider p
 - Turn on Render's database backups and an uptime check (Render includes both on paid plans; confirm at sign-up).
 - Website add-on security warning (PostCSS through Next.js): fixed 2026-11-13 (`npm audit`: 0 vulnerabilities).
 - Remove `PORTAL_DEV_LINKS` (it's off in production automatically).
+- After every state is loaded and rerun (Cooper's request, 2026-11-16): show on the home page how many hospitals have prices, how many procedures (codes) and how many prices the site holds, counted from the published data (never estimated), with the date they were counted.

@@ -2,6 +2,27 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-16 — New Mexico and Hawaii pass 1
+
+- New Mexico: all 29 price files loaded (19.6 million prices). Carlsbad, Eastern New Mexico and Mountain View post files dated 2024; Memorial Medical Center's ZIP holds two files (the larger is read).
+- Hawaii: all 19 loaded (10.6 million prices; this run predates most insurer fixes, and its 'Ohana and AlohaCare spellings already resolve now).
+
+Every state loaded so far now has a report on file.
+
+Insurers (D-047): Hawaii's Medicaid, QUEST Integration ("HMSA | QUEST ABD", "Kaiser | QUEST"), and Coventry Health Care (Aetna). Re-running every earlier report's unmatched spellings against the GitHub version: only those three Hawaii spellings changed. Test: `test_mississippi_and_minnesota_spellings` (now also Hawaii and New Mexico).
+
+Hospital policies (D-060): UNM Hospital (financial assistance program, revised 10/27/2017: up to 300% of FPL, everything beyond a $25/$75/$300 per-stay copay written off; New Mexico residents). Checked against the live names: CHRISTUS (2 in New Mexico) and Hawai'i Pacific Health (4) match as before. Not added: Queen's (its policy's income table, Attachment C, is not in the posted copy) and Presbyterian (no posted policy with income levels found).
+
+`make check`: `437 passed, 1 skipped`.
+
+## 2026-11-16 — New Jersey pass 2
+
+New Jersey pass 2 finished: 4 more files loaded (15.9 million prices), the rest unchanged. Jefferson Stratford Hospital still failed on NUL bytes (fixed in the previous change, not yet pushed when it ran). 489,344 rows were refused, but the report didn't say by which file or why. The state report's `price_file_problems` now also names each file that refused 1,000 rows or more, with its reasons (`many_refused`, `reference/cli.py`). Test: `test_report_lists_which_price_files_failed`. No new insurer spellings.
+
+Planned (`GO_LIVE.md`): home-page totals (hospitals, procedures, prices) once every state is loaded.
+
+`make check`: `437 passed, 1 skipped`.
+
 ## 2026-11-16 — Kentucky and New Jersey pass 1
 
 - Kentucky: 37 of 47 loaded (8.5 million prices). 9 failed on apps.para-hcfs.com, including 7 Baptist Health hospitals (Baptist Health's own price page links only there, so there is no other link). Eastern State Hospital's link returned 404; UK HealthCare's own page now links the file under /sites/ukhc/files/, added to `price_file_sources_reviewed.csv` (CCN 184004, D-063).

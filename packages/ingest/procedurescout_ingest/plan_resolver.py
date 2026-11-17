@@ -82,6 +82,9 @@ _TYPES: list[tuple[re.Pattern[str], str]] = [
             # NJ FamilyCare is New Jersey's Medicaid and CHIP (https://njfamilycare.org;
             # "Wellpoint | NJ Family Care", New Jersey pass 1)
             r"|\bnj ?family ?care\b"
+            # QUEST Integration is Hawaii's Medicaid (https://medquest.hawaii.gov);
+            # "HMSA | QUEST ABD", "Kaiser | QUEST" (Hawaii pass 1)
+            r"|^(med )?quest( integration)?( (non )?abd)?$"
         ),
         "Medicaid plan",
     ),

@@ -1586,6 +1586,17 @@ def test_mississippi_and_minnesota_spellings(conn: Connection, world: LocalStore
                 ("Molina NE", "Medicaid|All Plans", "Molina Healthcare · Medicaid plan"),
                 ("AETNA MANAGED CARE", "All_Plans", f"Aetna · {all_plans}"),
             ],
+            "HI": [
+                ("HMSA", "QUEST ABD", "HMSA (Blue Cross Blue Shield of Hawaii) · Medicaid plan"),
+                ("Kaiser", "QUEST", "Kaiser Permanente · Medicaid plan"),
+            ],
+            "NM": [
+                (
+                    "COVENTRY HEALTHCARE [1320]",
+                    "COVENTRY HEALTH CARE [132000]",
+                    "Coventry (Aetna) · Network on your card",
+                ),
+            ],
             "KY": [
                 ("Passport Molina", "Medicaid", "Passport Health Plan · Medicaid plan"),
                 (

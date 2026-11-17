@@ -1061,7 +1061,30 @@ def price_file_problems(conn: Connection, state: str, limit: int = 60) -> list[s
         ),
         {"s": state, "n": limit},
     ).all()
-    return [f"{rule}: {message}"[:400] for rule, message in rows]
+    # files that loaded but refused many rows, with the reasons ("NJ pass 2: 489,344
+    # rows refused" said nothing about which file or why, 2026-11-16)
+    many = conn.execute(
+        text(
+            """
+            SELECT r.message FROM src.reference_reject r
+            WHERE r.load_id = (
+                SELECT id FROM src.reference_load
+                WHERE dataset = 'price_file_check' AND parameters->>'state' = :s
+                ORDER BY started_at DESC LIMIT 1)
+              AND r.rule = 'prices_loaded'
+              AND CAST(substring(r.message FROM '[|] ([0-9]+) refused') AS bigint) >= :min
+            ORDER BY CAST(substring(r.message FROM '[|] ([0-9]+) refused') AS bigint) DESC
+            LIMIT 20
+            """
+        ),
+        {"s": state, "min": MANY_REFUSED},
+    ).all()
+    return [f"{rule}: {message}"[:400] for rule, message in rows] + [
+        f"many_refused: {m}"[:400] for (m,) in many
+    ]
+
+
+MANY_REFUSED = 1000  # refused rows in one file worth naming in the report
 
 
 # The live database was briefly unreachable during loads ("service temporarily
