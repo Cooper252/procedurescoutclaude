@@ -32,6 +32,7 @@ from __future__ import annotations
 import re
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from typing import Any
 
 from sqlalchemy import Connection, text
 
@@ -197,6 +198,20 @@ def load_name_rules(csv_text: str) -> list[NameRule]:
     return out
 
 
+# Lookups repeated for every spelling are remembered during one run of
+# resolve_new_spellings (2026-11-17: the step ran past its 20 minutes with about
+# 48,000 spellings, most queries going to the hosted database one at a time).
+_MEMO: dict[tuple[Any, ...], Any] | None = None
+
+
+def _memo(key: tuple[Any, ...], compute: Callable[[], Any]) -> Any:
+    if _MEMO is None:
+        return compute()
+    if key not in _MEMO:
+        _MEMO[key] = compute()
+    return _MEMO[key]
+
+
 _ALL_PLANS_SUFFIX = re.compile(r" all( other)? (plans?|products|payers?|payors?)$")
 
 
@@ -211,6 +226,19 @@ def _rule_insurer(
     for insurers that don't cover this state are left out first, so "Blue
     Cross" can mean Arkansas's plan in Arkansas and Anthem in California."""
     key = loosen(payer_raw)
+    return _memo(  # type: ignore[no-any-return]
+        ("rule", id(rules), key, state),
+        lambda: _rule_insurer_uncached(conn, rules, key, allowed, state),
+    )
+
+
+def _rule_insurer_uncached(
+    conn: Connection,
+    rules: list[NameRule],
+    key: str,
+    allowed: Callable[[str], bool],
+    state: str,
+) -> tuple[str, str] | None:
     hits = {
         (r.payer, r.plan)
         for r in rules
@@ -353,6 +381,12 @@ def plan_type(plan_raw: str) -> str | None:
 
 
 def _insurer_for(conn: Connection, payer_key: str, state: str = "") -> str | None:
+    return _memo(  # type: ignore[no-any-return]
+        ("insurer", payer_key, state), lambda: _insurer_for_uncached(conn, payer_key, state)
+    )
+
+
+def _insurer_for_uncached(conn: Connection, payer_key: str, state: str) -> str | None:
     ids = (
         conn.execute(
             text(
@@ -386,17 +420,17 @@ def _pick_plan(
     p = re.sub(r"^\d+ (?=[a-z])", "", p)
     if _SKIP.search(p) or _SKIP.search(normalize_name(payer_raw).replace("_", " ")):
         return None, ""
-    plans = {
-        str(r[0]): str(r[1])
-        for r in conn.execute(
-            text("SELECT canonical_name, id FROM ref.plan WHERE payer_id = :p"), {"p": insurer}
-        ).all()
-    }
-    name = str(
-        conn.execute(
-            text("SELECT canonical_name FROM ref.payer WHERE id = :p"), {"p": insurer}
-        ).scalar()
+    plans: dict[str, str] = _memo(
+        ("plans", insurer),
+        lambda: {
+            str(r[0]): str(r[1])
+            for r in conn.execute(
+                text("SELECT canonical_name, id FROM ref.plan WHERE payer_id = :p"),
+                {"p": insurer},
+            ).all()
+        },
     )
+    name = _insurer_name(conn, insurer)
     if name == "Original Medicare":  # the government's Medicare, never an Advantage plan
         if _NO_ADVANTAGE.search(p):
             return None, ""
@@ -446,13 +480,30 @@ def load_payer_states(csv_text: str) -> dict[str, set[str]]:
 
 def _insurer_name(conn: Connection, insurer: str) -> str:
     return str(
-        conn.execute(
-            text("SELECT canonical_name FROM ref.payer WHERE id = :p"), {"p": insurer}
-        ).scalar()
+        _memo(
+            ("name", insurer),
+            lambda: conn.execute(
+                text("SELECT canonical_name FROM ref.payer WHERE id = :p"), {"p": insurer}
+            ).scalar(),
+        )
     )
 
 
 def resolve_new_spellings(
+    conn: Connection,
+    rules: list[NameRule] | None = None,
+    payer_states: dict[str, set[str]] | None = None,
+) -> Resolution:
+    """See `_resolve_new_spellings`; repeated lookups are remembered for this run."""
+    global _MEMO
+    _MEMO = {}
+    try:
+        return _resolve_new_spellings(conn, rules, payer_states)
+    finally:
+        _MEMO = None
+
+
+def _resolve_new_spellings(
     conn: Connection,
     rules: list[NameRule] | None = None,
     payer_states: dict[str, set[str]] | None = None,

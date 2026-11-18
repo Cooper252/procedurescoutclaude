@@ -2,6 +2,22 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-17 — Why Indiana keeps stopping, and the insurance step running out of time
+
+Read on GitHub (run #58, Indiana pass 3): the price step hit its 180-minute limit, and the next step ("Refresh code index, insurance names") hit its 20-minute limit while matching insurance names. Indiana passes 1-3 of this round all ended the same way, so "Load every state" kept retrying Indiana.
+- Price step: the 130-minute "start no new file after this" budget was counted from the start of price files, but the reference data and website steps run first in the same GitHub step and now take longer, so a big file could still start near minute 170. Now the budget counts from the program's start (`reference/cli.PROCESS_START_NS`), and a download still running 45 minutes before the step's end is stopped ("the run's time ran out; the next run tries again"), leaving time to read the last file and write the report. The new health-system website check reads at most 400 price-file headers per state (`website_verify.MAX_SIBLING_READS`). Test: `test_a_download_stops_when_the_runs_time_is_nearly_up`.
+- Insurance names: about 48,000 spellings were matched one database query at a time against the hosted database. Repeated lookups (an insurer's name, its plans, a naming rule's result) are now remembered for the run (`plan_resolver._memo`). Re-running every earlier report's unmatched spellings: results identical to the GitHub version (843 of 843).
+
+`make check`: `443 passed, 1 skipped`.
+
+## 2026-11-17 — Indiana, Hawaii, Vermont reruns
+
+- Indiana: the report again holds only the part written before price files (the run was stopped while price files loaded, before it could add the rest). Its website step already used the new health-system check (D-070): 5 more hospitals linked (4 by their price file's address, 1 by name). Its previous run's problems list includes Hamilton Center's file refused for version "2"; a version written as one number is now that major version (`price_files.py`). Test: `test_a_version_written_as_one_number_is_that_version`. Community Hospital's bad-byte rows were from before Windows-1252 reading (2026-11-15). Community Surgery Center South's file has a field over 16 MB (most likely a quote never closed), so it still fails.
+- Hawaii: 7 files refreshed, 9 unchanged. Molokai General (Queen's site said "too many requests") and Pali Momi and Straub (connection reset by the file host) failed this time; they loaded before and keep their prices.
+- Vermont: 4 more hospitals' websites verified (2 by their price file's address); 4 files loaded or refreshed (0.9 million prices).
+
+`make check`: `442 passed, 1 skipped`.
+
 ## 2026-11-17 — Why most Phoenix hospitals showed no birth price (D-070)
 
 Cooper searched "Vaginal birth (hospital stay)" within 25 miles of 85053 with BCBS Federal Employee Program and got 7 priced places of 50. Checked on the live site:

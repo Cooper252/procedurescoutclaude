@@ -585,6 +585,24 @@ def test_a_slow_download_is_stopped(tmp_path: Path) -> None:
     assert got.path is None and not (tmp_path / "s").exists()
 
 
+def test_a_download_stops_when_the_runs_time_is_nearly_up(tmp_path: Path) -> None:
+    """Indiana (2026-11-17): a big file started late ran past the step's limit,
+    so GitHub stopped the run before the report. A download still running near
+    the step's end is stopped; the next run starts it again early."""
+    import time
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, content=b"x" * 10_000)
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        dl = http_downloader(client, sleep=lambda _s: None, must_end_by_ns=time.monotonic_ns() - 1)
+        got = dl("https://h.example/big.json", tmp_path / "b")
+        assert got.error is not None and "time ran out" in got.error
+        assert not (tmp_path / "b").exists()
+        ok = http_downloader(client, must_end_by_ns=time.monotonic_ns() + 60 * 10**9)
+        assert ok("https://h.example/big.json", tmp_path / "c").error is None
+
+
 def test_a_dropped_database_connection_reconnects(engine: Engine) -> None:
     """The safety net relies on this: after the server drops a connection and
     it is rolled back, the next statement reconnects (live load, 2026-11-12)."""
@@ -633,6 +651,23 @@ def test_a_version_written_with_a_v_is_that_version(conn: Connection, tmp_path: 
     load_websites(conn, websites_csv())
     discover(conn, "NV", fake_fetcher)
     data = JSON_FILE.read_bytes().replace(b'"3.0.0"', b'"V3.0.0"', 1)
+
+    def downloader(url: str, dest: Path) -> Download:
+        import hashlib
+
+        dest.write_bytes(data)
+        return Download(url, dest, hashlib.sha256(data).hexdigest(), len(data), 200, url)
+
+    stats = check_price_files(conn, "NV", downloader, tmp_path / "w", today=date(2026, 11, 6))
+    assert not any("version" in r.message for r in stats.rejects if r.rule == "file_problem")
+
+
+def test_a_version_written_as_one_number_is_that_version(conn: Connection, tmp_path: Path) -> None:
+    """Hamilton Center (Indiana) wrote its version as "2": template 2.x."""
+    setup_hospitals(conn)
+    load_websites(conn, websites_csv())
+    discover(conn, "NV", fake_fetcher)
+    data = JSON_FILE.read_bytes().replace(b'"3.0.0"', b'"3"', 1)
 
     def downloader(url: str, dest: Path) -> Download:
         import hashlib

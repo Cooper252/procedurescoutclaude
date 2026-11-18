@@ -438,6 +438,15 @@ def cmd_clear_staged(args: argparse.Namespace, engine: Engine) -> None:
     print(f"set aside {len(waiting)} waiting files; removed {removed} staged price rows")
 
 
+# When this program started: the price step's time limits count from here, since
+# the reference data and website steps before price files run in the same
+# GitHub step (Indiana, 2026-11-17: they took longer, so the 130-minute budget,
+# counted from the start of price files, let a big file start too late and the
+# step's 180-minute limit stopped it before the report was written).
+PROCESS_START_NS = time.monotonic_ns()
+PRICE_STEP_RESERVE_MINUTES = 45  # left for reading the last file and the report
+
+
 def cmd_price_files(args: argparse.Namespace, engine: Engine) -> None:
     """Download each assigned price file, check it, delete it (step 2a)."""
     import tempfile
@@ -455,7 +464,18 @@ def cmd_price_files(args: argparse.Namespace, engine: Engine) -> None:
         follow_redirects=True,
     )
     with client, tempfile.TemporaryDirectory(prefix="price-files-") as work:
-        downloader = price_files.http_downloader(client, max_bytes)
+        # a download still running this close to the step's end is stopped (the
+        # next run starts that file again early): the file still has to be read
+        # and the report written before GitHub stops the step
+        step_minutes = os.environ.get("PRICE_STEP_MINUTES", "").strip()
+        if not step_minutes and os.environ.get("PRICE_TIME_BUDGET_MINUTES", "").strip():
+            step_minutes = "180"  # the price step's limit in the load workflows
+        must_end_by_ns = (
+            PROCESS_START_NS + (int(step_minutes) - PRICE_STEP_RESERVE_MINUTES) * 60 * 10**9
+            if step_minutes
+            else None
+        )
+        downloader = price_files.http_downloader(client, max_bytes, must_end_by_ns=must_end_by_ns)
         home_dir = os.environ.get("HOME_PRICE_DIR")
         if home_dir:
             home = price_files.load_home_price_files(Path(home_dir).resolve())
@@ -488,7 +508,7 @@ def cmd_price_files(args: argparse.Namespace, engine: Engine) -> None:
 
         limit = os.environ.get("PRICE_FILE_LIMIT", "").strip()
         budget = os.environ.get("PRICE_TIME_BUDGET_MINUTES", "").strip()
-        stop_at_ns = time.monotonic_ns() + int(budget) * 60 * 10**9 if budget else None
+        stop_at_ns = PROCESS_START_NS + int(budget) * 60 * 10**9 if budget else None
         stats = _run(
             engine,
             "price_file_check",

@@ -89,6 +89,7 @@ def http_downloader(
     max_bytes: int = DEFAULT_MAX_BYTES,
     sleep: Callable[[int], None] = time.sleep,
     max_seconds: int = DEFAULT_MAX_DOWNLOAD_SECONDS,
+    must_end_by_ns: int | None = None,
 ) -> Downloader:
     """Plain GET, streamed to `dest`. One retry after a 429/502/503/504 or a
     dropped connection; any other refusal (403, 404, ...) is recorded as it is."""
@@ -110,6 +111,13 @@ def http_downloader(
                     return Download(**base, error="HTTP error")
                 with dest.open("wb") as out:
                     for chunk in resp.iter_bytes(CHUNK):
+                        if must_end_by_ns is not None and time.monotonic_ns() > must_end_by_ns:
+                            # the run's time is nearly up: the next run starts it early
+                            out.close()
+                            dest.unlink(missing_ok=True)
+                            return Download(
+                                **base, error="the run's time ran out; the next run tries again"
+                            )
                         if time.monotonic_ns() - started > max_seconds * 10**9:
                             # a slow server must not hold the whole run (2026-11-12)
                             out.close()
@@ -964,6 +972,9 @@ def _record(
     if version is not None:
         # "V3.0.0" (Karmanos Cancer Center, Michigan pass 1) is version 3.0.0
         version = re.sub(r"^\s*v\s*", "", version, flags=re.IGNORECASE)
+        # "2" (Hamilton Center, Indiana) is version 2: the major number alone
+        if re.fullmatch(r"\s*\d+\s*", version):
+            version = version.strip() + ".0"
     if version is None:
         problems.append("no version in the header")
     elif version.strip().startswith(("4.", "5.")) and check.format in LOADABLE:

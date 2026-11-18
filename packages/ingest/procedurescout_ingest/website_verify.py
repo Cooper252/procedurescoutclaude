@@ -39,6 +39,9 @@ ADDRESS_REVIEWER = "automatic (the price file's header gives this hospital's add
 Fetch = Callable[[str], tuple[int, str]]  # url -> (status, body)
 Head = Callable[[str], bytes]  # url -> the file's first bytes (about 256 KB)
 MAX_FILES_PER_SITE = 150
+# price-file headers read for one state's health-system sites in all (each read
+# is about 256 KB): keeps the step short before price files start (2026-11-17)
+MAX_SIBLING_READS = 400
 
 
 def address_key(street: str | None, zip_code: str | None) -> str | None:
@@ -413,6 +416,7 @@ def sibling_sites(
         if k is not None:
             all_keys.setdefault(k, []).append(fid)
     heads: dict[str, set[str]] = {}
+    reads_left = MAX_SIBLING_READS
 
     def give_site(fid: Any, origin: str, reviewer: str, evidence: str) -> None:
         if wanted[fid][1] is None:
@@ -452,9 +456,10 @@ def sibling_sites(
             if hit.status != "unmatched" or not mrf or head is None:
                 continue
             if mrf not in heads:
-                if reads >= MAX_FILES_PER_SITE:
+                if reads >= MAX_FILES_PER_SITE or reads_left <= 0:
                     continue
                 reads += 1
+                reads_left -= 1
                 try:
                     heads[mrf] = header_address_keys(head(mrf))
                 except Exception:  # this file just can't vouch
