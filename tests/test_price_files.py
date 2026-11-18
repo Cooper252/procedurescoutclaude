@@ -662,6 +662,30 @@ def test_a_version_written_with_a_v_is_that_version(conn: Connection, tmp_path: 
     assert not any("version" in r.message for r in stats.rejects if r.rule == "file_problem")
 
 
+def test_two_digit_years_and_a_hospitals_own_release_number(
+    conn: Connection, tmp_path: Path
+) -> None:
+    """California pass 2: AHMC Anaheim dated its file "06-30-26"; Riverside
+    University Health System wrote version "2026.1.0" on a CMS-template file."""
+    from procedurescout_ingest.price_files import parse_published_date
+
+    assert parse_published_date("06-30-26") == date(2026, 6, 30)
+    assert parse_published_date("6/30/26") == date(2026, 6, 30)
+    setup_hospitals(conn)
+    load_websites(conn, websites_csv())
+    discover(conn, "NV", fake_fetcher)
+    data = JSON_FILE.read_bytes().replace(b'"3.0.0"', b'"2026.1.0"', 1)
+
+    def downloader(url: str, dest: Path) -> Download:
+        import hashlib
+
+        dest.write_bytes(data)
+        return Download(url, dest, hashlib.sha256(data).hexdigest(), len(data), 200, url)
+
+    stats = check_price_files(conn, "NV", downloader, tmp_path / "w", today=date(2026, 11, 6))
+    assert not any("version" in r.message for r in stats.rejects if r.rule == "file_problem")
+
+
 def test_a_version_written_as_one_number_is_that_version(conn: Connection, tmp_path: Path) -> None:
     """Hamilton Center (Indiana) wrote its version as "2": template 2.x."""
     setup_hospitals(conn)

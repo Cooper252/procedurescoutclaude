@@ -2,6 +2,17 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-18 — California reruns; Indiana pass 4
+
+- California pass 1 stopped cleanly at its time limit ("run again to continue") with the report written: the timing fix works. Pass 2 went through all 191 files: 105 loaded or refreshed, 148 unchanged or the same content, 18 failed (17 on apps.para-hcfs.com; San Joaquin General's file host timed out).
+- The health-system website check (D-070) found 37 more California hospitals (23 named on a sibling's system site, 10 by their price file's address, 4 more in pass 2), and 11 more websites were verified from lists and guesses.
+- Indiana pass 4 ran before the timing fix was on GitHub and stopped the same way; it goes back on the list.
+- Fixed: AHMC Anaheim's date "06-30-26" (two-digit years are read); Riverside University Health System's version "2026.1.0" on a CMS-template file is the hospital's own release number, a note, not a reason to hold the file. Test: `test_two_digit_years_and_a_hospitals_own_release_number`.
+- PIH Health Good Samaritan refused 37,827 of 1.37 million rows ("bad_amount"): the report now names such files (`many_refused`); the rest of its prices loaded.
+- Still not loaded: Palo Verde Hospital's file is not in the CMS layout.
+
+`make check`: `444 passed, 1 skipped`.
+
 ## 2026-11-17 — Why Indiana keeps stopping, and the insurance step running out of time
 
 Read on GitHub (run #58, Indiana pass 3): the price step hit its 180-minute limit, and the next step ("Refresh code index, insurance names") hit its 20-minute limit while matching insurance names. Indiana passes 1-3 of this round all ended the same way, so "Load every state" kept retrying Indiana.

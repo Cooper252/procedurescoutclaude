@@ -603,7 +603,8 @@ def parse_published_date(raw: str | None) -> date | None:
     if not raw:
         return None
     value = raw.strip()
-    for fmt in ("%Y-%m-%d", "%m/%d/%Y", "%Y/%m/%d", "%m-%d-%Y"):
+    # two-digit years too: "06-30-26" (AHMC Anaheim, California, 2026-11-18)
+    for fmt in ("%Y-%m-%d", "%m/%d/%Y", "%Y/%m/%d", "%m-%d-%Y", "%m-%d-%y", "%m/%d/%y"):
         try:
             return datetime.strptime(value, fmt).date()  # noqa: DTZ007 (a calendar date)
         except ValueError:
@@ -981,6 +982,12 @@ def _record(
         # newer than the templates we know; every price is still read by its
         # field name and the 1%-refused rule still applies (all-states test)
         check.notes.append(f"version {version!r} is newer than the CMS templates we know")
+    elif re.fullmatch(r"\s*20\d\d(\.\d+)*\s*", version) and check.format in LOADABLE:
+        # the hospital's own release number, not the template's ("2026.1.0",
+        # Riverside University Health System, California): the columns are the
+        # CMS template's, every price is read by its field name and the usual
+        # checks still apply
+        check.notes.append(f"version {version!r} is the hospital's own release number")
     elif not version.strip().startswith(("2.", "3.")):
         problems.append(f"version {version!r} is not a CMS 2.x/3.x template")
     raw_date = check.last_updated_raw
