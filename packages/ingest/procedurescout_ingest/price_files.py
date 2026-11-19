@@ -726,6 +726,19 @@ def choose_per_facility(
     return chosen, skipped
 
 
+BIG_FILE_WINDOW_MINUTES = 90
+
+
+class _NoTimeLeftError(Exception):
+    """This run has no time left for the next file (sizes only grow from here)."""
+
+
+def minutes_needed(reported_bytes: int) -> int:
+    """A generous guess of how long one file takes to download and read: about
+    150 MB a minute, plus 10 minutes (Mayo Clinic Florida: 39 minutes of reading)."""
+    return 10 + reported_bytes // (150 * 10**6)
+
+
 def check_price_files(
     conn: Connection,
     state_code: str,
@@ -741,6 +754,7 @@ def check_price_files(
     rows_conn: Connection | None = None,
     sleep: Callable[[int], None] = time.sleep,
     commit: Callable[[], None] | None = None,
+    must_end_by_ns: int | None = None,
 ) -> LoadStats:
     """Download, check and delete each file; with `load`, also read its prices
     into a staged dataset (price_load) before deleting it.
@@ -801,6 +815,24 @@ def check_price_files(
         ):
             stats.count("unchanged_skipped")
             return
+        left_ns = None if must_end_by_ns is None else must_end_by_ns - time.monotonic_ns()
+        if (
+            left_ns is not None
+            and c.reported_bytes is not None
+            and left_ns < minutes_needed(c.reported_bytes) * 60 * 10**9
+            # a file too big for any run's window is still tried when a run
+            # reaches it with plenty of time left
+            and left_ns < BIG_FILE_WINDOW_MINUTES * 60 * 10**9
+        ):
+            # a big file left for the next run, where it starts early (Florida pass
+            # 1, 2026-11-18: Mayo Clinic's 43.5 million prices took 39 minutes to
+            # read, started late, and the step ran past its limit). Files are in
+            # size order, so the rest are as big or bigger.
+            stats.count("stopped_for_time")
+            stats.summary["stopped_early"] = (
+                f"{c.name}'s file ({c.reported_bytes // 10**6} MB) left for the next run"
+            )
+            raise _NoTimeLeftError
         if commit is not None:
             # don't leave a transaction open on the live database while a
             # big file downloads (up to 40 minutes)
@@ -874,6 +906,11 @@ def check_price_files(
             elif commit is not None:
                 commit()
             failures_in_a_row = 0
+        except _NoTimeLeftError:
+            if savepoint is not None:
+                savepoint.commit()
+            stats.rows_in -= 1
+            break
         except Exception as exc:
             # One file's trouble (a dropped database connection, storage or a
             # file nobody expected) never stops the state (2026-11-12). Both

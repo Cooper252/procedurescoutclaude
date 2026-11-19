@@ -522,6 +522,7 @@ def cmd_price_files(args: argparse.Namespace, engine: Engine) -> None:
                 after_load=after,
                 max_files=int(limit) if limit else None,
                 stop_at_ns=stop_at_ns,
+                must_end_by_ns=must_end_by_ns,
                 rows_conn=rows_conn,
                 commit=c.commit if publish_now else None,
             ),

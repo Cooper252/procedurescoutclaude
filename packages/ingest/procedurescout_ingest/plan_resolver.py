@@ -387,6 +387,12 @@ def _insurer_for(conn: Connection, payer_key: str, state: str = "") -> str | Non
 
 
 def _insurer_for_uncached(conn: Connection, payer_key: str, state: str) -> str | None:
+    if _MEMO is not None and ("aliases",) in _MEMO:
+        # every approved spelling, read once at the start of the run
+        found = set(_MEMO[("aliases",)].get((payer_key, ""), ()))
+        found |= set(_MEMO[("aliases",)].get((payer_key, state), ()))
+        found |= set(_MEMO[("payer_names",)].get(payer_key, ()))
+        return next(iter(found)) if len(found) == 1 else None
     ids = (
         conn.execute(
             text(
@@ -497,6 +503,19 @@ def resolve_new_spellings(
     """See `_resolve_new_spellings`; repeated lookups are remembered for this run."""
     global _MEMO
     _MEMO = {}
+    aliases: dict[tuple[str, str], set[str]] = {}
+    for key, st, pid in conn.execute(
+        text(
+            "SELECT a.raw_payer_normalized, a.state_code, pl.payer_id FROM ref.plan_alias a "
+            "JOIN ref.plan pl ON pl.id = a.plan_id WHERE a.review_state = 'approved'"
+        )
+    ).all():
+        aliases.setdefault((str(key), str(st or "")), set()).add(str(pid))
+    names: dict[str, set[str]] = {}
+    for low, pid in conn.execute(text("SELECT lower(canonical_name), id FROM ref.payer")).all():
+        names.setdefault(str(low), set()).add(str(pid))
+    _MEMO[("aliases",)] = aliases
+    _MEMO[("payer_names",)] = names
     try:
         return _resolve_new_spellings(conn, rules, payer_states)
     finally:

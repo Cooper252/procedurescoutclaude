@@ -2,6 +2,17 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-19 — Massachusetts, Florida, Georgia, Kentucky, Colorado reruns
+
+Checked on GitHub: Massachusetts, Florida pass 2, Georgia, Kentucky and Colorado finished their price files; Florida pass 1 wrote its report but its step ran past 180 minutes. The health-system check found Florida 27, Kentucky 12, Georgia 2 more hospitals; Colorado 7 more websites were verified.
+- Florida pass 1: Mayo Clinic's 43.5 million prices took 39 minutes to read; it started before the 130-minute mark and the step still ran out. Now a file is left for the next run when the time left before the step's end (less a 45-minute reserve) is less than it likely needs (10 minutes plus a minute per 150 MB reported) and less than 90 minutes; a run reaches it early next time. Files already unchanged are still skipped first. Test: `test_a_big_file_waits_for_a_run_with_time_for_it`.
+- The insurance step again hit its 20-minute limit in that run. Every approved spelling and insurer name is now read once at the start of the run instead of one query per spelling (`plan_resolver`); results identical to the GitHub version (843 of 843).
+- Kentucky: Eastern State Hospital loaded from UK HealthCare's new link (published 2026-11-19); the old link's 404 still shows in the report. 10 failed on apps.para-hcfs.com; Crittenden's certificate has expired.
+- More file hosts refuse GitHub's computers ("403"): Northside Hospital (4, Georgia), Lee Health, Jupiter, BayCare St. Anthony's, Tampa General Brooksville (Florida), Hamilton Medical Center (Georgia). Their earlier prices stay. Downloading these on Cooper's computer is the way around it, planned after the state list is done.
+- Memorial Hospital West (Florida) still fails: a field over 16 MB after 5.9 million rows, most likely a quote never closed. Wellstar (Georgia) and UCHealth (Colorado) post files dated 2025.
+
+`make check`: `445 passed, 1 skipped`.
+
 ## 2026-11-18 — Kansas, Louisiana, New Jersey, Illinois, Maryland, Michigan reruns
 
 All finished their price files ("Price files: success" on GitHub); Illinois pass 1 stopped cleanly at its time limit and pass 2 finished. The health-system website check found more hospitals: Illinois 77 (named on a system site), New Jersey 7, Michigan 9 plus 8 verified, Kansas 2, Louisiana 1.

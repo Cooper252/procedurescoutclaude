@@ -707,3 +707,46 @@ def test_a_version_written_as_one_number_is_that_version(conn: Connection, tmp_p
 
     stats = check_price_files(conn, "NV", downloader, tmp_path / "w", today=date(2026, 11, 6))
     assert not any("version" in r.message for r in stats.rejects if r.rule == "file_problem")
+
+
+def test_a_big_file_waits_for_a_run_with_time_for_it(conn: Connection, tmp_path: Path) -> None:
+    """Florida pass 1 (2026-11-18): Mayo Clinic's file started late and the step
+    ran past its limit. A big file is left for the next run when the time left
+    is less than it likely needs (and less than 90 minutes)."""
+    import time
+
+    from procedurescout_ingest import price_files as pf
+
+    assert pf.minutes_needed(9 * 10**9) == 70
+    import uuid
+
+    big = pf.Candidate(
+        str(uuid.uuid4()),
+        "https://h.example/big.csv",
+        str(uuid.uuid4()),
+        "SYN1",
+        "Big",
+        9 * 10**9,
+        None,
+    )
+    called: list[str] = []
+
+    def downloader(url: str, dest: Path) -> Download:
+        called.append(url)
+        return Download(url, error="not reached")
+
+    old = pf.candidates
+    pf.candidates = lambda _c, _s: [big]  # type: ignore[assignment]
+    try:
+        soon = time.monotonic_ns() + 30 * 60 * 10**9  # 30 minutes left
+        stats = check_price_files(
+            conn, "NV", downloader, tmp_path / "w", today=date(2026, 11, 6), must_end_by_ns=soon
+        )
+        assert called == [] and "left for the next run" in stats.summary["stopped_early"]
+        later = time.monotonic_ns() + 120 * 60 * 10**9  # plenty of time: tried
+        check_price_files(
+            conn, "NV", downloader, tmp_path / "w2", today=date(2026, 11, 6), must_end_by_ns=later
+        )
+        assert called == ["https://h.example/big.csv"]
+    finally:
+        pf.candidates = old  # type: ignore[assignment]
