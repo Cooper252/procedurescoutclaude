@@ -318,6 +318,7 @@ def test_report_lists_which_price_files_failed(engine: Engine) -> None:
         "prices_loaded",
         "d.csv | 10 prices staged | 5000 refused {'bad_amount': 5000} | 3s",
     )
+    stats.reject("Synthetic Hospital D", "price_bad_amount", "line 7: '$1,2O0' is not an amount")
     stats.reject(
         "Synthetic Hospital E", "prices_loaded", "e.csv | 10 prices staged | 2 refused {} | 1s"
     )
@@ -343,6 +344,7 @@ def test_report_lists_which_price_files_failed(engine: Engine) -> None:
             "download_failed: a.json | https://example.test/a (status 404)",
             "file_problem: b.csv | no prices found",
             "many_refused: d.csv | 10 prices staged | 5000 refused {'bad_amount': 5000} | 3s",
+            "  example: line 7: '$1,2O0' is not an amount",
         ]
     finally:
         with engine.begin() as c:

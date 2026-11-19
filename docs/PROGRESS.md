@@ -2,6 +2,22 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-18 — Kansas, Louisiana, New Jersey, Illinois, Maryland, Michigan reruns
+
+All finished their price files ("Price files: success" on GitHub); Illinois pass 1 stopped cleanly at its time limit and pass 2 finished. The health-system website check found more hospitals: Illinois 77 (named on a system site), New Jersey 7, Michigan 9 plus 8 verified, Kansas 2, Louisiana 1.
+- Kansas: 24 downloads failed (19 on apps.para-hcfs.com). The University of Kansas Hospital's Kansas City file is over 32 GiB (its own page lists only that CSV). Salina and Lindsborg's own files (D-063) are not in the CMS layout. Ascentist's site certificate is not trusted (not bypassed); Southwest Medical Center's link is 404.
+- Louisiana: 14 failed, 11 of them "403 Forbidden" from the file hosts (revenuemasters.com sites, Terrebonne General, North Oaks, West Calcasieu Cameron, Pointe Coupee) that served these files before: the hosts now refuse GitHub's computers. Minden lost its database connection mid-load (it loads next run). Beauregard Memorial and Specialists Hospital Shreveport link to a web app page, not a file; Claiborne posts an Excel workbook.
+- New Jersey: Jefferson Stratford loaded (NUL-byte fix). Saint Peter's University Hospital refused 489,344 of 2.56 million amounts.
+- Illinois: Southern Illinois Healthcare's four JSON files hold more than one JSON document joined together ("}{"), so they can't be read as one; Loretto (63,938) and Anderson (59,368) refused many amounts; Weiss and West Suburban (Resilience) links return errors; Saint Francis Evanston and Saint Joseph (Joliet) return 403.
+- Maryland: 15 loaded; Brook Lane's host answered "202, not ready yet".
+- Michigan: 17 loaded; Lake Huron still answers 307 with nowhere to go.
+
+Changes:
+- The report now shows two of the refused rows for each file that refused many, so the reason can be read next time (`price_file_problems`, "example:" lines). Test: `test_report_lists_which_price_files_failed`.
+- Downloads that aren't ZIP files are saved gzip-compressed on the runner and read back as published (`price_files._SavedDownload`, `open_raw`): a price CSV shrinks about ten times, so a 30 GB file no longer risks filling the disk. Test: `test_downloader_streams_hashes_and_limits`.
+
+`make check`: `444 passed, 1 skipped`.
+
 ## 2026-11-18 — California reruns; Indiana pass 4
 
 - California pass 1 stopped cleanly at its time limit ("run again to continue") with the report written: the timing fix works. Pass 2 went through all 191 files: 105 loaded or refreshed, 148 unchanged or the same content, 18 failed (17 on apps.para-hcfs.com; San Joaquin General's file host timed out).

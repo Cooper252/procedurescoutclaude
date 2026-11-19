@@ -166,7 +166,13 @@ def test_downloader_streams_hashes_and_limits(tmp_path: Path) -> None:
     import hashlib
 
     assert ok.sha256 == hashlib.sha256(body).hexdigest() and ok.nbytes == len(body)
-    assert ok.path is not None and ok.path.read_bytes() == body
+    assert ok.path is not None
+    # saved gzip-compressed (2026-11-18), read back as published
+    assert ok.path.read_bytes()[:2] == b"\x1f\x8b" and ok.path.stat().st_size < len(body)
+    from procedurescout_ingest.price_files import open_raw
+
+    with open_raw(ok.path) as f:
+        assert f.read() == body
     assert (blocked.http_status, blocked.error, blocked.path) == (403, "HTTP error", None)
     assert big.error is not None and "limit" in big.error
     assert not (tmp_path / "b").exists() and not (tmp_path / "c").exists()

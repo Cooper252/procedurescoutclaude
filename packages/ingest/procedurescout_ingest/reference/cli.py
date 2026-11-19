@@ -1127,7 +1127,7 @@ def price_file_problems(conn: Connection, state: str, limit: int = 60) -> list[s
     many = conn.execute(
         text(
             """
-            SELECT r.message FROM src.reference_reject r
+            SELECT r.row_ref, r.message FROM src.reference_reject r
             WHERE r.load_id = (
                 SELECT id FROM src.reference_load
                 WHERE dataset = 'price_file_check' AND parameters->>'state' = :s
@@ -1140,9 +1140,27 @@ def price_file_problems(conn: Connection, state: str, limit: int = 60) -> list[s
         ),
         {"s": state, "min": MANY_REFUSED},
     ).all()
-    return [f"{rule}: {message}"[:400] for rule, message in rows] + [
-        f"many_refused: {m}"[:400] for (m,) in many
-    ]
+    out = [f"{rule}: {message}"[:400] for rule, message in rows]
+    for who, m in many:
+        out.append(f"many_refused: {m}"[:400])
+        # two of the refused rows, so the reason can be read (NJ, 2026-11-18:
+        # Saint Peter's refused 489,344 amounts and the report couldn't say why)
+        for (ex,) in conn.execute(
+            text(
+                """
+                SELECT r.message FROM src.reference_reject r
+                WHERE r.load_id = (
+                    SELECT id FROM src.reference_load
+                    WHERE dataset = 'price_file_check' AND parameters->>'state' = :s
+                    ORDER BY started_at DESC LIMIT 1)
+                  AND r.rule LIKE 'price\\_%' AND r.row_ref = :w
+                ORDER BY r.id LIMIT 2
+                """
+            ),
+            {"s": state, "w": who},
+        ).all():
+            out.append(f"  example: {ex}"[:400])
+    return out
 
 
 MANY_REFUSED = 1000  # refused rows in one file worth naming in the report

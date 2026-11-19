@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import contextlib
 import csv
+import gzip
 import hashlib
 import io
 import json
@@ -84,6 +85,50 @@ class Download:
 Downloader = Callable[[str, Path], Download]
 
 
+class _SavedDownload:
+    """Where a download is written. A file that isn't a ZIP is saved
+    gzip-compressed (fast setting): a price CSV shrinks about ten times, so a
+    30 GB file fits on GitHub's runner beside the work database (Mayo Clinic
+    Arizona, University of Kansas, 2026-11-18). `open_raw` reads it back."""
+
+    def __init__(self, dest: Path) -> None:
+        self._raw = dest.open("wb")
+        self._gz: gzip.GzipFile | None = None
+        self._first = True
+
+    def write(self, chunk: bytes) -> None:
+        if self._first:
+            self._first = False
+            if not chunk.startswith((b"PK", GZIP_MAGIC)):
+                self._gz = gzip.GzipFile(fileobj=self._raw, mode="wb", compresslevel=1, mtime=0)
+        (self._gz or self._raw).write(chunk)
+
+    def close(self) -> None:
+        if self._gz is not None:
+            self._gz.close()
+            self._gz = None
+        self._raw.close()
+
+    def __enter__(self) -> _SavedDownload:
+        return self
+
+    def __exit__(self, *_exc: object) -> None:
+        self.close()
+
+
+GZIP_MAGIC = b"\x1f\x8b"
+
+
+def open_raw(path: Path) -> IO[bytes]:
+    """A downloaded file's bytes as the hospital published them (a file saved
+    gzip-compressed, or published that way, is read uncompressed)."""
+    with path.open("rb") as f:
+        magic = f.read(2)
+    if magic == GZIP_MAGIC:
+        return cast(IO[bytes], gzip.open(path, "rb"))
+    return path.open("rb")
+
+
 def http_downloader(
     client: httpx.Client,
     max_bytes: int = DEFAULT_MAX_BYTES,
@@ -109,7 +154,7 @@ def http_downloader(
                 }
                 if resp.status_code != 200:
                     return Download(**base, error="HTTP error")
-                with dest.open("wb") as out:
+                with _SavedDownload(dest) as out:
                     for chunk in resp.iter_bytes(CHUNK):
                         if must_end_by_ns is not None and time.monotonic_ns() > must_end_by_ns:
                             # the run's time is nearly up: the next run starts it early
@@ -270,7 +315,7 @@ def _clip(value: Any) -> Any:
 
 def sniff(path: Path) -> str:
     """'json', 'zip', 'xlsx' or 'text', from the first bytes."""
-    with path.open("rb") as f:
+    with open_raw(path) as f:
         head = f.read(4096)
     if head.startswith(b"PK\x03\x04"):
         try:
@@ -554,10 +599,10 @@ def read_csv(stream: IO[bytes]) -> FileCheck:
 def read_file(path: Path) -> FileCheck:
     kind = sniff(path)
     if kind == "json":
-        with path.open("rb") as f:
+        with open_raw(path) as f:
             return read_json(f)
     if kind == "text":
-        with path.open("rb") as f:
+        with open_raw(path) as f:
             return read_csv(f)
     if kind == "xlsx":
         return FileCheck(problems=["Excel workbook: not a CMS machine-readable format"])
@@ -588,7 +633,7 @@ def read_file(path: Path) -> FileCheck:
 def open_payload(path: Path, check: FileCheck) -> Iterator[IO[bytes]]:
     """The bytes the check read: the file itself, or the ZIP member it chose."""
     if check.inner_name is None:
-        with path.open("rb") as f:
+        with open_raw(path) as f:
             yield f
         return
     with zipfile.ZipFile(path) as z, z.open(check.inner_name) as inner:
