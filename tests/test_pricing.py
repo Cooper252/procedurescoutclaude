@@ -1599,6 +1599,15 @@ def test_mississippi_and_minnesota_spellings(conn: Connection, world: LocalStore
                     "Arkansas Blue Cross and Blue Shield · Marketplace (exchange) plan",
                 ),
             ],
+            "TX": [
+                ("Superior", "Star Kids KM", "Superior HealthPlan · Medicaid plan"),
+                (
+                    "Blue Cross Blue Shield Of Texas",
+                    "Blue Advantage HMO",
+                    "Blue Cross and Blue Shield of Texas · HMO",
+                ),
+                ("Aetna", "MM", None),
+            ],
             "HI": [
                 ("HMSA", "QUEST ABD", "HMSA (Blue Cross Blue Shield of Hawaii) · Medicaid plan"),
                 ("Kaiser", "QUEST", "Kaiser Permanente · Medicaid plan"),

@@ -2,6 +2,32 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-20 — The live database filled its disk; New York, Pennsylvania, Ohio, Texas
+
+**Outage.** The live database's 10 GB disk filled (it grew from about 8.1 GB before Texas to 10.1 GB after Ohio pass 1, per the reports' `database_bytes`). Pennsylvania pass 2's hospital step, Ohio pass 2's report, Texas pass 2 and Ohio pass 3 failed with "No space left on device", the chain stopped, and the live site answered every request with an error. Cooper raised the disk to 20 GB on Render ($6 a month instead of $3); the site works again (checked: ZIP lookup, Phoenix MRI search 15 priced hospitals, New York City 22). `render.yaml` and `DEPLOYMENT_PLAN.md` updated. A first search in an area took about 26 seconds right after the restart, then about 4 seconds.
+
+Reports (all four New York passes and Pennsylvania pass 1 finished their price files before the disk filled):
+- New York: the website steps found 108 hospitals on health-system sites; 85 files loaded over four passes (139 million prices). Catholic Health's Sisters of Charity and Mercy Hospital of Buffalo files have 7% of rows with more values than the header (refused, files held); Brylin and SUNY Downstate post the old 1.0 template; Ellis Hospital put dollar amounts in its percentage column; Upstate University Hospital answers 403; Clifton-Fine answers "202, not ready".
+- Pennsylvania: 231 more hospitals' sites (91 verified, 126 named on system sites, 14 by address); 105 files loaded over two passes. UPMC's file host dropped many connections mid-download (12 files); Penn Highlands (7) answers 403; Bucktail and Geisinger Jersey Shore files aren't in the CMS layout.
+- Ohio pass 1: 273 more hospitals' sites; 59 files loaded (84 million prices) before Parma's 3.3 GB file was left for the next run.
+- Texas pass 3 loaded nothing: the website steps (793 candidate sites, many price-file headers read for each) used almost all of the run, and the new time check left even the first file for later. Pass 4 loaded 33 more (68.5 million prices).
+
+Fix: the website steps now share one allowance of 1,500 price-file header reads and stop looking for sites after 40 minutes of the run, so price files always get the rest (`reference/cli.WEBSITE_HEAD_READS`, `WEBSITE_MINUTES`). Test: `test_the_website_steps_have_a_header_allowance_and_a_time_limit`.
+
+`make check`: `446 passed, 1 skipped`.
+
+## 2026-11-19 — Connecticut, Delaware, DC, Alabama, Idaho reruns; Texas pass 1
+
+- Texas pass 1: the website steps found 519 Texas hospitals' sites (188 verified from lists, 71 of them by their price file's address; 207 named on a health system's site and 106 linked by address there; 18 guessed). 112 of 225 files loaded (39.7 million prices) before the run left the rest for pass 2 ("CHRISTUS Jasper Memorial's file left for the next run": the new time check). Columbus Community Hospital wrote dollar amounts in its percentage column ("1721.53"); those rows are refused as before.
+- Connecticut: 2 loaded; Day Kimball and UConn John Dempsey (connection reset by their file host) and Stamford (403) failed.
+- Delaware, DC: every file unchanged.
+- Alabama: 24 loaded; the health-system check linked 16 more hospitals and 6 more sites were verified. Evergreen (403) and Hill Hospital (connection reset) failed; Clay County's file isn't in the CMS layout; Troy Regional's file is the old 1.0 template.
+- Idaho: 3 loaded, 5 more hospitals linked; Treasure Valley's file isn't in the CMS layout.
+
+Insurers (D-047): Texas Medicaid's STAR ("Star KM", "Chip KM", "Star Kids KM"), Superior HealthPlan as plain "Superior" in Texas, Wellpoint "AMGRP STAR PLUS", Blue Cross Blue Shield of Texas's "Blue Advantage HMO". Re-running every earlier report's unmatched spellings: no change. Test: `test_mississippi_and_minnesota_spellings` (now also Texas).
+
+`make check`: `445 passed, 1 skipped`.
+
 ## 2026-11-19 — Massachusetts, Florida, Georgia, Kentucky, Colorado reruns
 
 Checked on GitHub: Massachusetts, Florida pass 2, Georgia, Kentucky and Colorado finished their price files; Florida pass 1 wrote its report but its step ran past 180 minutes. The health-system check found Florida 27, Kentucky 12, Georgia 2 more hospitals; Colorado 7 more websites were verified.

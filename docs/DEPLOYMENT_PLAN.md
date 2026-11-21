@@ -8,7 +8,7 @@ Status: **prepared, not deployed.** Nothing is signed up or paid for yet.
 |---|---|---|---|
 | Website (`apps/web`) | Render web service | 0.5c-512mb | $7 |
 | API (`apps/api`) | Render web service | 1c-2g | $25 |
-| PostgreSQL 16 + PostGIS | Render Postgres | 0.5c-1g, 10 GB | $19 + $3 storage |
+| PostgreSQL 16 + PostGIS | Render Postgres | 0.5c-1g, 20 GB (raised from 10 GB on 2026-11-20, Cooper: the disk filled at about 10.1 GB after Ohio) | $19 + $6 storage |
 | Published price files (Parquet) | Cloudflare R2 bucket `procedurescout-prices` | pay as you go | first 10 GB free, then $0.015/GB |
 | National downloads | GitHub Actions (public repository, D-049) | standard runners | free |
 | Render workspace | Hobby (checked 2026-11-10 on render.com/pricing.md) | no plan fee | $0; 5 GB outbound a month included, then $0.15/GB; 2 custom domains included (procedurescout.com + www); database point-in-time recovery 3 days |

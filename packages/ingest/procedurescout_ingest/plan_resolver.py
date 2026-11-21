@@ -72,6 +72,9 @@ _TYPES: list[tuple[re.Pattern[str], str]] = [
             r"medicaid|\bmcd\b|\bmcaid\b|rite ?care|\bchip\b|\bahcccs\b"
             r"|health care cost containment|community plan|\bpasse\b|\bmedi cal\b"
             r"|healthy families|^star( plus| kids| health)?$|\bstar ?plus\b|\bstar kids\b"
+            # Texas: "Star KM" (STAR is Texas Medicaid; KM appears to be the
+            # hospital's own code, Texas pass 1, 2026-11-19)
+            r"|^star km$"
             # Massachusetts Medicaid is called MassHealth (2026-11-15)
             r"|\bmass ?health\b"
             # Minnesota's Medicaid managed care is the Prepaid Medical Assistance
@@ -106,6 +109,8 @@ _TYPES: list[tuple[re.Pattern[str], str]] = [
     # Florida: "ManagedCareHMO" (2026-11-14)
     # Maryland: "United Healthcare All HMO Products" (2026-11-15)
     (re.compile(r"^(commercial |managed ?care ?|all )?hmo( products)?$"), "HMO"),
+    # Blue Cross Blue Shield of Texas's HMO is called Blue Advantage HMO (Texas)
+    (re.compile(r"^blue advantage hmo$"), "HMO"),
     (re.compile(r"^(commercial |all )?ppo( products)?$"), "PPO"),
     (re.compile(r"^(commercial )?epo$"), "EPO"),
     (re.compile(r"^(commercial )?pos$"), "POS"),

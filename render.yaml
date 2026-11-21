@@ -10,7 +10,7 @@ databases:
     user: ps_owner
     plan: 0.5c-1g
     postgresMajorVersion: "16"
-    diskSizeGB: 10
+    diskSizeGB: 20  # raised on Render 2026-11-20 (the 10 GB disk filled)
     region: oregon
     # Open to the internet behind Render's generated password and TLS, because
     # the GitHub download runs stage and publish prices from outside Render.

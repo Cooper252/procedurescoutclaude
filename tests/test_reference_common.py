@@ -432,3 +432,30 @@ def test_a_stopped_price_file_step_still_writes_the_report(
     with pytest.raises(KeyboardInterrupt):
         cli.cmd_nv_all(args, engine)
     assert reports == ["IN", "IN"]  # before price files, and when stopped
+
+
+def test_the_website_steps_have_a_header_allowance_and_a_time_limit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Texas pass 3 (2026-11-20): the website steps read price-file headers for
+    hundreds of candidate sites and used the whole run. Reads stop when the
+    allowance is used or after WEBSITE_MINUTES of the run."""
+    import httpx
+
+    import procedurescout_ingest.reference.cli as cli
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, content=b"x" * 10)
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        head = cli._head_reader(client)
+        monkeypatch.setitem(cli._head_reads, "left", 1)
+        assert head("https://h.example/a.csv") == b"x" * 10
+        assert head("https://h.example/b.csv") == b""  # allowance used
+        monkeypatch.setitem(cli._head_reads, "left", 5)
+        import time
+
+        # the run started an hour ago
+        monkeypatch.setattr(cli, "PROCESS_START_NS", time.monotonic_ns() - 3600 * 10**9)
+        assert head("https://h.example/c.csv") == b""
+        assert cli._website_time_up()

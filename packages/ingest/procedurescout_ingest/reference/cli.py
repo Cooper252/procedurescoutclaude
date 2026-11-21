@@ -651,12 +651,28 @@ def cmd_nppes_offices(args: argparse.Namespace, engine: Engine) -> None:
         )
 
 
+# The website steps share one allowance of price-file header reads and stop
+# looking after this many minutes of the run (Texas pass 3, 2026-11-20: they
+# read headers for hundreds of candidate sites and used the whole run, so no
+# price file was loaded). A header not read just can't vouch for a site.
+WEBSITE_HEAD_READS = 1500
+WEBSITE_MINUTES = 40
+_head_reads = {"left": WEBSITE_HEAD_READS}
+
+
+def _website_time_up() -> bool:
+    return time.monotonic_ns() > PROCESS_START_NS + WEBSITE_MINUTES * 60 * 10**9
+
+
 def _head_reader(client: httpx.Client) -> Callable[[str], bytes]:
     """First 256 KB of a price file (its header), without downloading the rest."""
 
     def head(url: str) -> bytes:
         if not url.startswith(("https://", "http://")):
             return b""
+        if _head_reads["left"] <= 0 or _website_time_up():
+            return b""
+        _head_reads["left"] -= 1
         out = bytearray()
         with client.stream("GET", url, timeout=30) as r:
             if r.status_code != 200:
@@ -741,6 +757,8 @@ def cmd_find_websites(args: argparse.Namespace, engine: Engine) -> None:
         def fetch(url: str) -> tuple[int, str]:
             # one fetch per site even when a health system's site is tried for
             # many hospitals
+            if url not in fetched and _website_time_up():
+                return 599, ""  # out of time for websites: price files come first
             if url not in fetched:
                 r = client.get(url, timeout=30)
                 fetched[url] = (r.status_code, r.text[:2_000_000])
