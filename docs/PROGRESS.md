@@ -2,6 +2,15 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-20 — Search results say why a place has no price
+
+Cooper: "I just don't want it to show 45 hospitals and 9 prices because it just looks like we're not good at finding prices." Checked live (MRI within 25 miles of 85053): of 40 hospitals, 15 priced, 9 psychiatric hospitals that post prices but not MRIs, 10 whose price file we don't have yet (Abrazo, St. Joseph's, Valleywise, Mayo, HonorHealth Tempe, City of Hope...), 4 federal or state-run, 2 psychiatric with no file.
+- API (`search.FacilityResult.reason`, `FacilityOut.reason`, `psychiatric`): "prices", "not_listed" (posts a price list, but not this), "federal" (CMS ownership: Veterans Health Administration, Government - Federal, Department of Defense, Tribal: not required to post prices), "no_file" (we don't have its price list yet).
+- Website (`app/search/page.tsx`, `ResultCard.tsx`, `lib/i18n.ts`, English and Spanish): the count says how many places post a price ("15 places post a price for this within 25 miles"), not how many places are nearby. With insurance, places with a rate for that insurance come first, then "Also nearby: a cash price, but no rate listed for your insurance". Places without a price are folded under "Other places nearby without a price for this", grouped: "Post insurance rates for this, but no cash price", "Post their prices, but this isn't on their list" (psychiatric hospitals say so), "We don't have their price list yet", "Federal hospitals: not required to post prices". Wording says what we know: a hospital that doesn't list a procedure "may not offer it", never "doesn't do it".
+- Test: `test_each_place_without_a_price_says_why`. Web: `npx tsc --noEmit`, `npm test`, `npx next build` pass; checked in the preview build.
+
+`make check`: `447 passed, 1 skipped`.
+
 ## 2026-11-20 — The live database filled its disk; New York, Pennsylvania, Ohio, Texas
 
 **Outage.** The live database's 10 GB disk filled (it grew from about 8.1 GB before Texas to 10.1 GB after Ohio pass 1, per the reports' `database_bytes`). Pennsylvania pass 2's hospital step, Ohio pass 2's report, Texas pass 2 and Ohio pass 3 failed with "No space left on device", the chain stopped, and the live site answered every request with an error. Cooper raised the disk to 20 GB on Render ($6 a month instead of $3); the site works again (checked: ZIP lookup, Phoenix MRI search 15 priced hospitals, New York City 22). `render.yaml` and `DEPLOYMENT_PLAN.md` updated. A first search in an area took about 26 seconds right after the restart, then about 4 seconds.

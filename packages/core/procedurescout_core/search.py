@@ -101,6 +101,29 @@ class FacilityResult:
     delivery: str | None = None  # provider price: 'in_person', 'online' or 'both'
     # priced under another coding system's code for the same stay (D-066)
     priced_as: tuple[str, ...] = ()
+    # why a place shows no price (Cooper, 2026-11-20: "45 hospitals and 9 prices"
+    # looked like we couldn't find prices): "prices"; "not_listed" (it posts its
+    # prices, but not this procedure); "federal" (VA, military and Indian Health
+    # Service hospitals don't have to post prices); "no_file" (we don't have
+    # its price list yet)
+    reason: str = "prices"
+    psychiatric: bool = False
+
+
+_FEDERAL = re.compile(r"veterans|federal|defense|tribal|indian health", re.IGNORECASE)
+
+
+def _reason(
+    has_price: bool, published_at: str | None, ownership: str | None, ftype: str | None
+) -> str:
+    """Why a place in the results has no price (see FacilityResult.reason)."""
+    if has_price:
+        return "prices"
+    if published_at is not None:
+        return "not_listed"
+    if ownership and _FEDERAL.search(ownership):
+        return "federal"
+    return "no_file"
 
 
 @dataclass(frozen=True, slots=True)
@@ -465,12 +488,13 @@ def search(
             SELECT f.id, f.name, f.city, f.state_code,
                    round(CAST(ST_Distance(f.geom, p.pt) AS numeric) / :mpm, 1) AS miles,
                    coalesce(array_agg(fpt.provider_type ORDER BY fpt.provider_type)
-                            FILTER (WHERE fpt.provider_type IS NOT NULL), '{}') AS types
+                            FILTER (WHERE fpt.provider_type IS NOT NULL), '{}') AS types,
+                   f.facility_type::text AS ftype, f.ownership
             FROM cand
             JOIN ref.facility f ON f.id = cand.id
             CROSS JOIN p
             LEFT JOIN ref.facility_provider_type fpt ON fpt.facility_id = f.id
-            GROUP BY f.id, f.name, f.city, f.state_code, p.pt, f.geom
+            GROUP BY f.id, f.name, f.city, f.state_code, p.pt, f.geom, f.facility_type, f.ownership
             -- places that can answer come first, then the nearest of the rest:
             -- otherwise thousands of nearby offices push the hospitals out of
             -- the first 50 (first live Nevada load, 2026-11-11)
@@ -683,6 +707,8 @@ def search(
             special=specials.get(str(f[0])),
             delivery=delivery.get(str(f[0])),
             priced_as=priced_as.get(str(f[0]), ()),
+            reason=_reason(bool(by_facility.get(str(f[0]))), published.get(str(f[0])), f[7], f[6]),
+            psychiatric=f[6] == "psychiatric_hospital",
         )
         for f in facilities
         if not online_only or str(f[0]) in delivery

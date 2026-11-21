@@ -139,6 +139,9 @@ class FacilityOut(BaseModel):
     plan_rates_only: bool = False
     # priced under another coding system's code for the same stay (D-066)
     priced_as: list[str] = []
+    # why no price: prices, not_listed, federal or no_file (search.FacilityResult)
+    reason: str = "prices"
+    psychiatric: bool = False
     # the doctor's part, when the hospital published it apart from its own part
     doctor_fee: str | None = None
     doctor_fee_highest: str | None = None
@@ -646,6 +649,8 @@ def search_endpoint(
                 no_plan_rate=f.no_plan_rate,
                 plan_rates_only=f.plan_rates_only,
                 priced_as=list(f.priced_as),
+                reason=f.reason,
+                psychiatric=f.psychiatric,
                 doctor_fee=_s(f.doctor_fee.amount) if f.doctor_fee else None,
                 doctor_fee_highest=_s(f.doctor_fee.highest) if f.doctor_fee else None,
                 rating_average=ratings.get(f.facility_id, (None, 0))[0],

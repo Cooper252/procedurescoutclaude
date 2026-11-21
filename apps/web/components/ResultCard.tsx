@@ -150,7 +150,13 @@ export function ResultCard({
               {f.status !== "prices"
                 ? f.plan_rates_only
                   ? t.planRatesOnly
-                  : t.noPrices
+                  : f.reason === "not_listed"
+                    ? t.notListed
+                    : f.reason === "federal"
+                      ? t.federalLabel
+                      : f.reason === "no_file"
+                        ? t.noFileLabel
+                        : t.noPrices
                 : mode === "cash"
                   ? t.noCashPrice
                   : `${label}: —`}
@@ -232,7 +238,19 @@ export function ResultCard({
           {!provider && <> · {t.facilityOnly}</>}
         </p>
       ) : (
-        <p className="source">{f.plan_rates_only ? t.planRatesOnlyHint : t.noPricesHint}</p>
+        <p className="source">
+          {f.plan_rates_only
+            ? t.planRatesOnlyHint
+            : f.reason === "not_listed"
+              ? f.psychiatric
+                ? t.notListedPsych
+                : t.notListedHint
+              : f.reason === "federal"
+                ? t.federalHint
+                : f.reason === "no_file"
+                  ? t.noFileHint
+                  : t.noPricesHint}
+        </p>
       )}
 
       {isHospital && (

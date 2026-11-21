@@ -2324,6 +2324,7 @@ fieldset.acct-card { min-width: 0; }
 /* places without prices, folded under one line (2026-11-11) */
 details.unpriced > summary { cursor: pointer; list-style: revert; padding: 8px 0; }
 details.unpriced > summary:focus-visible { outline: 2px solid var(--accent, #0b6e4f); outline-offset: 2px; }
+details.unpriced .group-label { font-size: 0.95rem; font-weight: 600; margin: 14px 0 6px; color: var(--muted, #5b6470); }
 .referral-note { margin: 2px 0 6px; max-width: 60ch; }
 
 /* price-list template (2026-11-11) */

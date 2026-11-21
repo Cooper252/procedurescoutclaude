@@ -188,6 +188,21 @@ function Results() {
     [bundles, result],
   );
   const unpriced = useMemo(() => result?.facilities.filter((f) => f.status !== "prices") ?? [], [result]);
+  // insurance search: places with a rate for that insurance first, then places
+  // with only a cash price, under their own heading (Cooper, 2026-11-20)
+  const withPlan = mode === "plan" ? priced.filter((f) => !f.no_plan_rate) : priced;
+  const cashOnly = mode === "plan" ? priced.filter((f) => f.no_plan_rate) : [];
+  // places without a price, grouped by why, so it's clear what is going on
+  const groups = [
+    { key: "insurance", title: t.groupInsuranceOnly, rows: unpriced.filter((f) => f.plan_rates_only) },
+    {
+      key: "not_listed",
+      title: t.groupNotListed,
+      rows: unpriced.filter((f) => !f.plan_rates_only && f.reason === "not_listed"),
+    },
+    { key: "no_file", title: t.groupNoFile, rows: unpriced.filter((f) => !f.plan_rates_only && (f.reason === "no_file" || !f.reason)) },
+    { key: "federal", title: t.groupFederal, rows: unpriced.filter((f) => !f.plan_rates_only && f.reason === "federal") },
+  ].filter((g) => g.rows.length > 0);
   const where = zip ?? (coords ? t.useLocation.toLowerCase() : "");
 
   if (!coords || editing || (!service && !code)) {
@@ -395,7 +410,7 @@ function Results() {
             </div>
             </div>
             <p className="count">
-              {fill(t.facilityCount, { n: result.facilities.length, r: radius })} · {sort === "near" ? t.sortNear : t.sortedBy}
+              {fill(t.pricedCount, { n: priced.length, r: radius })} · {sort === "near" ? t.sortNear : t.sortedBy}
             </p>
             {mode !== "plan" &&
               !result.facilities.some((x) => x.status === "prices") &&
@@ -439,7 +454,7 @@ function Results() {
             )}
             {mode === "plan" && <EstimatePanel value={myPlan} onChange={setMyPlan} />}
             <div className="results-list">
-              {priced.map((f) => (
+              {withPlan.map((f) => (
                 <ResultCard
                   key={f.facility_id}
                   f={f}
@@ -459,18 +474,49 @@ function Results() {
                 />
               ))}
             </div>
+            {cashOnly.length > 0 && (
+              <>
+                <h2 className="section-label">{fill(t.cashOnlyHeading, { n: cashOnly.length })}</h2>
+                <div className="results-list">
+                  {cashOnly.map((f) => (
+                    <ResultCard
+                      key={f.facility_id}
+                      f={f}
+                      mode={mode}
+                      unit={unit}
+                      service={service}
+                      payer={plans?.find((p) => p.plan_id === planId)?.payer}
+                      unsure={result?.insurer_unsure ?? null}
+                      bundle={bundle}
+                      planId={planId}
+                      insurerId={insurerId}
+                      payerRaw={payerRaw}
+                      planLabel={chosen?.label ?? null}
+                      codeSystem={codeSystem}
+                      code={code}
+                      plan={myPlan}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
             {online && priced.length === 0 && <p className="notice">{t.onlineNone}</p>}
             {unpriced.length > 0 && (
               // places without prices stay out of the way (Cooper, 2026-11-11)
               <details className="unpriced" open={priced.length === 0}>
                 <summary className="section-label">
-                  {fill(t.noPricesFold, { n: String(unpriced.length) })}
+                  {fill(t.otherNearbyFold, { n: String(unpriced.length) })}
                 </summary>
-                <div className="results-list muted">
-                  {unpriced.map((f) => (
-                    <ResultCard key={f.facility_id} f={f} mode={mode} unit={unit} service={service} />
-                  ))}
-                </div>
+                {groups.map((g) => (
+                  <section key={g.key} className="unpriced-group">
+                    <h3 className="group-label">{fill(g.title, { n: g.rows.length })}</h3>
+                    <div className="results-list muted">
+                      {g.rows.map((f) => (
+                        <ResultCard key={f.facility_id} f={f} mode={mode} unit={unit} service={service} />
+                      ))}
+                    </div>
+                  </section>
+                ))}
               </details>
             )}
             {result.codes.length > 0 && (

@@ -108,6 +108,10 @@ export interface Facility {
   change_percent_since_last_file: string | null;
   plan_rate_is_all_plans?: boolean;
   no_plan_rate?: boolean; // insurance search: no rate for that insurance here; cash price shown
+  // why no price (Cooper, 2026-11-20): it posts prices but not this; a federal
+  // hospital (not required to post); or we don't have its price list yet
+  reason?: "prices" | "not_listed" | "federal" | "no_file";
+  psychiatric?: boolean;
   plan_rates_only?: boolean; // cash/list search: no cash or list price, but insurance rates published here
   priced_as?: string[]; // priced under another coding system's code for the same stay (D-066)
   delivery?: "in_person" | "online" | "both" | null;
