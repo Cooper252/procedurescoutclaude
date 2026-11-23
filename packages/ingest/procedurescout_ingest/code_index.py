@@ -16,47 +16,74 @@ from .reference.common import LoadStats
 
 
 def rebuild_code_index(conn: Connection) -> LoadStats:
+    """(2026-11-23) The per-file summaries are read as one stream and added up
+    here, not sorted by the database: with every state loaded the old single
+    query sorted tens of millions of summary rows on the hosted database's disk,
+    filled it ("could not write to file pg_wal/...: No space left on device"),
+    and the database restarted, taking the site down every time a state
+    finished. A facility has one published dataset at a time (publishing
+    retires the previous one), so its rows add one place per code."""
     stats = LoadStats()
-    conn.execute(text("DELETE FROM ref.code_index"))
-    result = conn.execute(
+    places: dict[tuple[str, str], int] = {}
+    prices: dict[tuple[str, str], int] = {}
+    wording: dict[tuple[str, str], dict[str, int]] = {}
+
+    def add(system: str, code: str, desc: str | None, n: int) -> None:
+        key = (system, code)
+        places[key] = places.get(key, 0) + 1
+        prices[key] = prices.get(key, 0) + n
+        if desc is not None:
+            d = wording.setdefault(key, {})
+            d[desc] = d.get(desc, 0) + n
+
+    raw = conn.connection.driver_connection
+    assert raw is not None
+    with (
+        raw.cursor() as cur,
+        cur.copy(
+            """
+        COPY (
+            SELECT s.code_system::text, s.code, s.top_description, s.prices
+            FROM price.file_code_summary s
+            JOIN src.dataset_version dv ON dv.id = s.dataset_version_id
+            WHERE dv.status = 'published'
+        ) TO STDOUT
+        """
+        ) as cp,
+    ):
+        for system, code, desc, n in cp.rows():
+            add(str(system), str(code), None if desc is None else str(desc), int(str(n)))
+    # published datasets without a summary (older): from their rows (few or none)
+    for system, code, desc, n in conn.execute(
         text(
             """
-            INSERT INTO ref.code_index (system, code, hospital_description, facilities, prices)
-            WITH per_file AS (
-                -- published datasets: from their kept summaries (rows may be removed, D-054)
-                SELECT s.code_system, s.code, s.top_description, s.facility_id, s.prices
-                FROM price.file_code_summary s
-                JOIN src.dataset_version dv ON dv.id = s.dataset_version_id
-                WHERE dv.status = 'published'
-                UNION ALL
-                -- published datasets without a summary (older): from their rows
-                SELECT code_system, code,
-                       mode() WITHIN GROUP (ORDER BY left(btrim(description_raw), 300))
-                           FILTER (WHERE description_raw IS NOT NULL
-                                   AND btrim(description_raw) <> ''),
-                       facility_id, count(*)
-                FROM price.published_price pp
-                WHERE NOT EXISTS (SELECT 1 FROM price.file_code_summary s
-                                  WHERE s.dataset_version_id = pp.dataset_version_id)
-                GROUP BY code_system, code, facility_id
-            ),
-            described AS (
-                SELECT code_system, code, top_description, sum(prices) AS n,
-                       row_number() OVER (PARTITION BY code_system, code
-                                          ORDER BY sum(prices) DESC, top_description) AS rank
-                FROM per_file WHERE top_description IS NOT NULL
-                GROUP BY code_system, code, top_description
-            )
-            SELECT f.code_system, f.code, d.top_description,
-                   count(DISTINCT f.facility_id), sum(f.prices)
-            FROM per_file f
-            LEFT JOIN described d ON d.code_system = f.code_system AND d.code = f.code
-                                 AND d.rank = 1
-            GROUP BY f.code_system, f.code, d.top_description
+            SELECT code_system::text, code,
+                   mode() WITHIN GROUP (ORDER BY left(btrim(description_raw), 300))
+                       FILTER (WHERE description_raw IS NOT NULL
+                               AND btrim(description_raw) <> ''),
+                   count(*)
+            FROM price.published_price pp
+            WHERE NOT EXISTS (SELECT 1 FROM price.file_code_summary s
+                              WHERE s.dataset_version_id = pp.dataset_version_id)
+            GROUP BY code_system, code, facility_id
             """
         )
-    )
-    stats.rows_loaded = result.rowcount or 0
+    ).all():
+        add(str(system), str(code), None if desc is None else str(desc), int(n))
+    conn.execute(text("DELETE FROM ref.code_index"))
+    with (
+        raw.cursor() as cur,
+        cur.copy(
+            "COPY ref.code_index (system, code, hospital_description, facilities, prices) "
+            "FROM STDIN"
+        ) as cp,
+    ):
+        for key, n_places in places.items():
+            descs = wording.get(key)
+            # the wording with the most prices; ties: the alphabetically first
+            top = min(descs.items(), key=lambda kv: (-kv[1], kv[0]))[0] if descs else None
+            cp.write_row((key[0], key[1], top, n_places, prices[key]))
+    stats.rows_loaded = len(places)
     stats.rows_in = stats.rows_loaded
     added = conn.execute(
         text(

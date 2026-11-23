@@ -2,6 +2,14 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-23 — Why Render kept emailing "server failed": the database filled its disk at the end of every state
+
+Render's logs (Cooper signed in): the live database crashed five times in 12 hours ("PANIC: could not write to file pg_wal/xlogtemp: No space left on device", 21:32, 22:40, 03:47, 06:12, 08:28), each time at the end of a load run. Its disk sits at about 70% of 20 GB and jumped to 100% each time. The GitHub log of Texas pass 4 shows what was running: the code-index rebuild (`INSERT INTO ref.code_index ... FROM price.file_code_summary`), whose single query sorted every published file's code summary on the database's disk; the connection then dropped ("SSL connection has been closed unexpectedly"). While the database restarted, the API answered every request with an error and missed Render's health checks, which is what the emails were. The "step 17 timed out" failures were the same crash.
+
+Fix: the rebuild now reads the summaries as one stream (`COPY ... TO STDOUT`, no sorting or temporary files on the database) and adds them up on the loading computer, then writes the index back with `COPY` (`code_index.rebuild_code_index`). A place has one published file at a time (publishing retires the previous one), so each summary row is one place for its code. Same results: `test_code_index` (3 passed).
+
+`make check`: `449 passed, 1 skipped`.
+
 ## 2026-11-23 — Whole-cost panel, insurance ranking, insurance picker headings, big files, step 17
 
 From Cooper's MRI search near 85053 with Blue Cross Blue Shield of Arizona:
