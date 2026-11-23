@@ -256,11 +256,12 @@ export interface EstimateLine {
   role: string;
   requirement: string;
   included: boolean;
-  status: string; // priced | not_published | not_a_dollar_amount | several_prices | left_out
+  status: string; // priced | not_published | not_a_dollar_amount | several_prices | left_out | included
   amount: string | null;
   amounts_published: string[];
   rate: string | null;
   notes: string | null;
+  all_plans?: boolean;
 }
 
 export interface Estimate {

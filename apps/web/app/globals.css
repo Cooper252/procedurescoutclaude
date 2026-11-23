@@ -3147,22 +3147,28 @@ h3 {
   }
 }
 
-/* Insurance picker: the insurance company is easy to see (Cooper, 2026-11-14) */
+/* Insurance picker: the insurance company is easy to see (Cooper, 2026-11-14),
+   and its heading never looks like a plan you can pick (Cooper, 2026-11-23:
+   the heading looked like a separate plan above "All AZ plans"): a solid dark
+   band in capitals, unlike the white plan rows under it */
 .ins-company-name {
-  margin: 0 6px 4px;
-  padding: 8px 10px;
-  border-radius: 10px;
-  background: var(--brand-50);
-  color: var(--brand-600);
-  font-size: 15.5px;
+  margin: 0 0 4px;
+  padding: 7px 12px;
+  border-radius: 0;
+  background: var(--brand-600);
+  color: #fff;
+  font-size: 12.5px;
   font-weight: 800;
-  letter-spacing: 0;
-  text-transform: none;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  user-select: none;
 }
 .ins-company-count {
-  font-weight: 500;
-  color: var(--muted);
-  font-size: 13.5px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 12px;
+  text-transform: none;
+  letter-spacing: 0;
 }
 .ins-plan-payer {
   color: var(--ink-2);

@@ -307,3 +307,25 @@ def test_a_bundle_prices_the_doctor_and_hospital_parts_from_their_own_rows() -> 
     reading = Component("b", 1, "reading", "physician", "optional", True, "CPT", "70551", None)
     assert _price_line(scan, rows, "cash", None, None).amount == Decimal("1953.60")
     assert _price_line(reading, rows, "cash", None, None).amount == Decimal("75")
+
+
+def test_the_doctors_piece_never_reuses_the_hospitals_price() -> None:
+    """2026-11-23 (Cooper): Banner Boswell showed $756.08 for both the scan and
+    the radiologist's reading. Unlabeled rows price only the hospital's piece;
+    a row labeled as both parts makes the reading "included"; modifier 26 is
+    the reading."""
+    from dataclasses import replace
+
+    from procedurescout_core.bundles import Component, _price_line
+    from tests.test_pricing import price
+
+    scan = Component("a", 0, "scan", "facility", "required", True, "CPT", "70551", None)
+    reading = Component("b", 1, "reading", "physician", "optional", True, "CPT", "70551", None)
+    plain = [price("discounted_cash", "756.08")]
+    assert _price_line(scan, plain, "cash", None, None).amount == Decimal("756.08")
+    assert _price_line(reading, plain, "cash", None, None).status == "not_published"
+    both = [replace(price("discounted_cash", "756.08"), billing_class="both")]
+    assert _price_line(reading, both, "cash", None, None).status == "included"
+    m26 = [*plain, replace(price("discounted_cash", "80"), modifiers=("26",))]
+    assert _price_line(scan, m26, "cash", None, None).amount == Decimal("756.08")
+    assert _price_line(reading, m26, "cash", None, None).amount == Decimal("80")

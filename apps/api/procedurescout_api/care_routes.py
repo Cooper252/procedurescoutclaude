@@ -268,6 +268,8 @@ class LineOut(BaseModel):
     amounts_published: list[str]
     rate: str | None
     notes: str | None
+    # priced from the insurer's one rate for all its plans (labeled, like search)
+    all_plans: bool = False
 
 
 class EstimateOut(BaseModel):
@@ -330,6 +332,7 @@ def bundle_estimate(
                 amounts_published=[format(a.normalize(), "f") for a in ln.other_amounts],
                 rate=ln.rate_text,
                 notes=ln.component.notes,
+                all_plans=ln.all_plans,
             )
             for ln in est.lines
         ],

@@ -23,6 +23,11 @@ Rules (no price is better than a false price):
   hospital labeled them; insurance can be one card-name plan (approved
   spellings, rule 9) or "not sure which plan" (all of an insurer's work and
   individual plans).
+- (2026-11-23) a doctor's piece is never priced from the hospital's own
+  price (only from rows labeled professional or modifier 26); when the
+  hospital's price is labeled as covering both parts it is "included"; the
+  code is matched as search matches it (D-065) and a plan with no rate of its
+  own uses the insurer's one rate for all plans, labeled, as search does.
 """
 
 from __future__ import annotations
@@ -64,10 +69,13 @@ class Component:
 class Line:
     component: Component
     included: bool
-    status: str  # "priced", "not_published", "not_a_dollar_amount", "several_prices", "left_out"
+    # "priced", "not_published", "not_a_dollar_amount", "several_prices", "left_out",
+    # or "included" (a doctor's piece the hospital's own price already covers)
+    status: str
     amount: Decimal | None = None
     other_amounts: tuple[Decimal, ...] = field(default_factory=tuple)
     rate_text: str | None = None
+    all_plans: bool = False  # priced from the insurer's one rate for all its plans
 
 
 @dataclass(frozen=True, slots=True)
@@ -125,6 +133,12 @@ def bundle_components(conn: Connection, slug: str) -> tuple[str, list[Component]
 DOCTOR_ROLES = frozenset({"physician", "anesthesia", "pathology"})
 
 
+def _is_doctors_part(p: PublishedPrice) -> bool:
+    """The doctor's part as the hospital labeled it: professional billing or
+    modifier 26 (the reading/interpretation only)."""
+    return p.billing_class == "professional" or "26" in p.modifiers
+
+
 def _price_line(
     component: Component,
     prices: list[PublishedPrice],
@@ -133,7 +147,9 @@ def _price_line(
     plan: str | None,
     spellings: Spellings | None = None,
     state: str = "",
+    fallback: Spellings | None = None,
 ) -> Line:
+    all_plans = False
     if mode == "cash":
         rows = [p for p in prices if p.price_type == "discounted_cash"]
     elif mode == "list":
@@ -142,6 +158,12 @@ def _price_line(
         from .plans import matches
 
         rows = [p for p in prices if p.price_type == "negotiated" and matches(p, spellings, state)]
+        if not rows and fallback is not None:
+            # the insurer's one rate for all its plans, as search uses it (labeled)
+            rows = [
+                p for p in prices if p.price_type == "negotiated" and matches(p, fallback, state)
+            ]
+            all_plans = bool(rows)
     else:
         rows = [
             p
@@ -150,14 +172,21 @@ def _price_line(
             and p.payer_name_raw == payer
             and p.plan_name_raw == plan
         ]
-    # the doctor's piece from the doctor's part, the hospital's piece from its own
-    # part, when the hospital labeled them (otherwise every row, as before)
-    doctor = [p for p in rows if p.billing_class == "professional"]
-    own = [p for p in rows if p.billing_class in ("facility", "both")]
-    if component.role in DOCTOR_ROLES and doctor:
+    # (2026-11-23, Cooper: Banner Boswell showed $756.08 for the scan AND the
+    # radiologist's reading.) The doctor's piece is priced only from rows the
+    # hospital labeled as the doctor's part; never from the hospital's own price.
+    doctor = [p for p in rows if _is_doctors_part(p)]
+    own = [p for p in rows if not _is_doctors_part(p)]
+    if component.role in DOCTOR_ROLES:
+        if not doctor:
+            # a hospital price labeled as covering both parts already includes it
+            if own and all(p.billing_class == "both" for p in own):
+                return Line(component, True, "included", all_plans=all_plans)
+            return Line(component, True, "not_published")
         rows = doctor
-    elif component.role not in DOCTOR_ROLES and own:
-        rows = own
+    else:
+        labeled = [p for p in own if p.billing_class in ("facility", "both")]
+        rows = labeled or own
     if not rows:
         return Line(component, True, "not_published")
     amounts = sorted({p.amount for p in rows if p.amount is not None})
@@ -166,10 +195,12 @@ def _price_line(
         rate = (
             f"{r.percentage.normalize():f}% of charges" if r.percentage is not None else r.algorithm
         )
-        return Line(component, True, "not_a_dollar_amount", rate_text=rate)
+        return Line(component, True, "not_a_dollar_amount", rate_text=rate, all_plans=all_plans)
     if len(amounts) > 1:
-        return Line(component, True, "several_prices", other_amounts=tuple(amounts))
-    return Line(component, True, "priced", amount=amounts[0])
+        return Line(
+            component, True, "several_prices", other_amounts=tuple(amounts), all_plans=all_plans
+        )
+    return Line(component, True, "priced", amount=amounts[0], all_plans=all_plans)
 
 
 def estimate(
@@ -193,8 +224,9 @@ def estimate(
     if (mode == "insurance") != (by_id or (payer is not None and plan is not None)):
         raise BundleError("insurance needs a payer and a plan (and only insurance does)")
     spellings: Spellings | None = None
+    fallback: Spellings | None = None
     if by_id:
-        from .plans import PlanError, approved_spellings, insurer_spellings
+        from .plans import PlanError, all_plans_spellings, approved_spellings, insurer_spellings
 
         try:
             spellings = (
@@ -202,6 +234,8 @@ def estimate(
                 if plan_id is not None
                 else insurer_spellings(conn, str(payer_id))[1]
             )
+            if plan_id is not None:
+                fallback = all_plans_spellings(conn, plan_id)
         except PlanError as exc:
             raise BundleError(str(exc)) from exc
     try:
@@ -231,11 +265,21 @@ def estimate(
         if not included:
             lines.append(Line(comp, False, "left_out"))
             continue
-        prices = find_prices(conn, store, [fid], comp.code_system, comp.code)
-        lines.append(_price_line(comp, prices, mode, payer, plan, spellings, state))
+        # the same code as this hospital wrote it ("70551" labeled CPT or HCPCS), as
+        # search finds it (D-065), so the panel agrees with the result card
+        from .search import same_code_spellings
+
+        prices = [
+            p
+            for system, code in same_code_spellings(conn, [(comp.code_system, comp.code)])
+            for p in find_prices(conn, store, [fid], system, code)
+        ]
+        lines.append(_price_line(comp, prices, mode, payer, plan, spellings, state, fallback))
     priced = [ln.amount for ln in lines if ln.status == "priced" and ln.amount is not None]
     included_lines = [ln for ln in lines if ln.included]
-    complete = bool(included_lines) and all(ln.status == "priced" for ln in included_lines)
+    complete = bool(included_lines) and all(
+        ln.status in ("priced", "included") for ln in included_lines
+    )
     lows = [ln.amount for ln in lines if ln.status == "priced" and ln.amount is not None]
     highs = list(lows)
     for ln in lines:

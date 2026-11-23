@@ -717,7 +717,7 @@ def test_a_big_file_waits_for_a_run_with_time_for_it(conn: Connection, tmp_path:
 
     from procedurescout_ingest import price_files as pf
 
-    assert pf.minutes_needed(9 * 10**9) == 70
+    assert pf.minutes_needed(9 * 10**9) == 46
     import uuid
 
     big = pf.Candidate(
@@ -738,7 +738,7 @@ def test_a_big_file_waits_for_a_run_with_time_for_it(conn: Connection, tmp_path:
     old = pf.candidates
     pf.candidates = lambda _c, _s: [big]  # type: ignore[assignment]
     try:
-        soon = time.monotonic_ns() + 30 * 60 * 10**9  # 30 minutes left
+        soon = time.monotonic_ns() + 30 * 60 * 10**9  # 30 minutes left (it needs 74)
         stats = check_price_files(
             conn, "NV", downloader, tmp_path / "w", today=date(2026, 11, 6), must_end_by_ns=soon
         )
@@ -750,3 +750,39 @@ def test_a_big_file_waits_for_a_run_with_time_for_it(conn: Connection, tmp_path:
         assert called == ["https://h.example/big.csv"]
     finally:
         pf.candidates = old  # type: ignore[assignment]
+
+
+def test_a_file_too_big_for_any_run_is_reported_not_started(
+    conn: Connection, tmp_path: Path
+) -> None:
+    """University of Utah's 33.7 GB file (Utah passes 2-4): started early in each
+    run, still reading when the step's time ran out, so every pass ended the same
+    way. A file that can't finish within one run is reported and not started."""
+    import uuid
+
+    from procedurescout_ingest import price_files as pf
+
+    huge = pf.Candidate(
+        str(uuid.uuid4()),
+        "https://h.example/huge.csv",
+        str(uuid.uuid4()),
+        "SYN2",
+        "Huge",
+        33_724 * 10**6,
+        None,
+    )
+    called: list[str] = []
+
+    def downloader(url: str, dest: Path) -> Download:
+        called.append(url)
+        return Download(url, error="not reached")
+
+    old = pf.candidates
+    pf.candidates = lambda _c, _s: [huge]  # type: ignore[assignment]
+    try:
+        stats = check_price_files(conn, "NV", downloader, tmp_path / "w", today=date(2026, 11, 6))
+    finally:
+        pf.candidates = old  # type: ignore[assignment]
+    assert called == []
+    assert stats.summary["too_big_for_one_run"] == 1
+    assert any("too big to read within one run" in r.message for r in stats.rejects)

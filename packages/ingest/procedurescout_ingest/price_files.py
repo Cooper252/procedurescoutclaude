@@ -734,9 +734,17 @@ class _NoTimeLeftError(Exception):
 
 
 def minutes_needed(reported_bytes: int) -> int:
-    """A generous guess of how long one file takes to download and read: about
-    150 MB a minute, plus 10 minutes (Mayo Clinic Florida: 39 minutes of reading)."""
-    return 10 + reported_bytes // (150 * 10**6)
+    """A guess of how long one file takes to download and read: about 250 MB a
+    minute, plus 10 minutes (Mayo Clinic Florida: 39 minutes of reading)."""
+    return 10 + reported_bytes // (250 * 10**6)
+
+
+# A file that would need longer than this can't finish within one run (the
+# price step has 180 minutes, the steps before it use some): it is reported, not
+# started, so it can't stop every later run of the state (University of Utah's
+# 33.7 GB file, Utah passes 2-4, 2026-11-22). Reading such files while they
+# download is planned.
+MAX_FILE_MINUTES = 110
 
 
 def check_price_files(
@@ -814,6 +822,15 @@ def check_price_files(
             and last[1] == c.reported_bytes
         ):
             stats.count("unchanged_skipped")
+            return
+        if c.reported_bytes is not None and minutes_needed(c.reported_bytes) > MAX_FILE_MINUTES:
+            stats.count("too_big_for_one_run")
+            stats.reject(
+                who,
+                "download_failed",
+                f"{c.name} | {c.url} | about {c.reported_bytes // 10**9} GB: too big to read "
+                "within one run; not started",
+            )
             return
         left_ns = None if must_end_by_ns is None else must_end_by_ns - time.monotonic_ns()
         if (

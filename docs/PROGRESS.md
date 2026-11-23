@@ -2,6 +2,20 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-23 — Whole-cost panel, insurance ranking, insurance picker headings, big files, step 17
+
+From Cooper's MRI search near 85053 with Blue Cross Blue Shield of Arizona:
+- **Whole-cost panel.** Banner Boswell showed $756.08 for both the scan and the radiologist's reading: the hospital's file doesn't label the doctor's part, and the panel priced the reading from the hospital's own rows. The doctor's piece is now priced only from rows labeled as the doctor's part (professional, or modifier 26); a hospital price labeled as covering both parts shows "included in the price above"; otherwise "not published here". The panel also said "not published" for the scan while the card showed the plan rate: it looked for the code only as written in the bundle and never used the insurer's one-rate-for-all-plans; it now matches the code and plan exactly as search does (D-065), labeled. A line under the list says each part is its own charge and the total adds them. `packages/core/procedurescout_core/bundles.py`, `apps/web/components/WholeCost.tsx`. Test: `test_the_doctors_piece_never_reuses_the_hospitals_price`.
+- **Ranking.** In an insurance search, places are ranked by what the person would pay: the plan rate, or the cash price when that is lower (the card already says "Cash price is lower"). `apps/web/app/search/page.tsx`.
+- **Insurance picker.** Company headings are a solid dark band in capitals so they no longer look like a plan above "All plans". `apps/web/app/globals.css`.
+
+Loading:
+- Utah passes 2-4 each timed out on the University of Utah's 33.7 GB file. A file that can't be read within one run (more than 110 minutes at about 250 MB a minute) is now reported "too big to read within one run; not started" and the run moves on (`price_files.MAX_FILE_MINUTES`). Test: `test_a_file_too_big_for_any_run_is_reported_not_started`.
+- Step 17 ("Refresh code index…") timed out in the code index's insurer-name list (one insert per spelling). It now inserts 5,000 at a time (`code_index.rebuild_payer_index`). Test: `test_code_index` (3).
+- The API's health check now answers on its own, so Render doesn't restart the API when every worker is busy with a slow search (`apps/api/procedurescout_api/main.py`). Why Render keeps emailing "server failed" still needs Render's log (sign-in needed).
+
+`make check`: `449 passed, 1 skipped`. Website: `tsc` clean, `npm test` passed.
+
 ## 2026-11-20 — Search results say why a place has no price
 
 Cooper: "I just don't want it to show 45 hospitals and 9 prices because it just looks like we're not good at finding prices." Checked live (MRI within 25 miles of 85053): of 40 hospitals, 15 priced, 9 psychiatric hospitals that post prices but not MRIs, 10 whose price file we don't have yet (Abrazo, St. Joseph's, Valleywise, Mayo, HonorHealth Tempe, City of Hope...), 4 federal or state-run, 2 psychiatric with no file.

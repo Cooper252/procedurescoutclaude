@@ -110,12 +110,22 @@ def rebuild_payer_index(conn: Connection) -> int:
                 text_, best = str(raw), p
             merged[key] = (text_, max(f0, f), total + p, best)
     conn.execute(text("DELETE FROM ref.payer_index"))
-    for key, (raw, facilities, prices, _) in merged.items():
+    # one statement per 5,000 spellings, not one per spelling (2026-11-23: about
+    # 100,000 single inserts to the hosted database ran past the step's 20 minutes)
+    items = list(merged.items())
+    for start in range(0, len(items), 5000):
+        chunk = items[start : start + 5000]
         conn.execute(
             text(
                 "INSERT INTO ref.payer_index (raw_normalized, raw_text, facilities, prices) "
-                "VALUES (:k, :r, :f, :p)"
+                "SELECT * FROM unnest(CAST(:k AS text[]), CAST(:r AS text[]), "
+                "CAST(:f AS bigint[]), CAST(:p AS bigint[]))"
             ),
-            {"k": key, "r": raw, "f": facilities, "p": prices},
+            {
+                "k": [k for k, _ in chunk],
+                "r": [v[0] for _, v in chunk],
+                "f": [v[1] for _, v in chunk],
+                "p": [v[2] for _, v in chunk],
+            },
         )
     return len(merged)

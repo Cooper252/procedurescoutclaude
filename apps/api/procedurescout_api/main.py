@@ -97,8 +97,10 @@ class VersionInfo(BaseModel):
 
 
 @app.get("/healthz", response_model=Health, tags=["meta"])
-def healthz() -> Health:
-    """Liveness check. Does not touch the database."""
+async def healthz() -> Health:
+    """Liveness check. Does not touch the database. Runs on the event loop, not
+    the worker threads, so Render's health check gets an answer even while every
+    worker thread is busy with slow searches (2026-11-23)."""
     return Health(status="ok")
 
 

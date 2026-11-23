@@ -59,10 +59,12 @@ export function WholeCost({
     const ln = est?.lines.find((l) => l.component_id === id);
     if (!ln || !est) return "…";
     if (ln.status === "left_out") return t.wcLeftOut;
-    if (ln.status === "priced" && ln.amount) return money(ln.amount);
+    if (ln.status === "included") return t.wcIncluded;
+    const tag = ln.all_plans ? ` (${t.pdAllPlans})` : "";
+    if (ln.status === "priced" && ln.amount) return money(ln.amount) + tag;
     if (ln.status === "several_prices" && ln.amounts_published.length) {
       const a = ln.amounts_published;
-      return `${money(a[0]!)}–${money(a[a.length - 1]!)}`;
+      return `${money(a[0]!)}–${money(a[a.length - 1]!)}${tag}`;
     }
     if (ln.status === "not_a_dollar_amount") return ln.rate ?? t.wcNotDollar;
     return t.wcNotPublished;
@@ -114,6 +116,7 @@ export function WholeCost({
               <strong>{low ? (high && high !== low ? `${money(low)}–${money(high)}` : money(low)) : "—"}</strong>
             </div>
           )}
+          {est && <p className="wc-note">{t.wcEachPart}</p>}
           {est && !est.complete && <p className="wc-note">{t.wcIncomplete}</p>}
         </div>
       )}

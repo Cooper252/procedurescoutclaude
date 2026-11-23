@@ -177,11 +177,25 @@ function Results() {
     const byDistance = (a: { distance_miles: string }, b: { distance_miles: string }) =>
       compareDecimal(a.distance_miles, b.distance_miles);
     if (sort === "near") return [...rows].sort(byDistance);
-    // lowest headline first; places without a headline of this kind go last, nearest first
-    return [...rows].sort((a, b) =>
-      a.headline && b.headline ? compareDecimal(a.headline, b.headline) || byDistance(a, b) : a.headline ? -1 : b.headline ? 1 : byDistance(a, b),
-    );
-  }, [result, sort]);
+    // insurance search: ranked by what the person would pay, the plan rate or the
+    // cash price when that is lower (Cooper, 2026-11-23); the card says which
+    const cashLow = (f: (typeof rows)[number]) => {
+      const cash = f.prices.filter((p) => p.price_type === "discounted_cash" && p.amount);
+      const main = cash.filter((p) => p.billing_class !== "professional");
+      return (main.length ? main : cash).map((p) => p.amount as string).sort(compareDecimal)[0] ?? null;
+    };
+    const pay = (f: (typeof rows)[number]) => {
+      const c = mode === "plan" ? cashLow(f) : null;
+      if (!f.headline) return c;
+      return c && compareDecimal(c, f.headline) < 0 ? c : f.headline;
+    };
+    // lowest first; places without a price of this kind go last, nearest first
+    return [...rows].sort((a, b) => {
+      const pa = pay(a);
+      const pb = pay(b);
+      return pa && pb ? compareDecimal(pa, pb) || byDistance(a, b) : pa ? -1 : pb ? 1 : byDistance(a, b);
+    });
+  }, [result, sort, mode]);
   // the whole procedure's parts: a bundle whose main piece is this service's code
   const bundle = useMemo(
     () => bundles.find((b) => b.components[0] && result?.codes.includes(b.components[0].code)) ?? null,
