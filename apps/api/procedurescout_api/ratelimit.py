@@ -9,6 +9,7 @@ shared store is needed only if more instances are added.
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import hmac
 import ipaddress
@@ -109,6 +110,22 @@ def check(request: Request, now: float | None = None) -> int | None:
     return None
 
 
+# Pages the website renders on its own server (mostly search engines crawling
+# city and service pages) share a few database connections, so people typing
+# in the search box always have the rest (2026-11-23: crawlers used all 25 and
+# the search box's suggestions and the free-care check timed out).
+PAGE_RENDER_SLOTS = 4
+PAGE_RENDER_WAIT_SECONDS = 20.0
+_page_slots: asyncio.Semaphore | None = None
+
+
+def _slots() -> asyncio.Semaphore:
+    global _page_slots
+    if _page_slots is None:
+        _page_slots = asyncio.Semaphore(PAGE_RENDER_SLOTS)
+    return _page_slots
+
+
 async def middleware(
     request: Request, call_next: Callable[[Request], Awaitable[Response]]
 ) -> Response:
@@ -119,9 +136,25 @@ async def middleware(
             status_code=429,
             headers={"Retry-After": str(wait)},
         )
-    return await call_next(request)
+    if request.url.path == "/healthz" or _client(request) is not None:
+        return await call_next(request)
+    slots = _slots()
+    try:
+        await asyncio.wait_for(slots.acquire(), PAGE_RENDER_WAIT_SECONDS)
+    except TimeoutError:
+        return JSONResponse(
+            {"detail": "Busy; try again shortly."},
+            status_code=503,
+            headers={"Retry-After": "30"},
+        )
+    try:
+        return await call_next(request)
+    finally:
+        slots.release()
 
 
 def reset() -> None:
     """For tests."""
+    global _page_slots
     _counts.clear()
+    _page_slots = None

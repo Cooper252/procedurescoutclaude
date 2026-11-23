@@ -188,8 +188,10 @@ def insert_price(conn: Connection, **overrides: object) -> None:
 def _fresh_rate_limits() -> Iterator[None]:
     """Each test starts with empty rate-limit counters."""
     from procedurescout_api import ratelimit
+    from procedurescout_core import places
 
     ratelimit.reset()
+    places._cities_cache.clear()  # each test's facilities are its own
     yield
 
 

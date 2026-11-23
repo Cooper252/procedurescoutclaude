@@ -7,6 +7,7 @@ A city's center is the center of its active, geocoded facilities, so a
 from __future__ import annotations
 
 import re
+import time
 from dataclasses import dataclass
 
 from sqlalchemy import Connection, text
@@ -33,10 +34,27 @@ def city_slug(name: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
 
 
+# (2026-11-23) search engines open thousands of city pages, and each one grouped
+# every facility in its state; the list changes only when a load runs, so it is
+# kept for an hour per state.
+CITIES_CACHE_SECONDS = 3600
+_cities_cache: dict[str, tuple[int, list[City]]] = {}
+
+
 def cities(conn: Connection, state_code: str) -> list[City]:
     """Cities in a state with at least one active, geocoded facility, largest first."""
     if not _STATE.match(state_code):
         raise PlaceError("not a state code")
+    key = state_code.upper()
+    hit = _cities_cache.get(key)
+    if hit is not None and time.monotonic_ns() - hit[0] < CITIES_CACHE_SECONDS * 10**9:
+        return list(hit[1])
+    found = _load_cities(conn, key)
+    _cities_cache[key] = (time.monotonic_ns(), found)
+    return list(found)
+
+
+def _load_cities(conn: Connection, state_code: str) -> list[City]:
     rows = conn.execute(
         text(
             """

@@ -2,6 +2,14 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-23 — Search engines were using every database connection
+
+Cooper: no suggestions when typing "MRI", and the free-care check said "Something went wrong". Render's API log: `QueuePool limit of size 10 overflow 15 reached`, with almost every request a city page (`/v1/places/city/wi/kohler`, `/pa/great-bend`, ...) rendered for search-engine crawlers; each one grouped every facility in its state (offices included). From the browser, `/v1/places/zip/89123` and `/v1/services/suggest?q=mri` did not answer within 20 seconds.
+
+Fix: requests from the website's own server (pages rendered for crawlers and visitors; no public address) now share 4 slots, waiting up to 20 seconds and then answering 503 so the page keeps its cached copy; people's own requests (search box, ZIP, free-care check) never wait for them (`ratelimit.PAGE_RENDER_SLOTS`). Each state's city list is kept for an hour instead of being rebuilt for every page (`places.cities`). Test: `test_pages_rendered_by_the_website_share_a_few_slots`.
+
+`make check`: `452 passed, 1 skipped`.
+
 ## 2026-11-23 — Medicare's amount for the doctor's bill a hospital doesn't publish (D-071)
 
 Cooper asked for the Medicare option on missing pieces, clearly labeled as billed separately and possibly different. In the whole-cost panel, a doctor's piece the place didn't publish (for example Banner Boswell's radiologist reading) now reads "billed separately · Medicare pays about $66.89 here" (Phoenix, CPT 70551-26), with a note that the doctor's own price or the plan's rate could differ, plus a quieter "rough total with the doctor at Medicare's amount". The place's own total and search ranking are unchanged. Data: CMS PFS National Payment Amount File PFREV26A (545 rows: 59400, 59510, 66984, 70551-26, 88305-26 in all 109 localities) and the CMS ZIP-to-locality file (11,050 ZIP ranges), copied into `data/reference/medicare_physician_fees.csv` and `medicare_zip_localities.csv`; migration `0029_medicare_reference.py`; loaders `catalog.load_medicare_fees` / `load_medicare_zips` (catalog step); lookup `bundles.medicare_amount`; `apps/web/components/WholeCost.tsx`. Status: Implemented, Tested; not yet deployed.

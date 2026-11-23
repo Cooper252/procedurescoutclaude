@@ -393,3 +393,50 @@ def test_childbirth_is_findable_in_plain_words_with_an_explanation(conn: Connect
         == "Vaginal delivery without getting tubes tied (sterilization)/D&C "
         "(a procedure to clear the uterus) without complications"
     )
+
+
+def test_pages_rendered_by_the_website_share_a_few_slots() -> None:
+    """2026-11-23: crawlers opening city pages used every database connection and
+    people's search-box suggestions timed out. Requests from the website's own
+    server (no public address) get at most PAGE_RENDER_SLOTS at a time; a
+    visitor's request never waits for them."""
+    import asyncio
+
+    from starlette.requests import Request
+    from starlette.responses import Response
+
+    from procedurescout_api import ratelimit
+
+    ratelimit.reset()
+    running = 0
+    peak = 0
+
+    async def slow(_: Request) -> Response:
+        nonlocal running, peak
+        running += 1
+        peak = max(peak, running)
+        await asyncio.sleep(0.05)
+        running -= 1
+        return Response("ok")
+
+    def req(xff: str) -> Request:
+        return Request(
+            {
+                "type": "http",
+                "method": "GET",
+                "path": "/v1/places/city/wi/kohler",
+                "headers": [(b"x-forwarded-for", xff.encode())],
+                "client": ("10.0.0.5", 1234),
+                "query_string": b"",
+            }
+        )
+
+    async def main() -> list[int]:
+        pages = [ratelimit.middleware(req("10.1.1.1"), slow) for _ in range(12)]
+        person = ratelimit.middleware(req("203.0.113.9"), slow)
+        out = await asyncio.gather(*pages, person)
+        return [r.status_code for r in out]
+
+    codes = asyncio.run(main())
+    assert codes == [200] * 13
+    assert peak <= ratelimit.PAGE_RENDER_SLOTS + 1  # the pages' slots plus the person
