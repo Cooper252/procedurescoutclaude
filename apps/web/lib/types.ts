@@ -262,6 +262,8 @@ export interface EstimateLine {
   rate: string | null;
   notes: string | null;
   all_plans?: boolean;
+  medicare_amount?: string | null;
+  medicare_year?: number | null;
 }
 
 export interface Estimate {
@@ -277,4 +279,6 @@ export interface Estimate {
   explanation: string;
   total_low?: string | null;
   total_high?: string | null;
+  with_medicare_low?: string | null;
+  with_medicare_high?: string | null;
 }

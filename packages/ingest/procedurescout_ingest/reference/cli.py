@@ -61,6 +61,8 @@ CO_LISTED_CSV = "data/reference/hpt_co_listed_locations_reviewed.csv"
 PROVIDER_TYPES_CSV = "data/reference/provider_types.csv"
 SERVICE_CATALOG_CSV = "data/reference/service_catalog.csv"
 BUNDLES_CSV = "data/reference/bundles.csv"
+MEDICARE_FEES_CSV = "data/reference/medicare_physician_fees.csv"
+MEDICARE_ZIPS_CSV = "data/reference/medicare_zip_localities.csv"
 POVERTY_CSV = "data/reference/poverty_guidelines.csv"
 ASSISTANCE_CSV = "data/reference/assistance_policies.csv"
 PAYERS_CSV = "data/reference/payers.csv"
@@ -959,6 +961,8 @@ def cmd_catalog(args: argparse.Namespace, engine: Engine) -> None:
             ("payer_aliases", catalog.load_payer_aliases, PAYER_ALIASES_CSV),
             ("synonyms", catalog.load_synonyms, SYNONYMS_CSV),
             ("coverage_limits", catalog.load_coverage_limits, COVERAGE_CSV),
+            ("medicare_fees", catalog.load_medicare_fees, MEDICARE_FEES_CSV),
+            ("medicare_zips", catalog.load_medicare_zips, MEDICARE_ZIPS_CSV),
         ):
             part = loader(c, Path(path).read_text())
             stats.rows_in += part.rows_in

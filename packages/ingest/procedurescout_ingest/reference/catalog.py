@@ -870,3 +870,92 @@ def load_coverage_limits(conn: Connection, csv_text: str) -> LoadStats:
         stats.rows_loaded += 1
         stats.count(state)
     return stats
+
+
+MEDICARE_FEE_COLUMNS = (
+    "year",
+    "code_system",
+    "code",
+    "modifier",
+    "carrier",
+    "locality",
+    "facility_amount",
+    "non_facility_amount",
+    "source",
+)
+MEDICARE_ZIP_COLUMNS = ("zip_from", "zip_to", "carrier", "locality")
+
+
+def load_medicare_fees(conn: Connection, csv_text: str) -> LoadStats:
+    """Medicare Physician Fee Schedule amounts (D-071), copied from CMS's
+    payment amount file; amounts kept exactly as CMS publishes them. Replaces
+    the table so a code CMS dropped never lingers."""
+    from decimal import Decimal, InvalidOperation
+
+    stats = LoadStats()
+    rows = read_delimited(csv_text, ",")
+    if not rows:
+        return stats
+    require_columns(rows, MEDICARE_FEE_COLUMNS, "Medicare fees CSV")
+    good = []
+    for i, row in enumerate(rows, start=2):
+        stats.rows_in += 1
+        try:
+            fac, non = Decimal(row["facility_amount"]), Decimal(row["non_facility_amount"])
+        except InvalidOperation:
+            stats.reject(f"line:{i}", "amount", "not a number")
+            continue
+        if fac <= 0 or non <= 0 or not row["source"].strip().startswith("CMS "):
+            stats.reject(f"line:{i}", "amount", "amount must be positive, source CMS")
+            continue
+        good.append(
+            {
+                "y": int(row["year"]),
+                "s": row["code_system"].strip(),
+                "c": row["code"].strip(),
+                "m": row["modifier"].strip(),
+                "car": row["carrier"].strip(),
+                "loc": row["locality"].strip(),
+                "f": str(fac),
+                "n": str(non),
+                "src": row["source"].strip(),
+            }
+        )
+    conn.execute(text("DELETE FROM ref.medicare_physician_fee"))
+    for g in good:
+        conn.execute(
+            text(
+                "INSERT INTO ref.medicare_physician_fee (year, code_system, code, modifier, "
+                "carrier, locality, facility_amount, non_facility_amount, source) "
+                "VALUES (:y, CAST(:s AS ref.code_system), :c, :m, :car, :loc, "
+                "CAST(:f AS numeric), CAST(:n AS numeric), :src)"
+            ),
+            g,
+        )
+    stats.rows_loaded = len(good)
+    return stats
+
+
+def load_medicare_zips(conn: Connection, csv_text: str) -> LoadStats:
+    """ZIP code ranges to Medicare carrier and pricing locality (D-071)."""
+    stats = LoadStats()
+    rows = read_delimited(csv_text, ",")
+    if not rows:
+        return stats
+    require_columns(rows, MEDICARE_ZIP_COLUMNS, "Medicare ZIP localities CSV")
+    cols: dict[str, list[str]] = {k: [] for k in MEDICARE_ZIP_COLUMNS}
+    for row in rows:
+        stats.rows_in += 1
+        for k in MEDICARE_ZIP_COLUMNS:
+            cols[k].append(row[k].strip())
+    conn.execute(text("DELETE FROM ref.medicare_locality_zip"))
+    conn.execute(
+        text(
+            "INSERT INTO ref.medicare_locality_zip (zip_from, zip_to, carrier, locality) "
+            "SELECT * FROM unnest(CAST(:a AS text[]), CAST(:b AS text[]), "
+            "CAST(:c AS text[]), CAST(:d AS text[]))"
+        ),
+        {"a": cols["zip_from"], "b": cols["zip_to"], "c": cols["carrier"], "d": cols["locality"]},
+    )
+    stats.rows_loaded = stats.rows_in
+    return stats

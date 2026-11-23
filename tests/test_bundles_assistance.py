@@ -329,3 +329,64 @@ def test_the_doctors_piece_never_reuses_the_hospitals_price() -> None:
     m26 = [*plain, replace(price("discounted_cash", "80"), modifiers=("26",))]
     assert _price_line(scan, m26, "cash", None, None).amount == Decimal("756.08")
     assert _price_line(reading, m26, "cash", None, None).amount == Decimal("80")
+
+
+def test_a_doctors_piece_not_published_shows_medicares_amount_labeled(
+    conn: Connection, world: LocalStore
+) -> None:
+    """D-071 (Cooper, 2026-11-23): where the doctor's piece isn't in the
+    hospital's file, show what Medicare pays for it in that area, never as the
+    hospital's price and never in the hospital's total."""
+    from procedurescout_ingest.reference import catalog
+
+    (fid,) = _ids(conn, "SYN501")
+    zip5 = conn.execute(
+        text("SELECT zip5 FROM ref.facility WHERE id = CAST(:f AS uuid)"), {"f": fid}
+    ).scalar_one()
+    zips = catalog.load_medicare_zips(
+        conn, f"zip_from,zip_to,carrier,locality\n{zip5},{zip5},99999,01\n"
+    )
+    fees = catalog.load_medicare_fees(
+        conn,
+        ",".join(catalog.MEDICARE_FEE_COLUMNS)
+        + "\n2026,CPT,99998,26,99999,01,66.89,66.89,CMS synthetic test row\n"
+        + "2026,CPT,99998,,99999,01,500.00,600.00,CMS synthetic test row\n"
+        + "2026,CPT,99998,26,99999,02,1.00,1.00,CMS other locality\n",
+    )
+    assert (zips.rows_loaded, fees.rows_loaded) == (1, 3)
+    est = bundles.estimate(
+        conn, world, bundle_slug="synthetic-bundle", facility_id=fid, mode="cash"
+    )
+    anesthesia = next(ln for ln in est.lines if ln.component.label == "Anesthesia")
+    assert anesthesia.status == "not_published"  # still not this place's price
+    assert anesthesia.medicare_amount == Decimal("66.89")  # the doctor's part, this area
+    assert anesthesia.medicare_year == 2026
+    assert est.total_of_priced == Decimal("80.00")  # never added to the place's total
+    assert est.with_medicare_low == Decimal("146.89")
+    procedure = next(ln for ln in est.lines if ln.component.label == "The procedure")
+    assert procedure.medicare_amount is None  # only doctors' pieces get a reference
+
+
+def test_the_committed_medicare_files_load_and_place_phoenix(conn: Connection) -> None:
+    """The CMS copies in data/reference: ZIP 85053 (Phoenix) is Arizona's
+    locality 00, where Medicare pays $66.89 for a brain MRI reading (70551-26,
+    PFREV26A)."""
+    from procedurescout_ingest.reference import catalog
+
+    fees = catalog.load_medicare_fees(
+        conn, (ROOT / "data/reference/medicare_physician_fees.csv").read_text()
+    )
+    zips = catalog.load_medicare_zips(
+        conn, (ROOT / "data/reference/medicare_zip_localities.csv").read_text()
+    )
+    assert fees.rows_loaded == 545 and not fees.rejects
+    assert zips.rows_loaded > 10000
+    got = conn.execute(
+        text(
+            "SELECT m.facility_amount FROM ref.medicare_locality_zip z "
+            "JOIN ref.medicare_physician_fee m ON m.carrier = z.carrier "
+            "AND m.locality = z.locality WHERE '85053' BETWEEN z.zip_from AND z.zip_to "
+            "AND m.code = '70551' AND m.modifier = '26'"
+        )
+    ).scalar_one()
+    assert got == Decimal("66.89")

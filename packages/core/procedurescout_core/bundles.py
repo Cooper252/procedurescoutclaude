@@ -34,7 +34,7 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Collection
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
@@ -76,6 +76,10 @@ class Line:
     other_amounts: tuple[Decimal, ...] = field(default_factory=tuple)
     rate_text: str | None = None
     all_plans: bool = False  # priced from the insurer's one rate for all its plans
+    # (D-071) a doctor's piece this place didn't publish: what Medicare pays for it
+    # in this area; a labeled reference, never this place's price, never in its total
+    medicare_amount: Decimal | None = None
+    medicare_year: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -91,6 +95,10 @@ class BundleEstimate:
     complete: bool
     total_low: Decimal | None = None  # with several-price pieces at their lowest
     total_high: Decimal | None = None  # ... and at their highest
+    # (D-071) the totals with Medicare's amounts for the doctor's pieces this place
+    # didn't publish; a rough guide, labeled, only when there is such a piece
+    with_medicare_low: Decimal | None = None
+    with_medicare_high: Decimal | None = None
 
 
 def bundle_components(conn: Connection, slug: str) -> tuple[str, list[Component]]:
@@ -131,6 +139,33 @@ def bundle_components(conn: Connection, slug: str) -> tuple[str, list[Component]
 
 
 DOCTOR_ROLES = frozenset({"physician", "anesthesia", "pathology"})
+
+
+def medicare_amount(
+    conn: Connection, facility_id: str, code_system: str, code: str
+) -> tuple[Decimal, int] | None:
+    """What Medicare pays a doctor for this code where this place is (D-071):
+    the CMS Physician Fee Schedule facility amount for the place's ZIP code's
+    pricing locality, the doctor's part (modifier 26) when CMS lists one."""
+    row = conn.execute(
+        text(
+            """
+            SELECT m.facility_amount, m.year
+            FROM ref.facility f
+            JOIN ref.medicare_locality_zip z
+              ON f.zip5 BETWEEN z.zip_from AND z.zip_to
+            JOIN ref.medicare_physician_fee m
+              ON m.carrier = z.carrier AND m.locality = z.locality
+             AND m.code_system = CAST(:s AS ref.code_system) AND m.code = :c
+             AND m.modifier IN ('26', '')
+            WHERE f.id = CAST(:f AS uuid)
+            ORDER BY m.year DESC, m.modifier DESC
+            LIMIT 1
+            """
+        ),
+        {"f": facility_id, "s": code_system, "c": code},
+    ).first()
+    return None if row is None else (Decimal(row[0]), int(row[1]))
 
 
 def _is_doctors_part(p: PublishedPrice) -> bool:
@@ -274,7 +309,12 @@ def estimate(
             for system, code in same_code_spellings(conn, [(comp.code_system, comp.code)])
             for p in find_prices(conn, store, [fid], system, code)
         ]
-        lines.append(_price_line(comp, prices, mode, payer, plan, spellings, state, fallback))
+        line = _price_line(comp, prices, mode, payer, plan, spellings, state, fallback)
+        if line.status == "not_published" and comp.role in DOCTOR_ROLES:
+            ref = medicare_amount(conn, str(fid), comp.code_system, comp.code)
+            if ref is not None:
+                line = replace(line, medicare_amount=ref[0], medicare_year=ref[1])
+        lines.append(line)
     priced = [ln.amount for ln in lines if ln.status == "priced" and ln.amount is not None]
     included_lines = [ln for ln in lines if ln.included]
     complete = bool(included_lines) and all(
@@ -286,6 +326,11 @@ def estimate(
         if ln.status == "several_prices" and ln.other_amounts:
             lows.append(min(ln.other_amounts))
             highs.append(max(ln.other_amounts))
+    refs = [ln.medicare_amount for ln in lines if ln.medicare_amount is not None]
+    with_low = with_high = None
+    if refs:
+        with_low = sum(lows, Decimal(0)) + sum(refs, Decimal(0))
+        with_high = sum(highs, Decimal(0)) + sum(refs, Decimal(0))
     return BundleEstimate(
         bundle_slug=bundle_slug,
         bundle_name=name,
@@ -298,4 +343,6 @@ def estimate(
         complete=complete,
         total_low=sum(lows, Decimal(0)) if lows else None,
         total_high=sum(highs, Decimal(0)) if highs else None,
+        with_medicare_low=with_low,
+        with_medicare_high=with_high,
     )

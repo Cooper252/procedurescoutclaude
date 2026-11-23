@@ -9,6 +9,7 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { money } from "@/lib/money";
+import { fill } from "@/lib/i18n";
 import type { Bundle, Estimate, Mode } from "@/lib/types";
 import { useApp } from "./AppState";
 
@@ -67,10 +68,14 @@ export function WholeCost({
       return `${money(a[0]!)}–${money(a[a.length - 1]!)}${tag}`;
     }
     if (ln.status === "not_a_dollar_amount") return ln.rate ?? t.wcNotDollar;
+    if (ln.medicare_amount) return fill(t.wcMedicareLine, { price: money(ln.medicare_amount) });
     return t.wcNotPublished;
   }
 
   const low = est?.total_low ?? est?.total_of_priced_pieces ?? null;
+  const refLow = est?.with_medicare_low ?? null;
+  const refHigh = est?.with_medicare_high ?? refLow;
+  const refYear = est?.lines.find((l) => l.medicare_year)?.medicare_year ?? null;
   const high = est?.total_high ?? low;
 
   return (
@@ -116,6 +121,13 @@ export function WholeCost({
               <strong>{low ? (high && high !== low ? `${money(low)}–${money(high)}` : money(low)) : "—"}</strong>
             </div>
           )}
+          {est && refLow && (
+            <div className="wc-total wc-ref">
+              <span>{t.wcWithMedicare}</span>
+              <strong>{refHigh && refHigh !== refLow ? `${money(refLow)}–${money(refHigh)}` : money(refLow)}</strong>
+            </div>
+          )}
+          {est && refLow && <p className="wc-note">{fill(t.wcMedicareNote, { year: String(refYear ?? "") })}</p>}
           {est && <p className="wc-note">{t.wcEachPart}</p>}
           {est && !est.complete && <p className="wc-note">{t.wcIncomplete}</p>}
         </div>

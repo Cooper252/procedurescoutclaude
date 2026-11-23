@@ -2775,6 +2775,15 @@ details.unpriced .group-label { font-size: 0.95rem; font-weight: 600; margin: 14
   margin-top: 10px;
   padding-top: 8px;
 }
+/* the rough total with Medicare's amounts (D-071): quieter than the real total */
+.wc-total.wc-ref {
+  border-top-style: dashed;
+  color: var(--muted);
+  font-size: 0.95em;
+}
+.wc-total.wc-ref strong {
+  font-weight: 600;
+}
 .wc-note {
   margin: 6px 0 0;
   font-size: 13.5px;

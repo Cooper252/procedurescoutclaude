@@ -270,6 +270,9 @@ class LineOut(BaseModel):
     notes: str | None
     # priced from the insurer's one rate for all its plans (labeled, like search)
     all_plans: bool = False
+    # (D-071) not published here: what Medicare pays a doctor for it in this area
+    medicare_amount: str | None = None
+    medicare_year: int | None = None
 
 
 class EstimateOut(BaseModel):
@@ -286,6 +289,9 @@ class EstimateOut(BaseModel):
     # lowest and highest total when a piece has several published prices
     total_low: str | None = None
     total_high: str | None = None
+    # (D-071) with Medicare's amounts for doctors' pieces not published here
+    with_medicare_low: str | None = None
+    with_medicare_high: str | None = None
 
 
 @router.post("/bundles/{slug}/estimate", response_model=EstimateOut)
@@ -333,6 +339,8 @@ def bundle_estimate(
                 rate=ln.rate_text,
                 notes=ln.component.notes,
                 all_plans=ln.all_plans,
+                medicare_amount=_s(ln.medicare_amount),
+                medicare_year=ln.medicare_year,
             )
             for ln in est.lines
         ],
@@ -341,6 +349,8 @@ def bundle_estimate(
         explanation=explanation,
         total_low=_s(est.total_low),
         total_high=_s(est.total_high),
+        with_medicare_low=_s(est.with_medicare_low),
+        with_medicare_high=_s(est.with_medicare_high),
     )
 
 

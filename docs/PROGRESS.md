@@ -2,6 +2,12 @@
 
 Status levels: Implemented → Tested → Deployed → Verified in production. Only evidence counts.
 
+## 2026-11-23 — Medicare's amount for the doctor's bill a hospital doesn't publish (D-071)
+
+Cooper asked for the Medicare option on missing pieces, clearly labeled as billed separately and possibly different. In the whole-cost panel, a doctor's piece the place didn't publish (for example Banner Boswell's radiologist reading) now reads "billed separately · Medicare pays about $66.89 here" (Phoenix, CPT 70551-26), with a note that the doctor's own price or the plan's rate could differ, plus a quieter "rough total with the doctor at Medicare's amount". The place's own total and search ranking are unchanged. Data: CMS PFS National Payment Amount File PFREV26A (545 rows: 59400, 59510, 66984, 70551-26, 88305-26 in all 109 localities) and the CMS ZIP-to-locality file (11,050 ZIP ranges), copied into `data/reference/medicare_physician_fees.csv` and `medicare_zip_localities.csv`; migration `0029_medicare_reference.py`; loaders `catalog.load_medicare_fees` / `load_medicare_zips` (catalog step); lookup `bundles.medicare_amount`; `apps/web/components/WholeCost.tsx`. Status: Implemented, Tested; not yet deployed.
+
+Tests: `test_a_doctors_piece_not_published_shows_medicares_amount_labeled`, `test_the_committed_medicare_files_load_and_place_phoenix`. `make check`: `451 passed, 1 skipped`.
+
 ## 2026-11-23 — Why Render kept emailing "server failed": the database filled its disk at the end of every state
 
 Render's logs (Cooper signed in): the live database crashed five times in 12 hours ("PANIC: could not write to file pg_wal/xlogtemp: No space left on device", 21:32, 22:40, 03:47, 06:12, 08:28), each time at the end of a load run. Its disk sits at about 70% of 20 GB and jumped to 100% each time. The GitHub log of Texas pass 4 shows what was running: the code-index rebuild (`INSERT INTO ref.code_index ... FROM price.file_code_summary`), whose single query sorted every published file's code summary on the database's disk; the connection then dropped ("SSL connection has been closed unexpectedly"). While the database restarted, the API answered every request with an error and missed Render's health checks, which is what the emails were. The "step 17 timed out" failures were the same crash.
