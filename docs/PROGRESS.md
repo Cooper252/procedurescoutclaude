@@ -10,6 +10,19 @@ Fix: requests from the website's own server (pages rendered for crawlers and vis
 
 `make check`: `452 passed, 1 skipped`.
 
+## 2026-11-23 — Indiana pass 2 ran past its limit with no report; the code index runs in pieces
+
+Reports read: Pennsylvania pass 1 rerun (8 files loaded; the database restarted mid-run, before the code-index fix: "service temporarily unavailable"; Penn Highlands (7) answers 403; St. Luke's (7) links return 404), Indiana pass 1 (11 files, 61.8 million prices, stopped for time as planned) and Indiana pass 2.
+
+Indiana pass 2 (GitHub log): the reference and website steps took 48 minutes, then the price step ran until GitHub stopped it at 180 minutes, so no report was written (only "report before price files"); the log has nothing about which file was running. Then the code-index step, reading every published file's summary as one stream, ran past its 20 minutes too.
+
+Fixes:
+- **Watchdog.** 12 minutes before the price step's limit, the file being read is interrupted; everything saved so far is kept, the file is reported as "still being read at the time limit; left for the next run" and the report is written (`reference/cli.PRICE_WATCHDOG_MINUTES`, `price_files.check_price_files`). Each file's start is printed to the log ("price file 12/92: NAME (MB)"). Test: `test_a_file_still_running_at_the_hard_limit_is_cut_off_and_the_report_kept`.
+- **Code index in pieces.** Each run takes away files retired since the last run and adds newly published ones (oldest first, for at most 11 minutes, saving every 20 files) into `ref.code_index_next`, and copies the totals into `ref.code_index` only once every published file is counted, so search keeps the previous index meanwhile. A place has one published file at a time, so each file is one place for its codes; the wording shown is that of the file with the most prices for the code. Migration `0030_code_index_incremental.py`; `code_index.rebuild_code_index`. The first live runs will need several states to count every file. Tests: `test_the_code_index_counts_files_over_several_runs`, `test_code_index`, `test_publish`.
+- Free-care check re-run live with Cooper's numbers (4 people, $80,000, 89123): answered (25 hospitals, 0.6 s), but the nearby-hospitals request took 6.8 s; the new retry covers a slow moment.
+
+`make check`: `454 passed, 1 skipped`.
+
 ## 2026-11-23 — Home page: search box without scrolling, "free, no account" said first, free-care check in one step
 
 From Cooper's home-page test (screenshot: "How do you want to be seen" ran over "How are you paying"; typing "mri" showed no suggestions; the free-care check asked for the ZIP on a second page, then said "Something went wrong"):

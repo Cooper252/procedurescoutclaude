@@ -786,3 +786,41 @@ def test_a_file_too_big_for_any_run_is_reported_not_started(
     assert called == []
     assert stats.summary["too_big_for_one_run"] == 1
     assert any("too big to read within one run" in r.message for r in stats.rejects)
+
+
+def test_a_file_still_running_at_the_hard_limit_is_cut_off_and_the_report_kept(
+    conn: Connection, tmp_path: Path
+) -> None:
+    """Indiana pass 2 (2026-11-23): one file ran until GitHub stopped the step
+    after 180 minutes, so no report was written. The watchdog interrupts the
+    file instead; the run stops there and the report is written."""
+    import uuid
+
+    from procedurescout_ingest import price_files as pf
+
+    def cand(name: str) -> pf.Candidate:
+        return pf.Candidate(
+            str(uuid.uuid4()),
+            f"https://h.example/{name}.csv",
+            str(uuid.uuid4()),
+            "SYN2",
+            name,
+            10**6,
+            None,
+        )
+
+    called: list[str] = []
+
+    def downloader(url: str, dest: Path) -> Download:
+        called.append(url)
+        raise KeyboardInterrupt  # what the watchdog's interrupt_main() raises
+
+    old = pf.candidates
+    pf.candidates = lambda _c, _s: [cand("Slow"), cand("Next")]  # type: ignore[assignment]
+    try:
+        stats = check_price_files(conn, "NV", downloader, tmp_path / "w", today=date(2026, 11, 6))
+    finally:
+        pf.candidates = old  # type: ignore[assignment]
+    assert called == ["https://h.example/Slow.csv"]  # the next file isn't started
+    assert stats.summary["cut_off_at_time_limit"] == 1
+    assert "Slow's file was still being read" in str(stats.summary["stopped_early"])

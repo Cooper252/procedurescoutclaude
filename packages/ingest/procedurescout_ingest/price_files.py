@@ -30,6 +30,7 @@ import io
 import json
 import re
 import shutil
+import sys
 import time
 import zipfile
 from collections import Counter
@@ -913,6 +914,14 @@ def check_price_files(
             stats.summary["stopped_early"] = f"file limit {max_files} reached"
             break
         stats.rows_in += 1
+        # progress in the run's log, so a long file can be seen (2026-11-23:
+        # Indiana pass 2 ran past the step's limit with nothing in the log)
+        print(
+            f"price file {stats.rows_in}/{len(chosen)}: {c.name} "
+            f"({'?' if c.reported_bytes is None else c.reported_bytes // 10**6} MB)",
+            file=sys.stderr,
+            flush=True,
+        )
         # The live run saves after every hospital (`commit`); without it (tests,
         # one-off runs inside a bigger transaction) each file gets a savepoint.
         savepoint = conn.begin_nested() if commit is None else None
@@ -927,6 +936,31 @@ def check_price_files(
             if savepoint is not None:
                 savepoint.commit()
             stats.rows_in -= 1
+            break
+        except KeyboardInterrupt:
+            # the step's hard time limit is near (cli's watchdog): stop this file,
+            # keep everything saved so far and write the report, instead of
+            # GitHub killing the step with no report (Indiana pass 2, 2026-11-23)
+            if savepoint is not None:
+                with contextlib.suppress(Exception):
+                    savepoint.rollback()
+            else:
+                with contextlib.suppress(Exception):
+                    conn.rollback()
+            if rows_conn is not None:
+                with contextlib.suppress(Exception):
+                    rows_conn.rollback()
+            stats.count("cut_off_at_time_limit")
+            stats.reject(
+                f"ccn:{c.ccn}",
+                "file_failed",
+                f"{c.name} | {c.url} | still being read at the step's time limit; "
+                "left for the next run",
+                Severity.WARNING,
+            )
+            stats.summary["stopped_early"] = (
+                f"{c.name}'s file was still being read at the time limit; left for the next run"
+            )
             break
         except Exception as exc:
             # One file's trouble (a dropped database connection, storage or a
@@ -964,13 +998,17 @@ def check_price_files(
     stats.summary["files_chosen"] = len(chosen)
     if load:
         # every state's partition (Nevada has its own; other states use the default)
-        sizes = conn.execute(
-            text(
-                "SELECT coalesce(sum(pg_total_relation_size(relid)), 0), "
-                "coalesce(sum(pg_relation_size(relid)), 0), pg_database_size(current_database()) "
-                "FROM pg_partition_tree('price.price') WHERE isleaf"
-            )
-        ).one()
+        size_sql = text(
+            "SELECT coalesce(sum(pg_total_relation_size(relid)), 0), "
+            "coalesce(sum(pg_relation_size(relid)), 0), pg_database_size(current_database()) "
+            "FROM pg_partition_tree('price.price') WHERE isleaf"
+        )
+        try:
+            sizes = conn.execute(size_sql).one()
+        except Exception:
+            # a connection broken by a cut-off file: reset it and ask again
+            conn.rollback()
+            sizes = conn.execute(size_sql).one()
         stats.summary["price_total_bytes"] = int(sizes[0])
         stats.summary["price_table_bytes"] = int(sizes[1])
         stats.summary["database_bytes"] = int(sizes[2])

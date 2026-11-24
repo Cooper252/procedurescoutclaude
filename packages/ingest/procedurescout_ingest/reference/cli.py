@@ -447,6 +447,8 @@ def cmd_clear_staged(args: argparse.Namespace, engine: Engine) -> None:
 # step's 180-minute limit stopped it before the report was written).
 PROCESS_START_NS = time.monotonic_ns()
 PRICE_STEP_RESERVE_MINUTES = 45  # left for reading the last file and the report
+CODE_INDEX_SECONDS = 11 * 60  # files counted into the code index per run (2026-11-23)
+PRICE_WATCHDOG_MINUTES = 12  # before the step's limit: stop the file being read, write the report
 
 
 def cmd_price_files(args: argparse.Namespace, engine: Engine) -> None:
@@ -511,23 +513,46 @@ def cmd_price_files(args: argparse.Namespace, engine: Engine) -> None:
         limit = os.environ.get("PRICE_FILE_LIMIT", "").strip()
         budget = os.environ.get("PRICE_TIME_BUDGET_MINUTES", "").strip()
         stop_at_ns = PROCESS_START_NS + int(budget) * 60 * 10**9 if budget else None
+        # Watchdog (2026-11-23, Indiana pass 2: one file ran on until GitHub
+        # stopped the step after 180 minutes, so no report was written and the
+        # chain lost the run): shortly before the limit the file being read is
+        # interrupted, everything saved so far is kept and the report is written.
+        watchdog = None
+        if step_minutes:
+            import _thread
+            import threading
+
+            hard_ns = PROCESS_START_NS + (int(step_minutes) - PRICE_WATCHDOG_MINUTES) * 60 * 10**9
+            watchdog = threading.Timer(
+                max(0, (hard_ns - time.monotonic_ns()) // 10**9), _thread.interrupt_main
+            )
+            watchdog.daemon = True
+            watchdog.start()
+
+        def checked(c: Connection) -> LoadStats:
+            try:
+                return price_files.check_price_files(
+                    c,
+                    args.state,
+                    downloader,
+                    Path(work),
+                    load=load,
+                    min_free_bytes=min_free,
+                    after_load=after,
+                    max_files=int(limit) if limit else None,
+                    stop_at_ns=stop_at_ns,
+                    must_end_by_ns=must_end_by_ns,
+                    rows_conn=rows_conn,
+                    commit=c.commit if publish_now else None,
+                )
+            finally:
+                if watchdog is not None:
+                    watchdog.cancel()
+
         stats = _run(
             engine,
             "price_file_check",
-            lambda c: price_files.check_price_files(
-                c,
-                args.state,
-                downloader,
-                Path(work),
-                load=load,
-                min_free_bytes=min_free,
-                after_load=after,
-                max_files=int(limit) if limit else None,
-                stop_at_ns=stop_at_ns,
-                must_end_by_ns=must_end_by_ns,
-                rows_conn=rows_conn,
-                commit=c.commit if publish_now else None,
-            ),
+            checked,
             source_file="assigned price files (downloaded, checked, deleted)",
             parameters={
                 "state": args.state,
@@ -1026,8 +1051,11 @@ def cmd_code_index(args: argparse.Namespace, engine: Engine) -> None:
     """Rebuild the index of billing codes in published prices (D-045)."""
     from procedurescout_ingest.code_index import rebuild_code_index
 
-    with engine.begin() as conn:
-        stats = rebuild_code_index(conn)
+    # the step has 20 minutes, insurance names take about 3: count files for 11,
+    # saving as it goes; files not reached are counted by the next run
+    with engine.connect() as conn:
+        stats = rebuild_code_index(conn, seconds=CODE_INDEX_SECONDS, commit=conn.commit)
+        conn.commit()
     print(json.dumps({"dataset": "code_index", "codes": stats.rows_loaded, **stats.summary}))
 
 

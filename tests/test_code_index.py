@@ -124,3 +124,28 @@ def test_any_published_insurer_name_can_be_searched_as_written(
     assert {p.payer_name_raw for p in negotiated} == {"Synthetic Payer One"}  # exactly as written
     with pytest.raises(SearchError):
         search(conn, published, payer_raw="Some Unknown Insurer", **kw)  # type: ignore[arg-type]
+
+
+def test_the_code_index_counts_files_over_several_runs(
+    conn: Connection, published: LocalStore
+) -> None:
+    """2026-11-23: the whole rebuild ran past the step's 20 minutes on the live
+    database. A run with no time left counts nothing and leaves the index as it
+    was; the next run catches up and only then replaces the index."""
+    first = rebuild_code_index(conn, seconds=0)
+    assert first.summary["files_added"] == 0 and first.summary["index_updated"] is False
+    assert first.summary["files_still_to_count"] >= 1
+    later = rebuild_code_index(conn)
+    assert later.summary["files_still_to_count"] == 0 and later.summary["index_updated"] is True
+    row = conn.execute(
+        text("SELECT facilities FROM ref.code_index WHERE system = 'CPT' AND code = '99999'")
+    ).one()
+    assert row[0] == 1
+    again = rebuild_code_index(conn)  # nothing new: same totals, nothing counted twice
+    assert again.summary["files_added"] == 0
+    assert (
+        conn.execute(
+            text("SELECT facilities FROM ref.code_index WHERE system = 'CPT' AND code = '99999'")
+        ).scalar_one()
+        == 1
+    )

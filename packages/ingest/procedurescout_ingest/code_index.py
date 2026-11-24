@@ -10,82 +10,177 @@ ref.code_index and is shown labeled as theirs.
 
 from __future__ import annotations
 
+import time
+from collections.abc import Callable
+
 from sqlalchemy import Connection, text
 
 from .reference.common import LoadStats
 
+_FILE_ROWS = text(
+    "SELECT code_system::text, code, top_description, prices "
+    "FROM price.file_code_summary WHERE dataset_version_id = CAST(:d AS uuid)"
+)
+# a published file without a summary (published before summaries existed)
+_FILE_ROWS_OLD = text(
+    """
+    SELECT code_system::text, code,
+           mode() WITHIN GROUP (ORDER BY left(btrim(description_raw), 300))
+               FILTER (WHERE description_raw IS NOT NULL AND btrim(description_raw) <> ''),
+           count(*)
+    FROM price.published_price WHERE dataset_version_id = CAST(:d AS uuid)
+    GROUP BY code_system, code
+    """
+)
 
-def rebuild_code_index(conn: Connection) -> LoadStats:
-    """(2026-11-23) The per-file summaries are read as one stream and added up
-    here, not sorted by the database: with every state loaded the old single
-    query sorted tens of millions of summary rows on the hosted database's disk,
-    filled it ("could not write to file pg_wal/...: No space left on device"),
-    and the database restarted, taking the site down every time a state
-    finished. A facility has one published dataset at a time (publishing
-    retires the previous one), so its rows add one place per code."""
+
+def _file_rows(conn: Connection, dataset_id: str) -> list[tuple[str, str, str | None, int]]:
+    rows = (
+        conn.execute(_FILE_ROWS, {"d": dataset_id}).all()
+        or conn.execute(_FILE_ROWS_OLD, {"d": dataset_id}).all()
+    )
+    return [(str(r[0]), str(r[1]), None if r[2] is None else str(r[2]), int(r[3])) for r in rows]
+
+
+def _apply(conn: Connection, rows: list[tuple[str, str, str | None, int]], sign: int) -> None:
+    """Add (sign 1) or take away (sign -1) one file's codes in the running totals."""
+    for start in range(0, len(rows), 5000):
+        chunk = rows[start : start + 5000]
+        params = {
+            "s": [r[0] for r in chunk],
+            "c": [r[1] for r in chunk],
+            "d": [r[2] for r in chunk],
+            "p": [r[3] for r in chunk],
+        }
+        if sign > 0:
+            conn.execute(
+                text(
+                    """
+                    INSERT INTO ref.code_index_next AS n
+                        (system, code, hospital_description, top_prices, facilities, prices)
+                    SELECT CAST(s AS ref.code_system), c, d,
+                           CASE WHEN d IS NULL THEN 0 ELSE p END, 1, p
+                    FROM unnest(CAST(:s AS text[]), CAST(:c AS text[]), CAST(:d AS text[]),
+                                CAST(:p AS bigint[])) AS x(s, c, d, p)
+                    ON CONFLICT (system, code) DO UPDATE SET
+                        facilities = n.facilities + 1,
+                        prices = n.prices + EXCLUDED.prices,
+                        hospital_description = CASE
+                            WHEN EXCLUDED.hospital_description IS NOT NULL
+                             AND (n.hospital_description IS NULL
+                                  OR EXCLUDED.top_prices > n.top_prices)
+                            THEN EXCLUDED.hospital_description ELSE n.hospital_description END,
+                        top_prices = CASE
+                            WHEN EXCLUDED.hospital_description IS NOT NULL
+                             AND (n.hospital_description IS NULL
+                                  OR EXCLUDED.top_prices > n.top_prices)
+                            THEN EXCLUDED.top_prices ELSE n.top_prices END
+                    """
+                ),
+                params,
+            )
+        else:
+            conn.execute(
+                text(
+                    """
+                    UPDATE ref.code_index_next n SET facilities = n.facilities - 1,
+                           prices = n.prices - x.p
+                    FROM unnest(CAST(:s AS text[]), CAST(:c AS text[]), CAST(:d AS text[]),
+                                CAST(:p AS bigint[])) AS x(s, c, d, p)
+                    WHERE n.system = CAST(x.s AS ref.code_system) AND n.code = x.c
+                    """
+                ),
+                params,
+            )
+    if sign < 0:
+        conn.execute(text("DELETE FROM ref.code_index_next WHERE facilities <= 0 OR prices <= 0"))
+
+
+def rebuild_code_index(
+    conn: Connection,
+    *,
+    seconds: int | None = None,
+    commit: Callable[[], None] | None = None,
+) -> LoadStats:
+    """Keep the code index current file by file (2026-11-23). The single query
+    over every summary filled the live database's disk; reading them all as a
+    stream ran past the step's 20 minutes. Each run takes away files retired
+    since the last run, adds newly published ones (oldest first, for at most
+    `seconds`), and copies the totals to ref.code_index once every published
+    file is counted. A place has one published file at a time, so each file is
+    one place for its codes. The wording shown is the one used by the file that
+    published the most prices for the code (hospitals' own wording, labeled)."""
     stats = LoadStats()
-    places: dict[tuple[str, str], int] = {}
-    prices: dict[tuple[str, str], int] = {}
-    wording: dict[tuple[str, str], dict[str, int]] = {}
-
-    def add(system: str, code: str, desc: str | None, n: int) -> None:
-        key = (system, code)
-        places[key] = places.get(key, 0) + 1
-        prices[key] = prices.get(key, 0) + n
-        if desc is not None:
-            d = wording.setdefault(key, {})
-            d[desc] = d.get(desc, 0) + n
-
-    raw = conn.connection.driver_connection
-    assert raw is not None
-    with (
-        raw.cursor() as cur,
-        cur.copy(
-            """
-        COPY (
-            SELECT s.code_system::text, s.code, s.top_description, s.prices
-            FROM price.file_code_summary s
-            JOIN src.dataset_version dv ON dv.id = s.dataset_version_id
-            WHERE dv.status = 'published'
-        ) TO STDOUT
-        """
-        ) as cp,
-    ):
-        for system, code, desc, n in cp.rows():
-            add(str(system), str(code), None if desc is None else str(desc), int(str(n)))
-    # published datasets without a summary (older): from their rows (few or none)
-    for system, code, desc, n in conn.execute(
-        text(
-            """
-            SELECT code_system::text, code,
-                   mode() WITHIN GROUP (ORDER BY left(btrim(description_raw), 300))
-                       FILTER (WHERE description_raw IS NOT NULL
-                               AND btrim(description_raw) <> ''),
-                   count(*)
-            FROM price.published_price pp
-            WHERE NOT EXISTS (SELECT 1 FROM price.file_code_summary s
-                              WHERE s.dataset_version_id = pp.dataset_version_id)
-            GROUP BY code_system, code, facility_id
-            """
+    started = time.monotonic()
+    retired = [
+        str(r[0])
+        for r in conn.execute(
+            text(
+                "SELECT c.dataset_version_id FROM ref.code_index_counted c "
+                "LEFT JOIN src.dataset_version dv ON dv.id = c.dataset_version_id "
+                "WHERE dv.status IS DISTINCT FROM 'published'"
+            )
+        ).all()
+    ]
+    for d in retired:
+        rows = _file_rows(conn, d)
+        if not rows:
+            # its summary is gone, so it can't be taken away: count everything again
+            conn.execute(text("DELETE FROM ref.code_index_next"))
+            conn.execute(text("DELETE FROM ref.code_index_counted"))
+            stats.count("restarted_count")
+            break
+        _apply(conn, rows, -1)
+        conn.execute(
+            text("DELETE FROM ref.code_index_counted WHERE dataset_version_id = CAST(:d AS uuid)"),
+            {"d": d},
         )
-    ).all():
-        add(str(system), str(code), None if desc is None else str(desc), int(n))
-    conn.execute(text("DELETE FROM ref.code_index"))
-    with (
-        raw.cursor() as cur,
-        cur.copy(
-            "COPY ref.code_index (system, code, hospital_description, facilities, prices) "
-            "FROM STDIN"
-        ) as cp,
-    ):
-        for key, n_places in places.items():
-            descs = wording.get(key)
-            # the wording with the most prices; ties: the alphabetically first
-            top = min(descs.items(), key=lambda kv: (-kv[1], kv[0]))[0] if descs else None
-            cp.write_row((key[0], key[1], top, n_places, prices[key]))
-    stats.rows_loaded = len(places)
+        stats.count("files_taken_away")
+    if commit is not None:
+        commit()
+    waiting = [
+        str(r[0])
+        for r in conn.execute(
+            text(
+                "SELECT dv.id FROM src.dataset_version dv WHERE dv.status = 'published' "
+                "AND NOT EXISTS (SELECT 1 FROM ref.code_index_counted c "
+                "WHERE c.dataset_version_id = dv.id) ORDER BY dv.published_at NULLS FIRST, dv.id"
+            )
+        ).all()
+    ]
+    added = 0
+    for d in waiting:
+        if seconds is not None and time.monotonic() - started > seconds:
+            break
+        _apply(conn, _file_rows(conn, d), 1)
+        conn.execute(
+            text(
+                "INSERT INTO ref.code_index_counted (dataset_version_id) VALUES (CAST(:d AS uuid))"
+            ),
+            {"d": d},
+        )
+        added += 1
+        if commit is not None and added % 20 == 0:
+            commit()
+    stats.summary["files_added"] = added
+    stats.summary["files_still_to_count"] = len(waiting) - added
+    if added == len(waiting):
+        # every published file is counted: the totals become the index
+        conn.execute(text("DELETE FROM ref.code_index"))
+        result = conn.execute(
+            text(
+                "INSERT INTO ref.code_index (system, code, hospital_description, facilities, "
+                "prices) SELECT system, code, hospital_description, facilities, prices "
+                "FROM ref.code_index_next WHERE facilities > 0 AND prices > 0"
+            )
+        )
+        stats.rows_loaded = result.rowcount or 0
+        stats.summary["index_updated"] = True
+    else:
+        stats.rows_loaded = conn.execute(text("SELECT count(*) FROM ref.code_index")).scalar_one()
+        stats.summary["index_updated"] = False
     stats.rows_in = stats.rows_loaded
-    added = conn.execute(
+    new_codes = conn.execute(
         text(
             """
             INSERT INTO ref.code (system, code, version)
@@ -97,7 +192,7 @@ def rebuild_code_index(conn: Connection) -> LoadStats:
             """
         )
     )
-    stats.summary["codes_added_to_lookup"] = added.rowcount or 0
+    stats.summary["codes_added_to_lookup"] = new_codes.rowcount or 0
     stats.summary["payer_spellings"] = rebuild_payer_index(conn)
     return stats
 
