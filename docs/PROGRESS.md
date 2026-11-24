@@ -10,6 +10,16 @@ Fix: requests from the website's own server (pages rendered for crawlers and vis
 
 `make check`: `452 passed, 1 skipped`.
 
+## 2026-11-23 — Why the site is slow: search engines crawling city pages, and one lookup reading a whole table
+
+After the nearby-hospitals fix deployed, the same request still took 5.9 s. Render's logs showed why:
+- The API log is mostly the website rendering "prices for SERVICE in CITY" pages for search-engine crawlers (searches in Pennsylvania, Wisconsin, Alabama, Iowa, Maryland, California... within seconds of each other), some answered "503 busy" by the page-render limit.
+- The database log shows those searches taking 3-44 s, and a small lookup in every search, `SELECT DISTINCT system::text, code FROM ref.code WHERE system::text || ':' || code = ANY(...)`, taking 2-10 s: written that way it can't use ref.code's index and reads the whole code table each time.
+
+Fixes: that lookup now joins on (system, code), which uses ref.code's primary key (`search.same_code_spellings`); pages rendered for crawlers get 2 database slots at a time instead of 4 (`ratelimit.PAGE_RENDER_SLOTS`), leaving the rest for people. Tests: `test_search_and_review.py` (page-render slots, code spellings), whole suite.
+
+`make check`: `454 passed, 1 skipped`.
+
 ## 2026-11-23 — Indiana pass 2 ran past its limit with no report; the code index runs in pieces
 
 Reports read: Pennsylvania pass 1 rerun (8 files loaded; the database restarted mid-run, before the code-index fix: "service temporarily unavailable"; Penn Highlands (7) answers 403; St. Luke's (7) links return 404), Indiana pass 1 (11 files, 61.8 million prices, stopped for time as planned) and Indiana pass 2.

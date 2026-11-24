@@ -114,7 +114,7 @@ def check(request: Request, now: float | None = None) -> int | None:
 # city and service pages) share a few database connections, so people typing
 # in the search box always have the rest (2026-11-23: crawlers used all 25 and
 # the search box's suggestions and the free-care check timed out).
-PAGE_RENDER_SLOTS = 4
+PAGE_RENDER_SLOTS = 2  # 4 still kept the small database busy (2026-11-23 evening)
 PAGE_RENDER_WAIT_SECONDS = 20.0
 _page_slots: asyncio.Semaphore | None = None
 

@@ -303,12 +303,15 @@ def same_code_spellings(conn: Connection, codes: list[tuple[str, str]]) -> list[
                 for spelled in (f"{m[1]}{m[2]}", f"{m[1]}-{m[2]}", f"{m[1]}.{m[2]}"):
                     want("APR-DRG", spelled)
     if wanted:
+        # matched on (system, code) so the lookup uses ref.code's index (2026-11-23:
+        # the old "system || ':' || code" form read all of ref.code, 2-10 s live)
         found = conn.execute(
             text(
-                "SELECT DISTINCT system::text, code FROM ref.code "
-                "WHERE system::text || ':' || code = ANY(:k)"
+                "SELECT DISTINCT c.system::text, c.code FROM unnest(CAST(:s AS text[]), "
+                "CAST(:c AS text[])) AS w(s, c) JOIN ref.code c "
+                "ON c.system = CAST(w.s AS ref.code_system) AND c.code = w.c"
             ),
-            {"k": [f"{a}:{b}" for a, b in wanted]},
+            {"s": [a for a, _ in wanted], "c": [b for _, b in wanted]},
         ).all()
         known = {(str(a), str(b)) for a, b in found}
         out.extend(w for w in wanted if w in known)
