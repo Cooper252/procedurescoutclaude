@@ -760,23 +760,36 @@ def nearby(
     if not (Decimal(1) <= radius_miles <= Decimal(MAX_RADIUS_MILES)):
         raise SearchError(f"radius must be 1 to {MAX_RADIUS_MILES} miles")
     kinds = _kinds(conn, provider_type)
+    if kinds:
+        # (2026-11-23: the free-care check took 7 seconds near Las Vegas) start
+        # from the few places of the chosen kinds (hospitals: a few thousand
+        # nationwide) instead of walking the map index past every nearby
+        # office until enough hospitals turn up
+        cand = """
+                SELECT f.id FROM ref.facility_provider_type x
+                JOIN ref.facility f ON f.id = x.facility_id, p
+                WHERE x.provider_type = ANY(CAST(:kinds AS text[]))
+                  AND f.geom IS NOT NULL AND f.status = 'active'
+                  AND ST_DWithin(f.geom, p.pt, :meters)
+                GROUP BY f.id, f.geom, p.pt
+                ORDER BY ST_Distance(f.geom, p.pt)
+                LIMIT :n
+        """
+    else:
+        cand = """  -- nearest first, straight from the map index (2026-11-12)
+                SELECT f.id FROM ref.facility f, p
+                WHERE f.geom IS NOT NULL AND f.status = 'active'
+                   AND ST_DWithin(f.geom, p.pt, :meters)
+                ORDER BY f.geom <-> p.pt
+                LIMIT :n
+        """
     rows = conn.execute(
         text(
             """
             WITH p AS (
                 SELECT CAST(ST_SetSRID(ST_MakePoint(:lng, :lat), 4326) AS geography) AS pt
             ),
-            cand AS (  -- nearest first, straight from the map index (2026-11-12)
-                SELECT f.id FROM ref.facility f, p
-                WHERE f.geom IS NOT NULL AND f.status = 'active'
-                   AND ST_DWithin(f.geom, p.pt, :meters)
-                   AND (cardinality(CAST(:kinds AS text[])) = 0 OR EXISTS (
-                        SELECT 1 FROM ref.facility_provider_type x
-                        WHERE x.facility_id = f.id
-                          AND x.provider_type = ANY(CAST(:kinds AS text[]))))
-                ORDER BY f.geom <-> p.pt
-                LIMIT :n
-            )
+            cand AS ({cand})
             SELECT f.id, f.name, f.city, f.state_code,
                    round(CAST(ST_Distance(f.geom, p.pt) AS numeric) / :mpm, 1) AS miles,
                    coalesce(array_agg(fpt.provider_type ORDER BY fpt.provider_type)
@@ -787,7 +800,7 @@ def nearby(
             LEFT JOIN ref.facility_provider_type fpt ON fpt.facility_id = f.id
             GROUP BY f.id, f.name, f.city, f.state_code, p.pt, f.geom
             ORDER BY miles, f.name
-            """
+            """.replace("{cand}", cand)
         ),
         {
             "lat": latitude,
