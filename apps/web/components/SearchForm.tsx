@@ -71,7 +71,12 @@ export function SearchForm({
   }, [zip]);
 
   useEffect(() => {
-    api.providerTypes().then(setTypes).catch(() => setTypes([]));
+    // one retry: the list is small, and a busy moment shouldn't hide the choice
+    api
+      .providerTypes()
+      .catch(() => new Promise<ProviderType[]>((r) => setTimeout(() => api.providerTypes().then(r, () => r([])), 3000)))
+      .then(setTypes)
+      .catch(() => setTypes([]));
   }, []);
 
   useEffect(() => {
@@ -81,17 +86,25 @@ export function SearchForm({
       setOptions([]);
       return;
     }
+    let live = true;
     const id = setTimeout(() => {
+      // one retry: a busy moment on the server shouldn't leave the list empty
+      // (Cooper, 2026-11-23: typed "mri" and nothing came up)
       api
         .suggest(q)
+        .catch(() => new Promise<Suggestion[]>((ok, bad) => setTimeout(() => api.suggest(q).then(ok, bad), 1200)))
         .then((s) => {
+          if (!live) return;
           setOptions(s);
           setOpen(true);
           setActive(-1);
         })
-        .catch(() => setOptions([]));
+        .catch(() => live && setOptions([]));
     }, 150);
-    return () => clearTimeout(id);
+    return () => {
+      live = false;
+      clearTimeout(id);
+    };
   }, [text, picked]);
 
   const label = (s: { slug: string; name: string }) => (lang === "es" ? SERVICE_ES[s.slug] ?? s.name : s.name);
@@ -224,7 +237,9 @@ export function SearchForm({
   }
 
   return (
-    <form className={compact ? "search compact" : "search"} onSubmit={submit} role="search" noValidate>
+    // the full form's layout no longer depends on the provider types loading
+    // (2026-11-23: when they failed, "How do you want to be seen" ran over "How are you paying")
+    <form className={compact ? "search compact" : "search full"} onSubmit={submit} role="search" noValidate>
       <div className="field grow">
         <label htmlFor={`${listId}-what`}>{t.whatLabel}</label>
         <div className="input-icon">

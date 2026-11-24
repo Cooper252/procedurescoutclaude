@@ -124,7 +124,9 @@ export function Header() {
         )}
       </header>
       {path !== "/help-paying" && (
-        <div className="care-banner">
+        // on the home page the free-care box is right there, so a phone shows the
+        // search box first (Cooper, 2026-11-23)
+        <div className={path === "/" ? "care-banner on-home" : "care-banner"}>
           <span className="wrap care-banner-in">
             <Heart size={18} />
             <span>

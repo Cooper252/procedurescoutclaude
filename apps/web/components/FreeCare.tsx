@@ -62,12 +62,19 @@ export function CareFields({
 }
 
 export function FreeCarePanel() {
-  const { t, place, setCare } = useApp();
+  const { t, place, setPlace, setCare } = useApp();
   const router = useRouter();
+  const id = useId();
   const [msg, setMsg] = useState<AssistanceMessage | null>(null);
   const [size, setSize] = useState(1);
   const [income, setIncome] = useState("");
+  // the ZIP is asked here too, so the answer comes in one step (Cooper, 2026-11-23)
+  const [zip, setZip] = useState(place?.zip ?? "");
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    if (place?.zip && !zip) setZip(place.zip);
+  }, [place?.zip]);
 
   useEffect(() => {
     api
@@ -76,15 +83,28 @@ export function FreeCarePanel() {
       .catch(() => setMsg(null));
   }, [place?.state]);
 
-  function submit(e: FormEvent) {
+  async function submit(e: FormEvent) {
     e.preventDefault();
     const clean = cleanIncome(income);
     if (!clean) {
       setError(t.careBadIncome);
       return;
     }
-    setCare({ householdSize: size, income: clean });
-    router.push("/help-paying");
+    if (!/^\d{5}$/.test(zip)) {
+      setError(t.badZip);
+      return;
+    }
+    setError(null);
+    setBusy(true);
+    try {
+      const p = place?.zip === zip ? place : await api.zip(zip);
+      setPlace(p);
+      setCare({ householdSize: size, income: clean });
+      router.push("/help-paying");
+    } catch {
+      setError(t.zipNotFound);
+      setBusy(false);
+    }
   }
 
   return (
@@ -103,13 +123,25 @@ export function FreeCarePanel() {
       </p>
       <form onSubmit={submit} noValidate>
         <CareFields size={size} setSize={setSize} income={income} setIncome={setIncome} />
+        <div className="field care-zip">
+          <label htmlFor={`${id}-zip`}>{t.helpZip}</label>
+          <input
+            id={`${id}-zip`}
+            inputMode="numeric"
+            autoComplete="postal-code"
+            maxLength={5}
+            placeholder={t.wherePlaceholder}
+            value={zip}
+            onChange={(e) => setZip(e.target.value.replace(/\D/g, ""))}
+          />
+        </div>
         {error && (
           <p className="form-error" role="alert">
             {error}
           </p>
         )}
-        <button className="btn care" type="submit">
-          {t.careAsk}
+        <button className="btn care" type="submit" disabled={busy}>
+          {busy ? "…" : t.careAsk}
         </button>
         <p className="fine">
           <Lock size={14} /> {t.carePrivate}

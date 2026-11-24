@@ -565,18 +565,18 @@ svg {
     align-items: end;
   }
   /* full form: what / ZIP, distance, type / paying, button / foot */
-  .search:has(.type) {
+  .search.full {
     grid-template-columns: 0.85fr 1.1fr 1.25fr;
     grid-template-areas: "what what what" "zip radius type" "visit visit visit" "pay pay btn" "foot foot foot";
   }
-  .search:has(.type) .visit { grid-area: visit; }
-  .search:has(.type) .grow { grid-area: what; }
-  .search:has(.type) .zip { grid-area: zip; }
-  .search:has(.type) .radius { grid-area: radius; }
-  .search:has(.type) .type { grid-area: type; }
-  .search:has(.type) .paying { grid-area: pay; }
-  .search:has(.type) .search-btn { grid-area: btn; align-self: end; }
-  .search:has(.type) .search-foot { grid-area: foot; }
+  .search.full .visit { grid-area: visit; }
+  .search.full .grow { grid-area: what; }
+  .search.full .zip { grid-area: zip; }
+  .search.full .radius { grid-area: radius; }
+  .search.full .type { grid-area: type; }
+  .search.full .paying { grid-area: pay; }
+  .search.full .search-btn { grid-area: btn; align-self: end; }
+  .search.full .search-foot { grid-area: foot; }
   .search-btn {
     width: auto;
     padding: 0 22px;
@@ -3085,10 +3085,10 @@ h3 {
     font-size: 16.5px;
   }
   /* ZIP and distance side by side; everything else full width */
-  .search:has(.type) {
+  .search.full {
     grid-template-columns: 1fr 1.25fr;
   }
-  .search:has(.type) > :not(.zip):not(.radius) {
+  .search.full > :not(.zip):not(.radius) {
     grid-column: 1 / -1;
   }
   /* buttons use the full card width, under the icon too (52px icon + 16px gap) */
@@ -3573,4 +3573,125 @@ h3 {
 }
 .ins-field {
   position: relative;
+}
+
+/* ---------- home: the search box without scrolling, and free-to-use said first
+   (Cooper, 2026-11-23) ---------- */
+.hero {
+  padding: 22px 0 40px;
+}
+.hero h1 {
+  font-size: clamp(1.9rem, 4.2vw, 2.9rem);
+  margin-bottom: 10px;
+}
+.hero .lead {
+  margin: 10px 0 0;
+  font-size: 17px;
+}
+.hero .search-card {
+  margin-top: 14px;
+}
+.free-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.free-badges li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: #fff;
+  color: #06474c;
+  font-weight: 750;
+  font-size: 14.5px;
+  line-height: 1.2;
+  box-shadow: 0 6px 14px -8px rgba(0, 0, 0, 0.45);
+}
+.free-badges li span {
+  color: #157347;
+  font-weight: 900;
+}
+@media (min-width: 1000px) {
+  .hero {
+    padding: 28px 0 48px;
+  }
+}
+@media (max-width: 599px) {
+  .hero {
+    padding: 14px 0 28px;
+  }
+  .hero h1 {
+    font-size: 1.75rem;
+  }
+  .hero .lead {
+    display: none; /* the badges say it; the search box comes first on a phone */
+  }
+  .free-badges li {
+    font-size: 13px;
+    padding: 4px 10px;
+  }
+}
+@media (min-width: 900px) {
+  /* what / ZIP, distance, type / how seen, how paying / button: four short rows */
+  .search.full {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-areas:
+      "what what what what what what"
+      "zip zip radius radius type type"
+      "visit visit visit pay pay pay"
+      "foot foot foot foot btn btn";
+    gap: 12px 14px;
+  }
+  .search.full .search-btn {
+    align-self: center;
+    width: 100%;
+  }
+  .search.full .field.visit .segmented.two,
+  .search.full .field.paying .segmented.two {
+    max-width: none;
+  }
+  /* never wider than their column (2026-11-23: they ran over each other and
+     out of the card) */
+  .search.full .segmented.two {
+    min-width: 0;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .search.full .segmented .seg {
+    padding-left: 6px;
+    padding-right: 6px;
+    line-height: 1.2;
+  }
+}
+@media (min-width: 1000px) and (max-width: 1179px) {
+  /* too narrow for the search box and the free-care box side by side: the
+     search box gets the full width and comes first */
+  .hero-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (min-width: 1180px) {
+  .hero-grid {
+    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+    gap: 32px;
+  }
+  .hero h1 {
+    font-size: clamp(2rem, 3vw, 2.6rem);
+    white-space: nowrap;
+  }
+}
+.care-panel .care-zip {
+  margin-top: 12px;
+}
+@media (max-width: 599px) {
+  .care-banner.on-home {
+    display: none;
+  }
+  .hero h1 {
+    font-size: 1.6rem;
+  }
 }

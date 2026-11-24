@@ -35,6 +35,14 @@ export default function Home() {
         <div className="wrap hero-grid">
           <div className="hero-main">
             <h1>{t.heroTitle}</h1>
+            {/* said before anything is typed (Cooper, 2026-11-23) */}
+            <ul className="free-badges" aria-label={t.freeBadgesLabel}>
+              {[t.freeBadge1, t.freeBadge2, t.freeBadge3, t.freeBadge4].map((b) => (
+                <li key={b}>
+                  <span aria-hidden="true">✓</span> {b}
+                </li>
+              ))}
+            </ul>
             <p className="lead">{t.heroSub}</p>
             <div className="card search-card">
               <SearchForm />

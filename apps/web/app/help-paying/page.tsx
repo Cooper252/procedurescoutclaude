@@ -50,14 +50,25 @@ export default function HelpPaying() {
       setPlace(p);
       setCare({ householdSize: sz, income: clean });
       api.healthCenters(p.lat, p.lng).then(setCenters).catch(() => setCenters(null));
-      const near = await api.nearby(p.lat, p.lng);
+      // one retry each: a busy moment on the server shouldn't end in "Something
+      // went wrong" (Cooper, 2026-11-23)
+      const again = <T,>(f: () => Promise<T>) =>
+        f().catch(() => new Promise<T>((ok, bad) => setTimeout(() => f().then(ok, bad), 1500)));
+      const near = await again(() => api.nearby(p.lat, p.lng));
       if (near.length === 0) {
         setResult(null);
         setError(t.nothingNear.replace("{r}", "25"));
         return;
       }
       setResult(
-        await api.check({ facilityIds: near.map((f) => f.facility_id), householdSize: sz, income: clean, state: p.state }),
+        await again(() =>
+          api.check({
+            facilityIds: near.slice(0, 50).map((f) => f.facility_id),
+            householdSize: sz,
+            income: clean,
+            state: p.state,
+          }),
+        ),
       );
     } catch (e) {
       setError(e instanceof Error && e.message.includes("ZIP") ? t.zipNotFound : t.errorTitle);
