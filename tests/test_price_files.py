@@ -826,28 +826,33 @@ def test_a_file_still_running_at_the_hard_limit_is_cut_off_and_the_report_kept(
     assert "Slow's file was still being read" in str(stats.summary["stopped_early"])
 
 
-def test_a_file_cut_off_at_the_limit_waits_so_the_state_can_finish(
+def test_a_file_cut_off_at_the_limit_goes_first_next_time_and_is_never_skipped(
     conn: Connection, tmp_path: Path
 ) -> None:
-    """Indiana passes 2-4 (2026-11-24): every run spent its whole time on
-    Community Hospital East's very slow file, so the state never finished. A file
-    cut off at the time limit is skipped (and reported) for two weeks."""
+    """Indiana (2026-11-24): Community Hospital East's 7.8 GB file was 60th in
+    line and ran out of time every run. Cooper: "I want every hospital price
+    listed." A file cut off once is read first in the next run; one cut off
+    even then goes last, so the rest of the state still finishes."""
     files = _two_hospitals(conn)
     calls: list[str] = []
     copy = _copying(files, calls)
     slow_url = f"{SITE}/mrf/valley.json"
 
-    def first(url: str, dest: Path) -> Download:
+    def cut_off(url: str, dest: Path) -> Download:
+        calls.append(url)
         if url == slow_url:
-            calls.append(url)
             raise KeyboardInterrupt  # the watchdog, at the time limit
         return copy(url, dest)
 
-    one = check_price_files(conn, "NV", first, tmp_path / "w", today=date(2026, 11, 6))
+    one = check_price_files(conn, "NV", cut_off, tmp_path / "w1", today=date(2026, 11, 6))
     assert one.summary["cut_off_at_time_limit"] == 1
+    assert "the next run starts with it" in str(one.summary["stopped_early"])
     calls.clear()
-    two = check_price_files(conn, "NV", copy, tmp_path / "w2", today=date(2026, 11, 6))
-    assert slow_url not in calls and len(calls) >= 1  # the others are read
-    assert two.summary["skipped_slow_last_time"] == 1
-    assert "stopped_early" not in two.summary  # the state can finish
-    assert any("tried again after" in r.message for r in two.rejects)
+    two = check_price_files(conn, "NV", cut_off, tmp_path / "w2", today=date(2026, 11, 6))
+    assert calls[0] == slow_url  # first in line, with the whole run
+    assert two.summary["too_slow_for_a_run"] == 1
+    assert "stopped_early" in two.summary  # the rest of the state gets the next run
+    calls.clear()
+    three = check_price_files(conn, "NV", copy, tmp_path / "w3", today=date(2026, 11, 6))
+    assert calls[-1] == slow_url  # tried, not skipped, after everything else
+    assert "stopped_early" not in three.summary

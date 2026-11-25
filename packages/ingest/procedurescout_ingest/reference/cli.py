@@ -1371,8 +1371,12 @@ def cmd_nv_all(args: argparse.Namespace, engine: Engine) -> None:
     step("health_centers", lambda: cmd_health_centers(ns(state=st, file=None), engine))
     if os.path.exists(WEBSITES_CSV):
         step("websites", lambda: cmd_websites(ns(file=WEBSITES_CSV), engine))
-    # hospitals still without a website: candidates checked by their cms-hpt.txt (D-048)
-    step("find_websites", lambda: cmd_find_websites(ns(state=st), engine))
+    # hospitals still without a website: candidates checked by their cms-hpt.txt (D-048).
+    # Once per state: a later pass of the same state goes straight to its price
+    # files (Indiana, 2026-11-24: the website steps took 40 of the 180 minutes
+    # every pass, and a 7.8 GB file never had time to finish)
+    if os.environ.get("PASS_IN", "1").strip() in ("", "1"):
+        step("find_websites", lambda: cmd_find_websites(ns(state=st), engine))
     step("discover", lambda: cmd_discover(ns(state=st), engine))
     if os.path.exists(MANUAL_SOURCES_CSV):
         step("manual_sources", lambda: cmd_manual_sources(ns(file=MANUAL_SOURCES_CSV), engine))

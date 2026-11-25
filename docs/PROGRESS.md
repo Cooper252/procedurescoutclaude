@@ -16,9 +16,9 @@ Fix: requests from the website's own server (pages rendered for crawlers and vis
 - North Carolina 8 loaded (30.1 million), Utah 2, Pennsylvania 4 (Penn Highlands and St. Luke's as before), Texas pass 1 15 (69.2 million) and pass 2 61 (51.3 million): Texas is finished.
 - Indiana pass 1: 4 more loaded. Passes 2, 3 and 4 each spent the whole run on Community Hospital East's file (its server sends it very slowly) until the watchdog cut it off; the watchdog worked (reports written: "COMMUNITY HOSPITAL EAST's file was still being read at the time limit; left for the next run"), but the chain kept running Indiana again for the same file.
 
-Fix: a file cut off at the time limit, or whose download runs past an hour, is skipped for 14 days and reported ("couldn't finish within a run last time (very slow server or file); tried again after DATE"), so the rest of the state is read and the state can finish. Migration `0031_slow_price_files.py` (`src.transparency_source.slow_until`), `price_files.check_price_files`. Test: `test_a_file_cut_off_at_the_limit_waits_so_the_state_can_finish`.
+Fix (revised the same day, Cooper: "Why are we skipping anything? I want every hospital price listed."): nothing is skipped. Community Hospital East's file is 7.8 GB and was 60th of 92 in line, so it only ever started late. A file cut off at the time limit (or whose download runs past an hour) now goes first in the next run, with the whole run to itself; only if it is cut off even then does it move to the end of the line, where it is still tried every run but can't stop the rest of its state, and the report says it "needs a download from Cooper's computer". Later passes of a state also skip the website search (done in pass 1; it took 40 of the 180 minutes each pass), so price files get that time. Migrations `0031_slow_price_files.py`, `0032_slow_price_file_tries.py` (`src.transparency_source.slow_tries`), `price_files.check_price_files`, `reference/cli` (`PASS_IN`). Test: `test_a_file_cut_off_at_the_limit_goes_first_next_time_and_is_never_skipped`.
 
-`make check`: `455 passed, 1 skipped`.
+`make check`: `455 passed, 1 skipped` (after the revision).
 
 ## 2026-11-23 — Why the site is slow: search engines crawling city pages, and one lookup reading a whole table
 

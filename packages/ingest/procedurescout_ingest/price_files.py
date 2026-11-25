@@ -700,13 +700,23 @@ def candidates(conn: Connection, state_code: str) -> list[Candidate]:
 
 
 def _mark_slow(conn: Connection, source_id: str) -> None:
-    """A file that couldn't finish in a run waits SLOW_FILE_WAIT_DAYS (0031)."""
+    """A file that couldn't finish in a run: the next run starts with it (0032)."""
     conn.execute(
         text(
-            "UPDATE src.transparency_source SET slow_until = now() + make_interval(days => :d) "
-            "WHERE id = CAST(:s AS uuid)"
+            "UPDATE src.transparency_source SET slow_until = now(), "
+            "slow_tries = slow_tries + 1 WHERE id = CAST(:s AS uuid)"
         ),
-        {"s": source_id, "d": SLOW_FILE_WAIT_DAYS},
+        {"s": source_id},
+    )
+
+
+def _clear_slow(conn: Connection, source_id: str) -> None:
+    conn.execute(
+        text(
+            "UPDATE src.transparency_source SET slow_until = NULL, slow_tries = 0 "
+            "WHERE id = CAST(:s AS uuid) AND slow_tries > 0"
+        ),
+        {"s": source_id},
     )
 
 
@@ -739,7 +749,6 @@ def choose_per_facility(
 
 
 BIG_FILE_WINDOW_MINUTES = 90
-SLOW_FILE_WAIT_DAYS = 14  # a file cut off at the time limit is skipped this long
 
 
 class _NoTimeLeftError(Exception):
@@ -918,30 +927,28 @@ def check_price_files(
             if d.path is not None:
                 d.path.unlink(missing_ok=True)
 
-    slow = {
-        str(r[0]): r[1]
+    # Files cut off at the time limit before (Indiana, 2026-11-24: Community
+    # Hospital East's 7.8 GB file, behind 59 others, never had time). Cooper:
+    # "I want every hospital price listed", so none is skipped: a file cut off
+    # once goes first and gets the whole run; one cut off again even then goes
+    # last, where it can't stop the rest of its state.
+    tries = {
+        str(r[0]): int(r[1])
         for r in conn.execute(
             text(
-                "SELECT id, slow_until::date FROM src.transparency_source "
-                "WHERE slow_until > now() AND id = ANY(CAST(:ids AS uuid[]))"
+                "SELECT id, slow_tries FROM src.transparency_source "
+                "WHERE slow_tries > 0 AND id = ANY(CAST(:ids AS uuid[]))"
             ),
             {"ids": [c.source_id for c in chosen]},
         ).all()
     }
+    chosen = (
+        [c for c in chosen if tries.get(c.source_id) == 1]
+        + [c for c in chosen if c.source_id not in tries]
+        + [c for c in chosen if tries.get(c.source_id, 0) >= 2]
+    )
     failures_in_a_row = 0
     for c in chosen:
-        if c.source_id in slow:
-            # cut off at the time limit last time: the rest of the state first,
-            # and the state can finish (Indiana passes 2-4, 2026-11-24)
-            stats.count("skipped_slow_last_time")
-            stats.reject(
-                f"ccn:{c.ccn}",
-                "download_failed",
-                f"{c.name} | {c.url} | couldn't finish within a run last time (very slow "
-                f"server or file); tried again after {slow[c.source_id]}",
-                Severity.WARNING,
-            )
-            continue
         if stop_at_ns is not None and time.monotonic_ns() >= stop_at_ns:
             stats.count("stopped_for_time")
             stats.summary["stopped_early"] = "time limit reached; run again to continue"
@@ -963,6 +970,8 @@ def check_price_files(
         savepoint = conn.begin_nested() if commit is None else None
         try:
             one(c)
+            if c.source_id in tries:
+                _clear_slow(conn, c.source_id)
             if savepoint is not None:
                 savepoint.commit()
             elif commit is not None:
@@ -998,9 +1007,28 @@ def check_price_files(
                 "left for the next run",
                 Severity.WARNING,
             )
-            stats.summary["stopped_early"] = (
-                f"{c.name}'s file was still being read at the time limit; left for the next run"
-            )
+            pos = chosen.index(c)
+            others_left = [x for x in chosen[pos + 1 :] if tries.get(x.source_id, 0) < 2]
+            if tries.get(c.source_id, 0) >= 1:
+                # cut off even when started first: it goes last from now on and
+                # needs downloading from Cooper's computer
+                stats.count("too_slow_for_a_run")
+                stats.reject(
+                    f"ccn:{c.ccn}",
+                    "download_failed",
+                    f"{c.name} | {c.url} | too slow to finish within one run even when "
+                    "started first; needs a download from Cooper's computer",
+                    Severity.WARNING,
+                )
+                if others_left:  # the rest of the state still gets its run
+                    stats.summary["stopped_early"] = (
+                        f"{c.name}'s file is too slow for a run; the rest of the state next"
+                    )
+            else:
+                stats.summary["stopped_early"] = (
+                    f"{c.name}'s file was still being read at the time limit; the next run "
+                    "starts with it"
+                )
             break
         except Exception as exc:
             # One file's trouble (a dropped database connection, storage or a
