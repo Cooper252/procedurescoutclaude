@@ -10,6 +10,16 @@ Fix: requests from the website's own server (pages rendered for crawlers and vis
 
 `make check`: `452 passed, 1 skipped`.
 
+## 2026-11-25 — Reruns read (VA, NC, UT, PA, TX x2, IN x4); a file too slow for any run now waits two weeks
+
+- Virginia: 19 files loaded (3.2 million prices), including the 5 Sentara hospitals from their new links (D-063); the old Sentara links still answer 404 and are reported.
+- North Carolina 8 loaded (30.1 million), Utah 2, Pennsylvania 4 (Penn Highlands and St. Luke's as before), Texas pass 1 15 (69.2 million) and pass 2 61 (51.3 million): Texas is finished.
+- Indiana pass 1: 4 more loaded. Passes 2, 3 and 4 each spent the whole run on Community Hospital East's file (its server sends it very slowly) until the watchdog cut it off; the watchdog worked (reports written: "COMMUNITY HOSPITAL EAST's file was still being read at the time limit; left for the next run"), but the chain kept running Indiana again for the same file.
+
+Fix: a file cut off at the time limit, or whose download runs past an hour, is skipped for 14 days and reported ("couldn't finish within a run last time (very slow server or file); tried again after DATE"), so the rest of the state is read and the state can finish. Migration `0031_slow_price_files.py` (`src.transparency_source.slow_until`), `price_files.check_price_files`. Test: `test_a_file_cut_off_at_the_limit_waits_so_the_state_can_finish`.
+
+`make check`: `455 passed, 1 skipped`.
+
 ## 2026-11-23 — Why the site is slow: search engines crawling city pages, and one lookup reading a whole table
 
 After the nearby-hospitals fix deployed, the same request still took 5.9 s. Render's logs showed why:

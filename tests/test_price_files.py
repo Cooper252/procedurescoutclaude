@@ -824,3 +824,30 @@ def test_a_file_still_running_at_the_hard_limit_is_cut_off_and_the_report_kept(
     assert called == ["https://h.example/Slow.csv"]  # the next file isn't started
     assert stats.summary["cut_off_at_time_limit"] == 1
     assert "Slow's file was still being read" in str(stats.summary["stopped_early"])
+
+
+def test_a_file_cut_off_at_the_limit_waits_so_the_state_can_finish(
+    conn: Connection, tmp_path: Path
+) -> None:
+    """Indiana passes 2-4 (2026-11-24): every run spent its whole time on
+    Community Hospital East's very slow file, so the state never finished. A file
+    cut off at the time limit is skipped (and reported) for two weeks."""
+    files = _two_hospitals(conn)
+    calls: list[str] = []
+    copy = _copying(files, calls)
+    slow_url = f"{SITE}/mrf/valley.json"
+
+    def first(url: str, dest: Path) -> Download:
+        if url == slow_url:
+            calls.append(url)
+            raise KeyboardInterrupt  # the watchdog, at the time limit
+        return copy(url, dest)
+
+    one = check_price_files(conn, "NV", first, tmp_path / "w", today=date(2026, 11, 6))
+    assert one.summary["cut_off_at_time_limit"] == 1
+    calls.clear()
+    two = check_price_files(conn, "NV", copy, tmp_path / "w2", today=date(2026, 11, 6))
+    assert slow_url not in calls and len(calls) >= 1  # the others are read
+    assert two.summary["skipped_slow_last_time"] == 1
+    assert "stopped_early" not in two.summary  # the state can finish
+    assert any("tried again after" in r.message for r in two.rejects)

@@ -699,6 +699,17 @@ def candidates(conn: Connection, state_code: str) -> list[Candidate]:
     return [Candidate(str(r[0]), r[1], str(r[2]), r[3], r[4], r[5], r[6]) for r in rows]
 
 
+def _mark_slow(conn: Connection, source_id: str) -> None:
+    """A file that couldn't finish in a run waits SLOW_FILE_WAIT_DAYS (0031)."""
+    conn.execute(
+        text(
+            "UPDATE src.transparency_source SET slow_until = now() + make_interval(days => :d) "
+            "WHERE id = CAST(:s AS uuid)"
+        ),
+        {"s": source_id, "d": SLOW_FILE_WAIT_DAYS},
+    )
+
+
 def choose_per_facility(
     cands: list[Candidate],
 ) -> tuple[list[Candidate], list[tuple[Candidate, Candidate]]]:
@@ -728,6 +739,7 @@ def choose_per_facility(
 
 
 BIG_FILE_WINDOW_MINUTES = 90
+SLOW_FILE_WAIT_DAYS = 14  # a file cut off at the time limit is skipped this long
 
 
 class _NoTimeLeftError(Exception):
@@ -861,6 +873,8 @@ def check_price_files(
         d = downloader(c.url, dest)
         try:
             if d.error is not None or d.path is None or d.sha256 is None or d.nbytes is None:
+                if d.error is not None and d.error.startswith("took longer than"):
+                    _mark_slow(conn, c.source_id)
                 stats.count("download_failed")
                 stats.reject(
                     who,
@@ -904,8 +918,30 @@ def check_price_files(
             if d.path is not None:
                 d.path.unlink(missing_ok=True)
 
+    slow = {
+        str(r[0]): r[1]
+        for r in conn.execute(
+            text(
+                "SELECT id, slow_until::date FROM src.transparency_source "
+                "WHERE slow_until > now() AND id = ANY(CAST(:ids AS uuid[]))"
+            ),
+            {"ids": [c.source_id for c in chosen]},
+        ).all()
+    }
     failures_in_a_row = 0
     for c in chosen:
+        if c.source_id in slow:
+            # cut off at the time limit last time: the rest of the state first,
+            # and the state can finish (Indiana passes 2-4, 2026-11-24)
+            stats.count("skipped_slow_last_time")
+            stats.reject(
+                f"ccn:{c.ccn}",
+                "download_failed",
+                f"{c.name} | {c.url} | couldn't finish within a run last time (very slow "
+                f"server or file); tried again after {slow[c.source_id]}",
+                Severity.WARNING,
+            )
+            continue
         if stop_at_ns is not None and time.monotonic_ns() >= stop_at_ns:
             stats.count("stopped_for_time")
             stats.summary["stopped_early"] = "time limit reached; run again to continue"
@@ -950,6 +986,10 @@ def check_price_files(
             if rows_conn is not None:
                 with contextlib.suppress(Exception):
                     rows_conn.rollback()
+            with contextlib.suppress(Exception):
+                _mark_slow(conn, c.source_id)
+                if commit is not None:
+                    commit()
             stats.count("cut_off_at_time_limit")
             stats.reject(
                 f"ccn:{c.ccn}",
