@@ -447,7 +447,8 @@ def cmd_clear_staged(args: argparse.Namespace, engine: Engine) -> None:
 # step's 180-minute limit stopped it before the report was written).
 PROCESS_START_NS = time.monotonic_ns()
 PRICE_STEP_RESERVE_MINUTES = 45  # left for reading the last file and the report
-CODE_INDEX_SECONDS = 11 * 60  # files counted into the code index per run (2026-11-23)
+CODE_INDEX_SECONDS = 9 * 60  # files counted into the code index per run (2026-11-23)
+CLEANUP_SECONDS = 3 * 60  # deleting replaced files' bookkeeping per run (2026-11-26)
 PRICE_WATCHDOG_MINUTES = 12  # before the step's limit: stop the file being read, write the report
 
 
@@ -502,6 +503,11 @@ def cmd_price_files(args: argparse.Namespace, engine: Engine) -> None:
                 from procedurescout_core.db_url import sqlalchemy_url
 
                 rows_conn = create_engine(sqlalchemy_url(_local_only(work_url))).connect()
+
+            # files Cooper's computer downloaded for hospitals that refuse GitHub (0033)
+            from ..home_downloads import with_home_copies
+
+            downloader = with_home_copies(downloader, store)
 
             def after(conn: Connection, facility_id: str) -> None:
                 publish.auto_publish_pending(conn, store, allow_first, facility_id, rows=rows_conn)
@@ -862,6 +868,34 @@ def cmd_find_websites(args: argparse.Namespace, engine: Engine) -> None:
             )
 
 
+def cmd_home_downloads(args: argparse.Namespace, engine: Engine) -> None:
+    """On Cooper's computer: download the price files hospitals refuse to GitHub,
+    put them in the bucket, delete them here (home_downloads.py)."""
+    import tempfile
+    from pathlib import Path
+
+    from .. import price_files
+    from ..home_downloads import run_home_downloads
+
+    minutes = int(os.environ.get("HOME_DOWNLOAD_MINUTES", "300"))
+    client = httpx.Client(
+        headers={"User-Agent": USER_AGENT},
+        timeout=httpx.Timeout(60, read=300),
+        follow_redirects=True,
+    )
+    base = os.environ.get("HOME_WORK_DIR") or None
+    with client, tempfile.TemporaryDirectory(prefix="home-downloads-", dir=base) as work:
+        downloader = price_files.http_downloader(client, max_seconds=4 * 60 * 60)
+        stats = _run(
+            engine,
+            "price_file_check",
+            lambda c: run_home_downloads(c, _store(), Path(work), downloader, seconds=minutes * 60),
+            source_file="price files downloaded on Cooper's computer",
+            parameters={"kind": "home_downloads"},
+        )
+    print(json.dumps({"dataset": "home_downloads", **stats.summary}))
+
+
 def cmd_prune_published(args: argparse.Namespace, engine: Engine) -> None:
     from procedurescout_core.mailer import delete_old_sent
 
@@ -877,6 +911,13 @@ def cmd_prune_published(args: argparse.Namespace, engine: Engine) -> None:
         f"removed {n} staged rows of published files, {old} emails sent over 30 days ago "
         f"and {codes} old visitor codes"
     )
+    # bookkeeping of replaced files and old refused-row notes (Cooper's OK, 2026-11-26)
+    from ..cleanup import clean_up
+
+    with engine.connect() as conn:
+        result = clean_up(conn, seconds=CLEANUP_SECONDS, commit=conn.commit)
+        conn.commit()
+    print(json.dumps({"dataset": "cleanup", **result}))
 
 
 def cmd_set_plan(args: argparse.Namespace, engine: Engine) -> None:
@@ -1485,6 +1526,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     sp.add_argument("--state", required=True, type=str.upper)
     sub.add_parser("prune-published", help="remove staged rows of published files (D-054)")
+    sub.add_parser(
+        "home-downloads", help="on Cooper's computer: download files hospitals refuse to GitHub"
+    )
     sp = sub.add_parser("set-plan", help="add or change a paid plan (Cooper's decision, D-051)")
     sp.add_argument("--code", required=True)
     sp.add_argument("--name", required=True)
@@ -1573,6 +1617,7 @@ def main(argv: list[str] | None = None) -> None:
             "add-staff": lambda: cmd_add_staff(args, engine),
             "set-plan": lambda: cmd_set_plan(args, engine),
             "prune-published": lambda: cmd_prune_published(args, engine),
+            "home-downloads": lambda: cmd_home_downloads(args, engine),
             "nppes-offices": lambda: cmd_nppes_offices(args, engine),
             "verify-websites": lambda: cmd_verify_websites(args, engine),
             "find-websites": lambda: cmd_find_websites(args, engine),

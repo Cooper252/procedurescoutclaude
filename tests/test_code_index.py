@@ -149,3 +149,39 @@ def test_the_code_index_counts_files_over_several_runs(
         ).scalar_one()
         == 1
     )
+
+
+def test_cleanup_removes_replaced_files_bookkeeping_only_when_safe(
+    conn: Connection, published: LocalStore
+) -> None:
+    """Cooper approved the cleanup (2026-11-26): summaries of replaced files go,
+    but only once the code index has taken them out of its totals; current
+    files' summaries stay."""
+    from procedurescout_ingest.cleanup import clean_up
+
+    rebuild_code_index(conn)
+    dv = conn.execute(
+        text("SELECT id FROM src.dataset_version WHERE status = 'published' LIMIT 1")
+    ).scalar_one()
+
+    def summaries() -> int:
+        return int(
+            conn.execute(
+                text("SELECT count(*) FROM price.file_code_summary WHERE dataset_version_id = :d"),
+                {"d": dv},
+            ).scalar_one()
+        )
+
+    before = summaries()
+    assert before > 0
+    assert clean_up(conn)["summaries_of_replaced_files"] == 0  # still published
+    conn.execute(
+        text("UPDATE src.dataset_version SET status = 'retired', retired_at = now() WHERE id = :d"),
+        {"d": dv},
+    )
+    clean_up(conn)
+    assert summaries() == before  # still in the code index's totals: kept
+    rebuild_code_index(conn)  # takes it out of the totals
+    result = clean_up(conn)
+    assert summaries() == 0 and result["summaries_of_replaced_files"] >= before
+    assert result["finished"] is True and result["largest_tables_mb"]

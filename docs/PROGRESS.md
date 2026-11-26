@@ -10,6 +10,16 @@ Fix: requests from the website's own server (pages rendered for crawlers and vis
 
 `make check`: `452 passed, 1 skipped`.
 
+## 2026-11-26 — Cooper's approvals: database housekeeping, downloads on Cooper's computer, bigger database if needed
+
+Approved by Cooper today: (1) the database cleanup, (2) using his computer for hospitals that refuse GitHub, with a check that it has the disk space, (3) Render's 1c-2g database ($40/month instead of $19) if searches are still slow after the speed fixes.
+
+- **Housekeeping (D-073):** `cleanup.clean_up`, run by `prune-published` at the end of every load (3 minutes at most; code index now 9). Test: `test_cleanup_removes_replaced_files_bookkeeping_only_when_safe`.
+- **Downloads on Cooper's computer (D-072):** links refused to GitHub are marked (migration `0033_blocked_sources.py`); `home_downloads.run_home_downloads` (CLI `home-downloads`) runs on his computer from `.github/workflows/home-downloads.yml` (a protected workflow file: Cooper copies it in) and never keeps a file there or lets the disk go under 10 GB free; the load uses the copies (`home_downloads.with_home_copies`). Tests: `test_what_counts_as_refused_to_github`, `test_refused_links_are_downloaded_at_home_and_used_by_the_load`, `test_no_download_without_room_on_the_computer`.
+- Links are marked from the next state run onward, so the computer's first runs will have little to do until the blocked states run again.
+
+`make check`: `460 passed, 1 skipped`.
+
 ## 2026-11-26 — Indiana: every file tried; the 7.8 GB file gets a longer download; a broken file keeps its good rows
 
 Indiana pass 1 (with website search, after the "never skip" change) tried all 92 files in one run and finished (8 loaded, 57 unchanged, 16 same content). Three files still have no prices:

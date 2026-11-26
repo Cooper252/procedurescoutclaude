@@ -889,6 +889,11 @@ def check_price_files(
         totals["downloads"] += 1
         started = time.monotonic()
         d = downloader(c.url, dest)
+        from .home_downloads import looks_blocked, mark_blocked
+
+        if d.fetched_via == "home_runner" or (d.error is not None and looks_blocked(d)):
+            # refused to GitHub's computers: Cooper's computer downloads it (0033)
+            mark_blocked(conn, c.source_id)
         try:
             if d.error is not None or d.path is None or d.sha256 is None or d.nbytes is None:
                 if d.error is not None and d.error.startswith("took longer than"):

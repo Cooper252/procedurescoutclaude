@@ -29,6 +29,15 @@ if TYPE_CHECKING:
 _KEY = re.compile(r"^published/[A-Z]{2}/[0-9a-f-]{36}/[0-9a-f-]{36}\.parquet$")
 # Provider logos and photos (D-050): served only after review.
 _MEDIA_KEY = re.compile(r"^media/[0-9a-f-]{36}/[0-9a-f-]{36}\.(png|jpg|webp)$")
+# price files downloaded on Cooper's computer for hospitals that refuse GitHub's
+# computers (2026-11-26): the file and a note about it, named by the URL's hash
+_HOME_KEY = re.compile(r"^home-downloads/[0-9a-f]{64}\.(bin|json)$")
+
+
+def home_key(url: str, ext: str) -> str:
+    import hashlib
+
+    return f"home-downloads/{hashlib.sha256(url.encode()).hexdigest()}.{ext}"
 
 
 def media_key(facility_id: uuid.UUID, media_id: uuid.UUID, ext: str) -> str:
@@ -61,6 +70,20 @@ class ObjectStore(Protocol):
     def put_media(self, key: str, data: bytes, content_type: str) -> None: ...
 
     def get_media(self, key: str) -> bytes | None: ...
+
+    def put_home_file(self, local: Path, key: str) -> None: ...
+
+    def get_home_file(self, key: str, local: Path) -> bool: ...
+
+    def put_home_text(self, key: str, data: str) -> None: ...
+
+    def get_home_text(self, key: str) -> str | None: ...
+
+
+def _home(key: str) -> str:
+    if not _HOME_KEY.match(key):
+        raise ValueError(f"not a valid home-download key: {key!r}")
+    return key
 
 
 class LocalStore:
@@ -115,6 +138,35 @@ class LocalStore:
     def get_media(self, key: str) -> bytes | None:
         path = self._media_path(key)
         return path.read_bytes() if path.is_file() else None
+
+    def _home_path(self, key: str) -> Path:
+        path = (self.root / _home(key)).resolve()
+        if self.root not in path.parents:
+            raise ValueError(f"key escapes the store: {key!r}")
+        return path
+
+    def put_home_file(self, local: Path, key: str) -> None:
+        dest = self._home_path(key)
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        tmp = dest.with_suffix(".partial")
+        shutil.copyfile(local, tmp)
+        tmp.replace(dest)  # a newer download replaces the older one
+
+    def get_home_file(self, key: str, local: Path) -> bool:
+        src = self._home_path(key)
+        if not src.is_file():
+            return False
+        shutil.copyfile(src, local)
+        return True
+
+    def put_home_text(self, key: str, data: str) -> None:
+        dest = self._home_path(key)
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_text(data, encoding="utf-8")
+
+    def get_home_text(self, key: str) -> str | None:
+        path = self._home_path(key)
+        return path.read_text(encoding="utf-8") if path.is_file() else None
 
 
 def _q(value: str) -> str:
@@ -226,6 +278,37 @@ class S3Store:
                 return None
             raise
         return bytes(obj["Body"].read())
+
+    def put_home_file(self, local: Path, key: str) -> None:
+        # multipart upload: these files can be many GB
+        self._s3().upload_file(str(local), self.bucket, _home(key))
+
+    def get_home_file(self, key: str, local: Path) -> bool:
+        from botocore.exceptions import ClientError
+
+        try:
+            self._s3().download_file(self.bucket, _home(key), str(local))
+        except ClientError as exc:
+            if exc.response.get("Error", {}).get("Code") in ("404", "NoSuchKey", "NotFound"):
+                return False
+            raise
+        return True
+
+    def put_home_text(self, key: str, data: str) -> None:
+        self._s3().put_object(
+            Bucket=self.bucket, Key=_home(key), Body=data.encode(), ContentType="application/json"
+        )
+
+    def get_home_text(self, key: str) -> str | None:
+        from botocore.exceptions import ClientError
+
+        try:
+            obj = self._s3().get_object(Bucket=self.bucket, Key=_home(key))
+        except ClientError as exc:
+            if exc.response.get("Error", {}).get("Code") in ("404", "NoSuchKey", "NotFound"):
+                return None
+            raise
+        return bytes(obj["Body"].read()).decode()
 
     def duckdb(self) -> duckdb.DuckDBPyConnection:
         """A cursor on one shared DuckDB per store setup. Sharing keeps httpfs
