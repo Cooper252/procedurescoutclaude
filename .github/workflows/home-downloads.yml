@@ -1,0 +1,50 @@
+name: Download blocked hospitals on Cooper's computer
+
+# About 40 hospitals refuse GitHub's computers but answer a person's computer.
+# This job runs on Cooper's computer (the self-hosted runner in
+# C:\Users\hotch\actions-runner) every 6 hours while it is on: it downloads
+# those hospitals' price files one at a time, puts each in the price bucket and
+# deletes it from the computer. It always leaves at least 10 GB free on the
+# disk and skips any file that wouldn't fit. The "Load every state" run then
+# uses these copies when its own download is refused again.
+# Approved by Cooper, 2026-11-26.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 */6 * * *"  # every 6 hours; waits until the computer is on
+
+permissions:
+  contents: read
+
+concurrency:
+  group: home-downloads
+  cancel-in-progress: false
+
+jobs:
+  download:
+    runs-on: [self-hosted, windows, procedurescout-home]
+    timeout-minutes: 330
+    env:
+      DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+      PRICE_STORE_DIR: ${{ secrets.PRICE_STORE_DIR }}
+      PRICE_STORE_ENDPOINT: ${{ secrets.PRICE_STORE_ENDPOINT }}
+      PRICE_STORE_KEY_ID: ${{ secrets.PRICE_STORE_KEY_ID }}
+      PRICE_STORE_SECRET: ${{ secrets.PRICE_STORE_SECRET }}
+      PYTHONPATH: packages/core;packages/ingest
+      HOME_DOWNLOAD_MINUTES: "300"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        shell: powershell
+        run: python -m pip install --disable-pip-version-check -q -r requirements.txt
+      - name: Download refused hospitals' price files into the bucket
+        shell: powershell
+        env:
+          HOME_WORK_DIR: ${{ runner.temp }}
+        run: python -m procedurescout_ingest.reference.cli home-downloads
