@@ -10,6 +10,17 @@ Fix: requests from the website's own server (pages rendered for crawlers and vis
 
 `make check`: `452 passed, 1 skipped`.
 
+## 2026-11-26 — Indiana: every file tried; the 7.8 GB file gets a longer download; a broken file keeps its good rows
+
+Indiana pass 1 (with website search, after the "never skip" change) tried all 92 files in one run and finished (8 loaded, 57 unchanged, 16 same content). Three files still have no prices:
+- Community Hospital East (7.8 GB): its download passed the 60-minute limit (`took longer than 60 minutes`). Files that didn't finish before now go first and may download for up to 120 minutes (the run's own deadline still applies) for two runs, then move to the end of the line (`price_files.SLOW_FILE_DOWNLOAD_SECONDS`, `SLOW_FIRST_TRIES`).
+- Community Surgery Center South: an unclosed quote after 2,180,109 good rows ("field larger than field limit") threw the whole file out. The rows before the break are now read and the break is reported as one refused line, "the file can't be read past this line" (`price_parser._csv_rows`, `parse_csv`). Test: `test_a_broken_csv_keeps_the_rows_before_the_break`.
+- OrthoIndy Hospital: answers 403 to GitHub's computers (for the download from Cooper's computer).
+
+Test updated: `test_a_file_cut_off_at_the_limit_goes_first_next_time_and_is_never_skipped` (two first-in-line tries, then last; the count starts over once the file is read).
+
+`make check`: `456 passed, 1 skipped`.
+
 ## 2026-11-25 — Reruns read (VA, NC, UT, PA, TX x2, IN x4); a file too slow for any run now waits two weeks
 
 - Virginia: 19 files loaded (3.2 million prices), including the 5 Sentara hospitals from their new links (D-063); the old Sentara links still answer 404 and are reported.

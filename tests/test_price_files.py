@@ -826,6 +826,14 @@ def test_a_file_still_running_at_the_hard_limit_is_cut_off_and_the_report_kept(
     assert "Slow's file was still being read" in str(stats.summary["stopped_early"])
 
 
+def pf_slow_urls_after_success(conn: Connection, url: str) -> int:
+    return int(
+        conn.execute(
+            text("SELECT slow_tries FROM src.transparency_source WHERE url = :u"), {"u": url}
+        ).scalar_one()
+    )
+
+
 def test_a_file_cut_off_at_the_limit_goes_first_next_time_and_is_never_skipped(
     conn: Connection, tmp_path: Path
 ) -> None:
@@ -848,11 +856,36 @@ def test_a_file_cut_off_at_the_limit_goes_first_next_time_and_is_never_skipped(
     assert one.summary["cut_off_at_time_limit"] == 1
     assert "the next run starts with it" in str(one.summary["stopped_early"])
     calls.clear()
-    two = check_price_files(conn, "NV", cut_off, tmp_path / "w2", today=date(2026, 11, 6))
+    again = check_price_files(conn, "NV", cut_off, tmp_path / "w2a", today=date(2026, 11, 6))
     assert calls[0] == slow_url  # first in line, with the whole run
+    assert "the next run starts with it" in str(again.summary["stopped_early"])
+    calls.clear()
+    two = check_price_files(conn, "NV", cut_off, tmp_path / "w2", today=date(2026, 11, 6))
+    assert calls[0] == slow_url  # first again (second try)
     assert two.summary["too_slow_for_a_run"] == 1
     assert "stopped_early" in two.summary  # the rest of the state gets the next run
     calls.clear()
     three = check_price_files(conn, "NV", copy, tmp_path / "w3", today=date(2026, 11, 6))
     assert calls[-1] == slow_url  # tried, not skipped, after everything else
     assert "stopped_early" not in three.summary
+    assert pf_slow_urls_after_success(conn, slow_url) == 0  # read: its count starts over
+
+
+def test_a_broken_csv_keeps_the_rows_before_the_break() -> None:
+    """Community Surgery Center South (2026-11-24): an unclosed quote after 2.2
+    million good rows made one huge "cell", and the whole file was thrown out.
+    The rows before the break are read; the break is reported."""
+    import csv as csv_mod
+    import io
+
+    from procedurescout_ingest.price_parser import RejectedRow, parse_csv
+
+    head = TALL.read_bytes()
+    old = csv_mod.field_size_limit(5000)
+    try:
+        out = list(parse_csv(io.BytesIO(head + b'"' + b"x" * 20000 + b"\n")))
+    finally:
+        csv_mod.field_size_limit(old)
+    rejects = [r for r in out if isinstance(r, RejectedRow)]
+    assert rejects and rejects[-1].rule == "broken_file"
+    assert len(out) > 1  # the good rows before the break were read

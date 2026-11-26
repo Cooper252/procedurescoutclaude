@@ -130,6 +130,14 @@ def open_raw(path: Path) -> IO[bytes]:
     return path.open("rb")
 
 
+# Files that didn't finish in an earlier run (slow_tries, 0032) go first and
+# may download for longer: the run's own deadline still applies (Community
+# Hospital East, 2026-11-25: 7.8 GB, still downloading after 60 minutes)
+SLOW_FILE_DOWNLOAD_SECONDS = 120 * 60
+SLOW_URLS: set[str] = set()
+SLOW_FIRST_TRIES = 2  # runs a slow file goes first before it moves to the end
+
+
 def http_downloader(
     client: httpx.Client,
     max_bytes: int = DEFAULT_MAX_BYTES,
@@ -164,13 +172,14 @@ def http_downloader(
                             return Download(
                                 **base, error="the run's time ran out; the next run tries again"
                             )
-                        if time.monotonic_ns() - started > max_seconds * 10**9:
+                        limit = SLOW_FILE_DOWNLOAD_SECONDS if url in SLOW_URLS else max_seconds
+                        if time.monotonic_ns() - started > limit * 10**9:
                             # a slow server must not hold the whole run (2026-11-12)
                             out.close()
                             dest.unlink(missing_ok=True)
                             return Download(
                                 **base,
-                                error=f"took longer than {max_seconds // 60} minutes; stopped",
+                                error=f"took longer than {limit // 60} minutes; stopped",
                             )
                         n += len(chunk)
                         if n > max_bytes:
@@ -942,10 +951,12 @@ def check_price_files(
             {"ids": [c.source_id for c in chosen]},
         ).all()
     }
+    SLOW_URLS.clear()
+    SLOW_URLS.update(c.url for c in chosen if c.source_id in tries)
     chosen = (
-        [c for c in chosen if tries.get(c.source_id) == 1]
+        [c for c in chosen if 1 <= tries.get(c.source_id, 0) <= SLOW_FIRST_TRIES]
         + [c for c in chosen if c.source_id not in tries]
-        + [c for c in chosen if tries.get(c.source_id, 0) >= 2]
+        + [c for c in chosen if tries.get(c.source_id, 0) > SLOW_FIRST_TRIES]
     )
     failures_in_a_row = 0
     for c in chosen:
@@ -1008,8 +1019,10 @@ def check_price_files(
                 Severity.WARNING,
             )
             pos = chosen.index(c)
-            others_left = [x for x in chosen[pos + 1 :] if tries.get(x.source_id, 0) < 2]
-            if tries.get(c.source_id, 0) >= 1:
+            others_left = [
+                x for x in chosen[pos + 1 :] if tries.get(x.source_id, 0) <= SLOW_FIRST_TRIES
+            ]
+            if tries.get(c.source_id, 0) >= SLOW_FIRST_TRIES:
                 # cut off even when started first: it goes last from now on and
                 # needs downloading from Cooper's computer
                 stats.count("too_slow_for_a_run")

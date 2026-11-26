@@ -446,7 +446,18 @@ def _csv_rows(stream: IO[bytes]) -> Iterator[tuple[list[str], bool]]:
         errors="surrogateescape",
         newline="",
     )
-    for row in csv.reader(wrapper):
+    reader = csv.reader(wrapper)
+    while True:
+        try:
+            row = next(reader)
+        except StopIteration:
+            return
+        except csv.Error as exc:
+            # the file breaks here (Community Surgery Center South, 2026-11-24: an
+            # unclosed quote after 2.2 million good rows made one 16 MB "cell"):
+            # the rows before it are kept, the rest can't be read reliably
+            yield [_BROKEN, str(exc)], False
+            return
         fixed = False
         out = []
         for cell in row:
@@ -454,6 +465,9 @@ def _csv_rows(stream: IO[bytes]) -> Iterator[tuple[list[str], bool]]:
             fixed = fixed or changed
             out.append(value)
         yield out, fixed
+
+
+_BROKEN = "\x00broken file"
 
 
 _ALLOWED_PREFIX = {
@@ -520,6 +534,13 @@ def parse_csv(stream: IO[bytes]) -> Iterator[ParsedPrice | RejectedRow]:
         if not any(c.strip() for c in row):
             continue
         ref = f"line {line}"
+        if row and row[0] == _BROKEN:
+            yield RejectedRow(
+                ref,
+                "broken_file",
+                f"the file can't be read past this line ({row[1]}); the lines before it were read",
+            )
+            return
         # A row with values past the last column was split somewhere it
         # shouldn't have been (an unquoted comma in a description): every
         # value after that point is in the wrong column, so the row is refused
