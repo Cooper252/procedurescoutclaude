@@ -106,6 +106,32 @@ def with_home_copies(primary: Downloader, store: ObjectStore) -> Downloader:
     return download
 
 
+def mark_from_recent_reports(conn: Connection) -> int:
+    """Links the last runs' reports show as refused to GitHub (403 and similar,
+    or the connection cut), in every state, so Cooper's computer doesn't wait
+    for each state's next run to find them (2026-11-26)."""
+    result = conn.execute(
+        text(
+            r"""
+            UPDATE src.transparency_source s SET blocked_at = now()
+            FROM (
+                SELECT DISTINCT split_part(r.message, ' | ', 2) AS url
+                FROM src.reference_reject r
+                JOIN src.reference_load l ON l.id = r.load_id
+                WHERE l.dataset = 'price_file_check' AND r.rule = 'download_failed'
+                  AND l.started_at > now() - make_interval(days => :d)
+                  AND (r.message ~ '\(status (401|403|406|429|451)\)$'
+                       OR (r.message ~ '\(status None\)$' AND r.message ~*
+                           '(reset|ssl|certificate|connecterror|remoteprotocolerror|timeout)'))
+            ) x
+            WHERE s.url = x.url AND s.blocked_at IS NULL
+            """
+        ),
+        {"d": BLOCKED_DAYS},
+    )
+    return int(result.rowcount or 0)
+
+
 def wanted(conn: Connection) -> list[tuple[str, str, str, int | None]]:
     """Links refused to GitHub lately: (url, hospital, state, reported size)."""
     rows = conn.execute(
@@ -140,6 +166,7 @@ def run_home_downloads(
     started = time.monotonic()
     workdir.mkdir(parents=True, exist_ok=True)
     now = datetime.now(UTC)
+    stats.summary["marked_from_reports"] = mark_from_recent_reports(conn)
     for url, name, state, size in wanted(conn):
         stats.rows_in += 1
         if seconds is not None and time.monotonic() - started > seconds:

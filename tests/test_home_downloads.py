@@ -91,3 +91,38 @@ def test_no_download_without_room_on_the_computer(conn: Connection, tmp_path: Pa
         free_bytes=lambda _p: 5 * 10**9,  # under the 10 GB always left free
     )
     assert calls == [] and stats.summary["skipped_not_enough_space"] >= 1
+
+
+def test_links_refused_in_recent_reports_are_marked_in_every_state(
+    conn: Connection, tmp_path: Path
+) -> None:
+    """2026-11-26: the computer shouldn't wait for each state's next run to
+    learn which hospitals refuse GitHub; the last runs' reports say so."""
+    from procedurescout_ingest.home_downloads import mark_from_recent_reports
+
+    _two_hospitals(conn)
+    load = conn.execute(
+        text(
+            "INSERT INTO src.reference_load (dataset, source_file, status, finished_at) "
+            "VALUES ('price_file_check', 'test', 'succeeded', now()) RETURNING id"
+        )
+    ).scalar_one()
+    rows = [
+        f"VALLEY | {URL} | HTTP error (status 403)",
+        f"SHARED | {SITE}/mrf/shared.json | HTTP error (status 404)",  # broken link, not refused
+    ]
+    for m in rows:
+        conn.execute(
+            text(
+                "INSERT INTO src.reference_reject (load_id, row_ref, severity, rule, message) "
+                "VALUES (:l, 'ccn:x', 'warning', 'download_failed', :m)"
+            ),
+            {"l": load, "m": m},
+        )
+    assert mark_from_recent_reports(conn) == 1
+    marked = (
+        conn.execute(text("SELECT url FROM src.transparency_source WHERE blocked_at IS NOT NULL"))
+        .scalars()
+        .all()
+    )
+    assert URL in marked and f"{SITE}/mrf/shared.json" not in marked

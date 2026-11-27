@@ -16,9 +16,9 @@ Approved by Cooper today: (1) the database cleanup, (2) using his computer for h
 
 - **Housekeeping (D-073):** `cleanup.clean_up`, run by `prune-published` at the end of every load (3 minutes at most; code index now 9). Test: `test_cleanup_removes_replaced_files_bookkeeping_only_when_safe`.
 - **Downloads on Cooper's computer (D-072):** links refused to GitHub are marked (migration `0033_blocked_sources.py`); `home_downloads.run_home_downloads` (CLI `home-downloads`) runs on his computer from `.github/workflows/home-downloads.yml` (a protected workflow file: Cooper copies it in) and never keeps a file there or lets the disk go under 10 GB free; the load uses the copies (`home_downloads.with_home_copies`). Tests: `test_what_counts_as_refused_to_github`, `test_refused_links_are_downloaded_at_home_and_used_by_the_load`, `test_no_download_without_room_on_the_computer`.
-- Links are marked from the next state run onward, so the computer's first runs will have little to do until the blocked states run again.
+- Links refused to GitHub in the last 60 days' reports, in every state, are marked when the computer's job starts (`home_downloads.mark_from_recent_reports`, test `test_links_refused_in_recent_reports_are_marked_in_every_state`), so it doesn't wait for each state's next run. The job's first run stalled in `actions/setup-python` (its installer); `home-downloads.yml` now unzips a portable Python (NuGet `python` 3.12.10) into the runner folder instead.
 
-`make check`: `460 passed, 1 skipped`.
+`make check`: `461 passed, 1 skipped`.
 
 ## 2026-11-26 — Indiana: every file tried; the 7.8 GB file gets a longer download; a broken file keeps its good rows
 
